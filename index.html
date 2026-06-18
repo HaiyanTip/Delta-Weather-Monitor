@@ -3,178 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cauvery Delta Rainfall Map</title>
+    <title>Cauvery Delta Rainfall Matrix Map</title>
     
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- PapaParse to read local dataset -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        html, body, #map {
+            height: 100%;
+            width: 100%;
             margin: 0;
             padding: 0;
-            background-color: #f4f7f6;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
-        .header {
-            text-align: center;
+        
+        /* Custom Floating Legend UI */
+        .legend-panel {
+            position: fixed;
+            bottom: 30px;
+            left: 20px;
+            width: 260px;
+            background: white;
             padding: 15px;
-            background-color: #2c3e50;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #e0e0e0;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        .header p {
-            margin: 5px 0 0 0;
-            font-size: 14px;
-            color: #bdc3c7;
-        }
-        /* Make the map take up the full screen height below the header */
-        #map {
-            height: calc(100vh - 80px);
-            width: 100%;
-        }
-        .custom-popup .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
-        }
-        .popup-title {
-            font-size: 16px;
+        .legend-title {
             font-weight: bold;
-            color: #2980b9;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-        }
-        .popup-data {
             font-size: 14px;
-            margin: 4px 0;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .legend-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .legend-footer {
+            font-size: 11px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+            margin-top: 10px;
+            padding-top: 8px;
+        }
+
+        /* Beautiful Popup Styling */
+        .matrix-popup {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            min-width: 240px;
+            line-height: 1.6;
+        }
+        .popup-header {
+            font-size: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .popup-sub {
+            color: #7f8c8d;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .popup-table tr.total-row {
+            background: #f0f4f8;
+            font-weight: bold;
+            border-top: 1px solid #d0d7de;
+            border-bottom: 1px solid #d0d7de;
+        }
+        .popup-table td {
+            padding: 4px 6px;
+        }
+        .popup-table td.val {
+            text-align: right;
+        }
+        .popup-coords {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #bdc3c7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Cauvery Delta Rainfall Map</h1>
-        <p id="date-display">Loading Map Data...</p>
-    </div>
-
+    <!-- Leaflet Map viewport -->
     <div id="map"></div>
 
-    <script>
-        // 1. Initialize the Map centered roughly over the Thanjavur/Delta region
-        const map = L.map('map').setView([10.78, 79.13], 9);
+    <!-- Floating Legend Viewport Panel matching image_f22c21.jpg -->
+    <div class="legend-panel">
+        <div class="legend-title" id="legend-date-title">Annual Rainfall — Jan to Jun 17, 2026</div>
+        <div class="legend-row"><span class="color-dot" style="background:#888888;"></span>&lt; 50 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#27ae60;"></span>50 – 150 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#2980b9;"></span>150 – 300 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#e67e22;"></span>300 – 500 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#c0392b;"></span>500 – 800 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#8e44ad;"></span>&gt; 800 mm</div>
+        <div class="legend-footer">
+            Circle size: <b>small</b> = individual gauge station<br>
+            Colors match compiled total accumulations.
+        </div>
+    </div>
 
-        // Add OpenStreetMap base tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '© OpenStreetMap contributors'
+    <script>
+        // 1. Initialize map view frame over Delta coordinate center
+        const map = L.map('map', {
+            center: [10.80, 79.35],
+            zoom: 9.5,
+            zoomControl: true
+        });
+
+        // 2. Load the clean grayscale minimalist tile base map layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
-        // 2. Fetch and Parse the CSV File
-        const CSV_FILE_URL = 'thanjavur_stations_rainfall_2026.csv';
+        // 3. Request data timeline array parsing
+        const DATA_SOURCE = 'thanjavur_stations_rainfall_2026.csv';
 
-        Papa.parse(CSV_FILE_URL, {
+        Papa.parse(DATA_SOURCE, {
             download: true,
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
-                const data = results.data;
-                processMapData(data);
-            },
-            error: function(err) {
-                document.getElementById('date-display').innerText = "Error loading data file.";
-                console.error("CSV Parse Error:", err);
+                renderWeatherMatrix(results.data);
             }
         });
 
-        function processMapData(data) {
-            // Find the most recent date to represent "Today"
-            // Note: In Javascript, sorting date strings DD-MM-YYYY requires custom logic, 
-            // but we can just grab the date from the very last row of the file!
+        function renderWeatherMatrix(data) {
             const latestDate = data[data.length - 1].Date;
-            document.getElementById('date-display').innerText = `Data Updated: ${latestDate}`;
+            document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
 
-            // We need to group the 20,000 rows by Station Name to calculate totals
-            const stationTracker = {};
+            const matrixMap = {};
 
             data.forEach(row => {
-                const stationName = row.Station_Name;
-                const lat = parseFloat(row.Latitude);
-                const lon = parseFloat(row.Longitude);
-                
-                // Convert rainfall to a valid number (treating blanks/text as 0)
-                let rainValue = parseFloat(row.Rainfall_mm);
-                if (isNaN(rainValue)) rainValue = 0;
+                const name = row.Station_Name;
+                if (!name) return;
 
-                // If station is not in tracker, add it
-                if (!stationTracker[stationName] && !isNaN(lat) && !isNaN(lon)) {
-                    stationTracker[stationName] = {
-                        name: stationName,
-                        lat: lat,
-                        lon: lon,
-                        district: row.Location_Details.split(' ')[0], // Rough extraction of District name
-                        cumulativeTotal: 0,
-                        todayRainfall: 0
+                // Initialize station metrics dictionary structural grouping
+                if (!matrixMap[name]) {
+                    matrixMap[name] = {
+                        name: name,
+                        lat: parseFloat(row.Latitude),
+                        lon: parseFloat(row.Longitude),
+                        hierarchy: row.Location_Details || "Cauvery Delta Region",
+                        annualTotal: 0.0,
+                        winterTotal: 0.0,
+                        summerTotal: 0.0,
+                        swmTotal: 0.0,
+                        todayVal: 0.0
                     };
                 }
 
-                if (stationTracker[stationName]) {
-                    // Add to cumulative total
-                    stationTracker[stationName].cumulativeTotal += rainValue;
-                    
-                    // If this row is today's date, record it as today's rain
-                    if (row.Date === latestDate) {
-                        stationTracker[stationName].todayRainfall = rainValue;
-                    }
+                let mm = parseFloat(row.Rainfall_mm);
+                if (isNaN(mm)) mm = 0.0;
+
+                const station = matrixMap[name];
+                station.annualTotal += mm;
+
+                // Parse standard date text index flags (DD-MM-YYYY) to isolate seasonal clusters
+                const dateParts = row.Date.split('-');
+                if (dateParts.length === 3) {
+                    const month = dateParts[1]; 
+                    if (month === "01" || month === "02") station.winterTotal += mm;
+                    else if (month === "03" || month === "04" || month === "05") station.summerTotal += mm;
+                    else if (month === "06") station.swmTotal += mm;
+                }
+
+                // If processing the active maximum date index row
+                if (row.Date === latestDate) {
+                    station.todayVal = mm;
                 }
             });
 
-            // 3. Add Station Markers to the Map
-            for (let key in stationTracker) {
-                const station = stationTracker[key];
-                
-                // Determine Circle Color based on TODAY'S Rainfall
-                let circleColor = "#95a5a6"; // Default Grey (No Rain)
-                let circleRadius = 6;
-                let fillOpacity = 0.6;
+            // 4. Trace calculated stations mapping arrays onto spatial field
+            for (let id in matrixMap) {
+                const st = matrixMap[id];
+                if (isNaN(st.lat) || !st.lat) continue;
 
-                if (station.todayRainfall > 0 && station.todayRainfall <= 10) {
-                    circleColor = "#3498db"; // Light Blue (Light rain)
-                    circleRadius = 8;
-                    fillOpacity = 0.8;
-                } else if (station.todayRainfall > 10 && station.todayRainfall <= 30) {
-                    circleColor = "#f39c12"; // Orange (Moderate Rain)
-                    circleRadius = 10;
-                    fillOpacity = 0.9;
-                } else if (station.todayRainfall > 30) {
-                    circleColor = "#e74c3c"; // Red (Heavy Rain)
-                    circleRadius = 14;
-                    fillOpacity = 1.0;
-                }
+                // Match specific HEX color codes based on cumulative scale index tiering
+                let markerColor = "#888888";
+                if (st.annualTotal >= 50 && st.annualTotal < 150) markerColor = "#27ae60";
+                else if (st.annualTotal >= 150 && st.annualTotal < 300) markerColor = "#2980b9";
+                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#e67e22";
+                else if (st.annualTotal >= 500 && st.annualTotal < 800) markerColor = "#c0392b";
+                else if (st.annualTotal >= 800) markerColor = "#8e44ad";
 
-                // Create the Map Marker
-                const marker = L.circleMarker([station.lat, station.lon], {
-                    radius: circleRadius,
-                    fillColor: circleColor,
-                    color: "#000",
-                    weight: 1,
+                const circle = L.circleMarker([st.lat, st.lon], {
+                    radius: 7,
+                    fillColor: markerColor,
+                    color: "white",
+                    weight: 1.5,
                     opacity: 1,
-                    fillOpacity: fillOpacity
+                    fillOpacity: 0.85
                 }).addTo(map);
 
-                // Build the Popup HTML (Exactly the format you wanted)
+                // Elegant layout matching the target popup interface text alignments
                 const popupContent = `
-                    <div class="popup-title">${station.name}</div>
-                    <div class="popup-data">🌧️ <strong>Today:</strong> ${station.todayRainfall.toFixed(1)} mm</div>
-                    <div class="popup-data">📊 <strong>2026 Total:</strong> ${station.cumulativeTotal.toFixed(1)} mm</div>
+                    <div class="matrix-popup">
+                        <div class="popup-header">${st.name}</div>
+                        <div class="popup-sub">${st.hierarchy}</div>
+                        <table class="popup-table">
+                            <tr><td>🌧️ Today's Rainfall</td><td class="val"><b>${st.todayVal.toFixed(1)} mm</b></td></tr>
+                            <tr class="total-row"><td>Annual total (Jan–${latestDate.split('-')[1] === '06' ? 'Jun' : 'Date'} ${parseInt(latestDate.split('-')[0])})</td><td class="val">${st.annualTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>❄️ Winter (Jan–Feb)</td><td class="val">${st.winterTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>☀️ Summer (Mar–May)</td><td class="val">${st.summerTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>☁️ SWM Jun (so far)</td><td class="val">${st.swmTotal.toFixed(1)} mm</td></tr>
+                        </table>
+                        <div class="popup-coords">Location: ${st.lat.toFixed(4)}°N, ${st.lon.toFixed(4)}°E</div>
+                    </div>
                 `;
 
-                marker.bindPopup(popupContent, { className: 'custom-popup' });
+                circle.bindPopup(popupContent, { maxWidth: 290 });
+                
+                // Light text hover tag matching interface tracking styles
+                circle.bindTooltip(`<b>${st.name}</b><br>Total: ${st.annualTotal.toFixed(1)} mm`, { sticky: true });
             }
         }
     </script>
