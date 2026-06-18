@@ -113,14 +113,14 @@
     <div id="map"></div>
 
     <!-- Floating Legend Viewport Panel matching image_f22c21.jpg -->
-    <div class="legend-panel">
+   <div class="legend-panel">
         <div class="legend-title" id="legend-date-title">Annual Rainfall — Jan to Jun 17, 2026</div>
         <div class="legend-row"><span class="color-dot" style="background:#888888;"></span>&lt; 50 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#27ae60;"></span>50 – 150 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#2980b9;"></span>150 – 300 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#2ecc71;"></span>50 – 100 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#3498db;"></span>100 – 200 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#f1c40f;"></span>200 – 300 mm</div>
         <div class="legend-row"><span class="color-dot" style="background:#e67e22;"></span>300 – 500 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#c0392b;"></span>500 – 800 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#8e44ad;"></span>&gt; 800 mm</div>
+        <div class="legend-row"><span class="color-dot" style="background:#e74c3c;"></span>&gt; 500 mm</div>
         <div class="legend-footer">
             Circle size: <b>small</b> = individual gauge station<br>
             Colors match compiled total accumulations.
@@ -251,12 +251,20 @@
                 if (isNaN(st.lat) || !st.lat) continue;
 
                 // Match specific HEX color codes based on cumulative scale index tiering
-                let markerColor = "#888888";
+                // Match specific HEX color codes based on new cumulative scale tiers
+                let markerColor = "#888888"; // default for < 50 mm
+                if (st.annualTotal >= 50 && st.annualTotal < 100) markerColor = "#2ecc71";
+                else if (st.annualTotal >= 100 && st.annualTotal < 200) markerColor = "#3498db";
+                else if (st.annualTotal >= 200 && st.annualTotal < 300) markerColor = "#f1c40f";
+                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#e67e22";
+                else if (st.annualTotal >= 500) markerColor = "#e74c3c";
+
+               /* let markerColor = "#888888";
                 if (st.annualTotal >= 50 && st.annualTotal < 150) markerColor = "#27ae60";
                 else if (st.annualTotal >= 150 && st.annualTotal < 300) markerColor = "#2980b9";
                 else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#e67e22";
                 else if (st.annualTotal >= 500 && st.annualTotal < 800) markerColor = "#c0392b";
-                else if (st.annualTotal >= 800) markerColor = "#8e44ad";
+                else if (st.annualTotal >= 800) markerColor = "#8e44ad"; */
 
                 const circle = L.circleMarker([st.lat, st.lon], {
                     radius: 7,
