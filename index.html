@@ -157,8 +157,53 @@
         function renderWeatherMatrix(data) {
             const latestDate = data[data.length - 1].Date;
             document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
+             const matrixMap = {};
 
-            const matrixMap = {};
+            data.forEach(row => {
+                const name = row.Station_Name;
+                const locationDetails = row.Location_Details || "Unknown";
+                
+                if (!name) return;
+
+                // THE FIX: Create a Unique ID combining Name and Location to separate duplicates
+                const uniqueID = name + "_" + locationDetails;
+
+                // Initialize station metrics dictionary using the uniqueID
+                if (!matrixMap[uniqueID]) {
+                    matrixMap[uniqueID] = {
+                        name: name, // We still keep the clean name for the popup!
+                        lat: parseFloat(row.Latitude),
+                        lon: parseFloat(row.Longitude),
+                        hierarchy: locationDetails,
+                        annualTotal: 0.0,
+                        winterTotal: 0.0,
+                        summerTotal: 0.0,
+                        swmTotal: 0.0,
+                        todayVal: 0.0
+                    };
+                }
+
+                let mm = parseFloat(row.Rainfall_mm);
+                if (isNaN(mm)) mm = 0.0;
+
+                const station = matrixMap[uniqueID];
+                station.annualTotal += mm;
+
+                // Parse standard date text index flags (DD-MM-YYYY) to isolate seasonal clusters
+                const dateParts = row.Date.split('-');
+                if (dateParts.length === 3) {
+                    const month = dateParts[1]; 
+                    if (month === "01" || month === "02") station.winterTotal += mm;
+                    else if (month === "03" || month === "04" || month === "05") station.summerTotal += mm;
+                    else if (month === "06") station.swmTotal += mm;
+                }
+
+                // If processing the active maximum date index row
+                if (row.Date === latestDate) {
+                    station.todayVal = mm;
+                }
+            }); 
+            /*const matrixMap = {};
 
             data.forEach(row => {
                 const name = row.Station_Name;
@@ -198,7 +243,7 @@
                 if (row.Date === latestDate) {
                     station.todayVal = mm;
                 }
-            });
+            });*/
 
             // 4. Trace calculated stations mapping arrays onto spatial field
             for (let id in matrixMap) {
