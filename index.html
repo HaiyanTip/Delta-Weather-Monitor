@@ -3,200 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cauvery Delta Rainfall Tracker</title>
+    <title>Cauvery Delta Rainfall Map</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
             background-color: #f4f7f6;
-            color: #333;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
         }
         .header {
             text-align: center;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #2c3e50;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
         }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #bdc3c7;
         }
-        table {
+        /* Make the map take up the full screen height below the header */
+        #map {
+            height: calc(100vh - 80px);
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
         }
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
         }
-        th {
-            background-color: #f8f9fa;
-            color: #2c3e50;
-        }
-        .heavy-rain {
-            color: #e74c3c;
+        .popup-title {
+            font-size: 16px;
             font-weight: bold;
+            color: #2980b9;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
         }
-        .no-rain {
-            color: #95a5a6;
+        .popup-data {
+            font-size: 14px;
+            margin: 4px 0;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>Cauvery Delta Rainfall Tracker</h1>
-        <p id="date-display">Loading latest data...</p>
+        <h1>Cauvery Delta Rainfall Map</h1>
+        <p id="date-display">Loading Map Data...</p>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>Daily Overview (Latest Record)</h3>
-            <canvas id="rainfallChart" height="100"></canvas>
-        </div>
-
-        <div class="card">
-            <h3>Station Details</h3>
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th>Station Name</th>
-                        <th>Rainfall (mm)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
-        </div>
-    </div>
+    <div id="map"></div>
 
     <script>
-        // The exact name of the CSV file your Python script outputs
-        const CSV_FILE_URL = 'thanjavur_stations_rainfall_2026.csv';
-        let rainfallChart = null;
+        // 1. Initialize the Map centered roughly over the Thanjavur/Delta region
+        const map = L.map('map').setView([10.78, 79.13], 9);
 
-        // Step 1: Tell PapaParse to fetch and read the CSV
+        // Add OpenStreetMap base tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 2. Fetch and Parse the CSV File
+        const CSV_FILE_URL = 'thanjavur_stations_rainfall_2026.csv';
+
         Papa.parse(CSV_FILE_URL, {
             download: true,
             header: true,
-            dynamicTyping: true, // Automatically converts numbers
+            skipEmptyLines: true,
             complete: function(results) {
                 const data = results.data;
-                processData(data);
+                processMapData(data);
             },
             error: function(err) {
-                document.getElementById('date-display').innerText = "Error loading data file. Make sure the CSV is uploaded!";
-                console.error(err);
+                document.getElementById('date-display').innerText = "Error loading data file.";
+                console.error("CSV Parse Error:", err);
             }
         });
 
-        // Step 2: Process the raw CSV data
-        function processData(data) {
-            // Filter out empty rows generated by trailing commas
-            const validData = data.filter(row => row.Date && row.Station_Name);
-            
-            if (validData.length === 0) return;
+        function processMapData(data) {
+            // Find the most recent date to represent "Today"
+            // Note: In Javascript, sorting date strings DD-MM-YYYY requires custom logic, 
+            // but we can just grab the date from the very last row of the file!
+            const latestDate = data[data.length - 1].Date;
+            document.getElementById('date-display').innerText = `Data Updated: ${latestDate}`;
 
-            // Find the most recent date in the file
-            const allDates = [...new Set(validData.map(item => item.Date))].sort();
-            const latestDate = allDates[allDates.length - 1];
-
-            // Update the header text
-            document.getElementById('date-display').innerText = `Data for: ${latestDate}`;
-
-            // Filter data to only show the latest day's numbers
-            let latestData = validData.filter(row => row.Date === latestDate);
-
-            // Sort stations by highest rainfall first
-            latestData.sort((a, b) => b.Rainfall_mm - a.Rainfall_mm);
-
-            // Step 3: Draw the UI
-            buildTable(latestData);
-            buildChart(latestData);
-        }
-
-        // Step 3A: Build the HTML Table
-        function buildTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; // Clear loading text
+            // We need to group the 20,000 rows by Station Name to calculate totals
+            const stationTracker = {};
 
             data.forEach(row => {
-                const tr = document.createElement('tr');
+                const stationName = row.Station_Name;
+                const lat = parseFloat(row.Latitude);
+                const lon = parseFloat(row.Longitude);
                 
-                // Add color coding based on rainfall amount
-                let rainClass = '';
-                if (row.Rainfall_mm > 20) rainClass = 'heavy-rain';
-                else if (row.Rainfall_mm === 0) rainClass = 'no-rain';
+                // Convert rainfall to a valid number (treating blanks/text as 0)
+                let rainValue = parseFloat(row.Rainfall_mm);
+                if (isNaN(rainValue)) rainValue = 0;
 
-                tr.innerHTML = `
-                    <td><strong>${row.Station_Name}</strong></td>
-                    <td class="${rainClass}">${row.Rainfall_mm.toFixed(1)} mm</td>
-                    <td>${row.Status}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+                // If station is not in tracker, add it
+                if (!stationTracker[stationName] && !isNaN(lat) && !isNaN(lon)) {
+                    stationTracker[stationName] = {
+                        name: stationName,
+                        lat: lat,
+                        lon: lon,
+                        district: row.Location_Details.split(' ')[0], // Rough extraction of District name
+                        cumulativeTotal: 0,
+                        todayRainfall: 0
+                    };
+                }
 
-        // Step 3B: Build the interactive Bar Chart
-        function buildChart(data) {
-            const ctx = document.getElementById('rainfallChart').getContext('2d');
-            
-            // Extract arrays for the chart axes
-            const labels = data.map(row => row.Station_Name);
-            const values = data.map(row => row.Rainfall_mm);
-
-            // Destroy old chart if it exists (useful for when we add a date-picker later)
-            if (rainfallChart) {
-                rainfallChart.destroy();
-            }
-
-            rainfallChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Rainfall (mm)',
-                        data: values,
-                        backgroundColor: '#3498db',
-                        borderColor: '#2980b9',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Millimeters (mm)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
+                if (stationTracker[stationName]) {
+                    // Add to cumulative total
+                    stationTracker[stationName].cumulativeTotal += rainValue;
+                    
+                    // If this row is today's date, record it as today's rain
+                    if (row.Date === latestDate) {
+                        stationTracker[stationName].todayRainfall = rainValue;
                     }
                 }
             });
+
+            // 3. Add Station Markers to the Map
+            for (let key in stationTracker) {
+                const station = stationTracker[key];
+                
+                // Determine Circle Color based on TODAY'S Rainfall
+                let circleColor = "#95a5a6"; // Default Grey (No Rain)
+                let circleRadius = 6;
+                let fillOpacity = 0.6;
+
+                if (station.todayRainfall > 0 && station.todayRainfall <= 10) {
+                    circleColor = "#3498db"; // Light Blue (Light rain)
+                    circleRadius = 8;
+                    fillOpacity = 0.8;
+                } else if (station.todayRainfall > 10 && station.todayRainfall <= 30) {
+                    circleColor = "#f39c12"; // Orange (Moderate Rain)
+                    circleRadius = 10;
+                    fillOpacity = 0.9;
+                } else if (station.todayRainfall > 30) {
+                    circleColor = "#e74c3c"; // Red (Heavy Rain)
+                    circleRadius = 14;
+                    fillOpacity = 1.0;
+                }
+
+                // Create the Map Marker
+                const marker = L.circleMarker([station.lat, station.lon], {
+                    radius: circleRadius,
+                    fillColor: circleColor,
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: fillOpacity
+                }).addTo(map);
+
+                // Build the Popup HTML (Exactly the format you wanted)
+                const popupContent = `
+                    <div class="popup-title">${station.name}</div>
+                    <div class="popup-data">🌧️ <strong>Today:</strong> ${station.todayRainfall.toFixed(1)} mm</div>
+                    <div class="popup-data">📊 <strong>2026 Total:</strong> ${station.cumulativeTotal.toFixed(1)} mm</div>
+                `;
+
+                marker.bindPopup(popupContent, { className: 'custom-popup' });
+            }
         }
     </script>
 </body>
