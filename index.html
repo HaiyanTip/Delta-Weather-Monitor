@@ -64,24 +64,29 @@
             cursor: pointer;
         }
 
-        .legend-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .color-dot {
-            width: 12px;
+        /* NEW: Horizontal Color Bar Gradient */
+        .color-scale-bar {
             height: 12px;
-            border-radius: 50%;
-            margin-right: 10px;
-            display: inline-block;
-            flex-shrink: 0;
+            width: 100%;
+            background: linear-gradient(to right, #e0e0e0, #81d4fa, #03a9f4, #2ecc71, #f1c40f, #e67e22, #e74c3c, #8e44ad);
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 6px;
+            border: 1px solid #ccc;
         }
+        .color-scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+
         .legend-footer {
             font-size: 11px;
             color: #7f8c8d;
             border-top: 1px solid #eee;
-            margin-top: 10px;
+            margin-top: 12px;
             padding-top: 8px;
         }
 
@@ -142,12 +147,15 @@
             <label><input type="radio" name="viewMode" value="district"> 🟢 District Averages</label>
         </div>
 
-        <div class="legend-row"><span class="color-dot" style="background:#888888;"></span>&lt; 50 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#2ecc71;"></span>50 – 100 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#3498db;"></span>100 – 200 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#f1c40f;"></span>200 – 300 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#e67e22;"></span>300 – 500 mm</div>
-        <div class="legend-row"><span class="color-dot" style="background:#e74c3c;"></span>&gt; 500 mm</div>
+        <div class="color-scale-bar"></div>
+        <div class="color-scale-labels">
+            <span>0</span>
+            <span>500</span>
+            <span>1000</span>
+            <span>1500</span>
+            <span>2000+</span>
+        </div>
+
         <div class="legend-footer">
             Colors match total accumulations.<br>Regional views show the <b>Average</b> of all stations.
         </div>
@@ -185,7 +193,11 @@
         });
 
         const DATA_SOURCE = 'thanjavur_stations_rainfall_2026.csv';
-        const districtKeywords = ["Ariyalur", "Pudukkottai", "Trichy", "Tiruchirappalli", "Thanjavur", "Thiruvarur", "Nagapattinam", "Nagai", "Mayiladuthurai"];
+        const districtKeywords = [
+            "Ariyalur", "Pudukkottai", "Trichy", "Tiruchirappalli", "Thanjavur", 
+            "Thiruvarur", "Nagapattinam", "Nagai", "Mayiladuthurai",
+            "Chennai", "Coimbatore", "Madurai", "Salem", "Tirunelveli", "Vellore"
+        ];
 
         Papa.parse(DATA_SOURCE, {
             download: true,
@@ -209,19 +221,27 @@
             return "Other";
         }
 
+        // NEW: Extended Color Range Mapping up to 2000+
         function getColor(value) {
-            if (value < 50) return "#888888";
-            if (value >= 50 && value < 100) return "#2ecc71";
-            if (value >= 100 && value < 200) return "#3498db";
-            if (value >= 200 && value < 300) return "#f1c40f";
-            if (value >= 300 && value < 500) return "#e67e22";
-            return "#e74c3c";
+            if (value < 100) return "#e0e0e0";  // Grey
+            if (value < 200) return "#b3e5fc";  // V. Light Blue
+            if (value < 300) return "#81d4fa";  // Light Blue
+            if (value < 400) return "#4fc3f7";  // Blue
+            if (value < 500) return "#29b6f6";
+            if (value < 600) return "#03a9f4";
+            if (value < 800) return "#0288d1";  // Dark Blue
+            if (value < 1000) return "#2ecc71"; // Green
+            if (value < 1200) return "#f1c40f"; // Yellow
+            if (value < 1400) return "#f39c12"; // Dark Yellow
+            if (value < 1600) return "#e67e22"; // Orange
+            if (value < 1800) return "#d35400"; // Dark Orange
+            if (value < 2000) return "#e74c3c"; // Red
+            return "#8e44ad";                   // Purple
         }
 
         function renderWeatherMatrix(data) {
             if (!data || data.length === 0) return;
             
-            // Safe extraction of the latest date
             let latestDate = "-";
             for (let i = data.length - 1; i >= 0; i--) {
                 if (data[i].Date) {
@@ -240,7 +260,6 @@
                 const loc = row.Location_Details || "Unknown";
                 if (!name) return;
 
-                // Unique ID to separate duplicate names like Papanasam
                 const uniqueID = name + "_" + loc;
 
                 if (!stationMap[uniqueID]) {
@@ -272,13 +291,11 @@
                 const st = stationMap[uniqueID];
                 st.annualTotal += mm;
 
-                // Track Extremes
                 if (mm > st.highestRain) {
                     st.highestRain = mm;
                     st.highestDate = row.Date;
                 }
 
-                // 6-Tier IMD Classifications
                 if (mm > 0) {
                     if (mm <= 2.4) st.veryLightDays++;
                     else if (mm <= 15.5) st.lightDays++;
