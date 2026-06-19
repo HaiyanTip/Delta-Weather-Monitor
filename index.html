@@ -154,173 +154,149 @@
             }
         });
 // function of renderWeather Data Starts
-       function renderWeatherMatrix(data) {
+        function renderWeatherMatrix(data) {
             const latestDate = data[data.length - 1].Date;
             document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
-
-            // Phase 1: Aggregate by Station
-            const stationMap = {};
+             const matrixMap = {};
 
             data.forEach(row => {
                 const name = row.Station_Name;
-                const loc = row.Location_Details || "Unknown";
+                const locationDetails = row.Location_Details || "Unknown";
+                
                 if (!name) return;
 
-                const uniqueID = name + "_" + loc;
+                // THE FIX: Create a Unique ID combining Name and Location to separate duplicates
+                const uniqueID = name + "_" + locationDetails;
 
-                if (!stationMap[uniqueID]) {
-                    stationMap[uniqueID] = {
-                        name: name,
+                // Initialize station metrics dictionary using the uniqueID
+                if (!matrixMap[uniqueID]) {
+                    matrixMap[uniqueID] = {
+                        name: name, // We still keep the clean name for the popup!
                         lat: parseFloat(row.Latitude),
                         lon: parseFloat(row.Longitude),
-                        hierarchy: loc,
-                        district: getDistrictName(loc),
+                        hierarchy: locationDetails,
                         annualTotal: 0.0,
                         winterTotal: 0.0,
                         summerTotal: 0.0,
                         swmTotal: 0.0,
-                        todayVal: 0.0,
-                        // IMD 6-Tier Classifications
-                        highestRain: 0.0,
-                        highestDate: "-",
-                        veryLightDays: 0,  // 0.1 to 2.4 mm
-                        lightDays: 0,      // 2.5 to 15.5 mm
-                        moderateDays: 0,   // 15.6 to 64.4 mm
-                        heavyDays: 0,      // 64.5 to 115.5 mm
-                        veryHeavyDays: 0,  // 115.6 to 204.4 mm
-                        extremeDays: 0     // >= 204.5 mm
+                        todayVal: 0.0
                     };
                 }
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
-                const st = stationMap[uniqueID];
-                st.annualTotal += mm;
+                const station = matrixMap[uniqueID];
+                station.annualTotal += mm;
 
-                // Track Highest Single Day Rainfall
-                if (mm > st.highestRain) {
-                    st.highestRain = mm;
-                    st.highestDate = row.Date;
-                }
-
-                // Count Corrected IMD Classifications
-                if (mm > 0) {
-                    if (mm <= 2.4) st.veryLightDays++;
-                    else if (mm <= 15.5) st.lightDays++;
-                    else if (mm <= 64.4) st.moderateDays++;
-                    else if (mm <= 115.5) st.heavyDays++;
-                    else if (mm <= 204.4) st.veryHeavyDays++;
-                    else st.extremeDays++;
-                }
-
+                // Parse standard date text index flags (DD-MM-YYYY) to isolate seasonal clusters
                 const dateParts = row.Date.split('-');
                 if (dateParts.length === 3) {
                     const month = dateParts[1]; 
-                    if (month === "01" || month === "02") st.winterTotal += mm;
-                    else if (month === "03" || month === "04" || month === "05") st.summerTotal += mm;
-                    else if (month === "06") st.swmTotal += mm;
+                    if (month === "01" || month === "02") station.winterTotal += mm;
+                    else if (month === "03" || month === "04" || month === "05") station.summerTotal += mm;
+                    else if (month === "06") station.swmTotal += mm;
                 }
 
-                if (row.Date === latestDate) st.todayVal = mm;
-            });
-
-            // Phase 2: Build Taluk and District Aggregations
-            const talukMap = {};
-            const districtMap = {};
-
-            Object.values(stationMap).forEach(st => {
-                if (isNaN(st.lat) || isNaN(st.lon)) return;
-
-                if (!talukMap[st.hierarchy]) {
-                    talukMap[st.hierarchy] = { name: st.hierarchy, sub: "Taluk/Region", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
+                // If processing the active maximum date index row
+                if (row.Date === latestDate) {
+                    station.todayVal = mm;
                 }
-                let t = talukMap[st.hierarchy];
-                t.count++; t.latSum += st.lat; t.lonSum += st.lon; t.annual += st.annualTotal; t.winter += st.winterTotal; t.summer += st.summerTotal; t.swm += st.swmTotal; t.today += st.todayVal;
+            }); 
+            /*const matrixMap = {};
 
-                if (!districtMap[st.district]) {
-                    districtMap[st.district] = { name: st.district, sub: "District Level Average", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
+            data.forEach(row => {
+                const name = row.Station_Name;
+                if (!name) return;
+
+                // Initialize station metrics dictionary structural grouping
+                if (!matrixMap[name]) {
+                    matrixMap[name] = {
+                        name: name,
+                        lat: parseFloat(row.Latitude),
+                        lon: parseFloat(row.Longitude),
+                        hierarchy: row.Location_Details || "Cauvery Delta Region",
+                        annualTotal: 0.0,
+                        winterTotal: 0.0,
+                        summerTotal: 0.0,
+                        swmTotal: 0.0,
+                        todayVal: 0.0
+                    };
                 }
-                let d = districtMap[st.district];
-                d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.annual += st.annualTotal; d.winter += st.winterTotal; d.summer += st.summerTotal; d.swm += st.swmTotal; d.today += st.todayVal;
-            });
 
-            // Phase 3: Function to draw circles
-            function drawLayer(mapData, targetLayer, radiusSize, isAverage) {
-                for (let key in mapData) {
-                    const item = mapData[key];
-                    if (isAverage && item.count === 0) continue;
+                let mm = parseFloat(row.Rainfall_mm);
+                if (isNaN(mm)) mm = 0.0;
 
-                    const divider = isAverage ? item.count : 1;
-                    const lat = isAverage ? item.latSum / divider : item.lat;
-                    const lon = isAverage ? item.lonSum / divider : item.lon;
-                    
-                    const annual = isAverage ? item.annual / divider : item.annualTotal;
-                    const winter = isAverage ? item.winter / divider : item.winterTotal;
-                    const summer = isAverage ? item.summer / divider : item.summerTotal;
-                    const swm = isAverage ? item.swm / divider : item.swmTotal;
-                    const today = isAverage ? item.today / divider : item.todayVal;
+                const station = matrixMap[name];
+                station.annualTotal += mm;
 
-                    const markerColor = getColor(annual);
-
-                    const circle = L.circleMarker([lat, lon], {
-                        radius: radiusSize,
-                        fillColor: markerColor,
-                        color: "white",
-                        weight: 1.5,
-                        opacity: 1,
-                        fillOpacity: 0.85
-                    }).addTo(targetLayer);
-
-                    const titlePrefix = isAverage ? `Average across ${item.count} stations` : "Total Accumulation";
-                    
-                    // Build the advanced popup HTML with the 6-tier system
-                    let advancedMetricsHTML = "";
-                    
-                    if (!isAverage) {
-                        advancedMetricsHTML = `
-                            <tr style="border-top: 2px solid #bdc3c7;">
-                                <td colspan="2" style="padding-top:8px; padding-bottom:2px; font-size:11px; color:#7f8c8d; text-transform:uppercase;">🏆 Annual Extreme</td>
-                            </tr>
-                            <tr><td>Highest Single Day</td><td class="val" style="color:#c0392b;"><b>${item.highestRain.toFixed(1)} mm</b></td></tr>
-                            <tr><td>Date of Extreme</td><td class="val">${item.highestDate}</td></tr>
-                            
-                            <tr>
-                                <td colspan="2" style="padding-top:8px; padding-bottom:2px; font-size:11px; color:#7f8c8d; text-transform:uppercase;">📊 IMD Rain Days</td>
-                            </tr>
-                            <tr><td>V. Light <i>(< 2.5)</i></td><td class="val">${item.veryLightDays} days</td></tr>
-                            <tr><td>Light <i>(2.5 - 15.5)</i></td><td class="val">${item.lightDays} days</td></tr>
-                            <tr><td>Moderate <i>(15.6 - 64.4)</i></td><td class="val">${item.moderateDays} days</td></tr>
-                            <tr><td>Heavy <i>(64.5 - 115.5)</i></td><td class="val">${item.heavyDays} days</td></tr>
-                            <tr><td>V. Heavy <i>(115.6 - 204.4)</i></td><td class="val">${item.veryHeavyDays} days</td></tr>
-                            <tr><td>Ext. Heavy <i>(> 204.4)</i></td><td class="val">${item.extremeDays} days</td></tr>
-                        `;
-                    }
-
-                    const popupContent = `
-                        <div class="matrix-popup">
-                            <div class="popup-header">${item.name}</div>
-                            <div class="popup-sub">${isAverage ? item.sub : item.hierarchy}</div>
-                            <table class="popup-table">
-                                <tr><td>🌧️ Today (${latestDate})</td><td class="val"><b>${today.toFixed(1)} mm</b></td></tr>
-                                <tr class="total-row"><td>Annual ${isAverage ? 'Average' : 'Total'}</td><td class="val">${annual.toFixed(1)} mm</td></tr>
-                                <tr><td>❄️ Winter</td><td class="val">${winter.toFixed(1)} mm</td></tr>
-                                <tr><td>☀️ Summer</td><td class="val">${summer.toFixed(1)} mm</td></tr>
-                                <tr><td>☁️ SWM (so far)</td><td class="val">${swm.toFixed(1)} mm</td></tr>
-                                ${advancedMetricsHTML}
-                            </table>
-                            <div class="popup-coords">${titlePrefix}</div>
-                        </div>
-                    `;
-                    circle.bindPopup(popupContent, { maxWidth: 300 });
-                    circle.bindTooltip(`<b>${item.name}</b><br>${isAverage ? 'Avg' : 'Total'}: ${annual.toFixed(1)} mm`, { sticky: true });
+                // Parse standard date text index flags (DD-MM-YYYY) to isolate seasonal clusters
+                const dateParts = row.Date.split('-');
+                if (dateParts.length === 3) {
+                    const month = dateParts[1]; 
+                    if (month === "01" || month === "02") station.winterTotal += mm;
+                    else if (month === "03" || month === "04" || month === "05") station.summerTotal += mm;
+                    else if (month === "06") station.swmTotal += mm;
                 }
+
+                // If processing the active maximum date index row
+                if (row.Date === latestDate) {
+                    station.todayVal = mm;
+                }
+            });*/
+
+            // 4. Trace calculated stations mapping arrays onto spatial field
+            for (let id in matrixMap) {
+                const st = matrixMap[id];
+                if (isNaN(st.lat) || !st.lat) continue;
+
+                // Match specific HEX color codes based on cumulative scale index tiering
+                // Match specific HEX color codes based on new cumulative scale tiers
+                let markerColor = "#888888"; // default for < 50 mm
+                if (st.annualTotal >= 50 && st.annualTotal < 100) markerColor = "#27ae60";
+                else if (st.annualTotal >= 100 && st.annualTotal < 200) markerColor = "#2980b9";
+                else if (st.annualTotal >= 200 && st.annualTotal < 300) markerColor = "#e67e22";
+                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#c0392b";
+                else if (st.annualTotal >= 500) markerColor = "#8e44ad";
+
+               /* let markerColor = "#888888";
+                if (st.annualTotal >= 50 && st.annualTotal < 150) markerColor = "#27ae60";
+                else if (st.annualTotal >= 150 && st.annualTotal < 300) markerColor = "#2980b9";
+                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#e67e22";
+                else if (st.annualTotal >= 500 && st.annualTotal < 800) markerColor = "#c0392b";
+                else if (st.annualTotal >= 800) markerColor = "#8e44ad"; */
+
+                const circle = L.circleMarker([st.lat, st.lon], {
+                    radius: 7,
+                    fillColor: markerColor,
+                    color: "white",
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.85
+                }).addTo(map);
+
+                // Elegant layout matching the target popup interface text alignments
+                const popupContent = `
+                    <div class="matrix-popup">
+                        <div class="popup-header">${st.name}</div>
+                        <div class="popup-sub">${st.hierarchy}</div>
+                        <table class="popup-table">
+                            <tr><td>🌧️ Today's Rainfall</td><td class="val"><b>${st.todayVal.toFixed(1)} mm</b></td></tr>
+                            <tr class="total-row"><td>Annual total (Jan–${latestDate.split('-')[1] === '06' ? 'Jun' : 'Date'} ${parseInt(latestDate.split('-')[0])})</td><td class="val">${st.annualTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>❄️ Winter (Jan–Feb)</td><td class="val">${st.winterTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>☀️ Summer (Mar–May)</td><td class="val">${st.summerTotal.toFixed(1)} mm</td></tr>
+                            <tr><td>☁️ SWM Jun (so far)</td><td class="val">${st.swmTotal.toFixed(1)} mm</td></tr>
+                        </table>
+                        <div class="popup-coords">Location: ${st.lat.toFixed(4)}°N, ${st.lon.toFixed(4)}°E</div>
+                    </div>
+                `;
+
+                circle.bindPopup(popupContent, { maxWidth: 290 });
+                
+                // Light text hover tag matching interface tracking styles
+                circle.bindTooltip(`<b>${st.name}</b><br>Total: ${st.annualTotal.toFixed(1)} mm`, { sticky: true });
             }
-
-            drawLayer(stationMap, layers.station, 7, false); 
-            drawLayer(talukMap, layers.taluk, 14, true);     
-            drawLayer(districtMap, layers.district, 22, true); 
-        }
+        } 
         //Function of rwender weather data ends
     </script>
 </body>
