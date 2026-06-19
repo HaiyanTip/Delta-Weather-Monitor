@@ -252,12 +252,12 @@
 
                 // Match specific HEX color codes based on cumulative scale index tiering
                 // Match specific HEX color codes based on new cumulative scale tiers
-                let markerColor = "#AFBFD6"; // default for < 50 mm
-                if (st.annualTotal >= 50 && st.annualTotal < 100) markerColor = "#7B90D6";
-                else if (st.annualTotal >= 100 && st.annualTotal < 200) markerColor = "#4D5CB2";
-                else if (st.annualTotal >= 200 && st.annualTotal < 300) markerColor = "#243492";
-                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#16205D";
-                else if (st.annualTotal >= 500) markerColor = "#090B3C";
+                let markerColor = "#888888"; // default for < 50 mm
+                if (st.annualTotal >= 50 && st.annualTotal < 100) markerColor = "#27ae60";
+                else if (st.annualTotal >= 100 && st.annualTotal < 200) markerColor = "##2980b9";
+                else if (st.annualTotal >= 200 && st.annualTotal < 300) markerColor = "e67e22";
+                else if (st.annualTotal >= 300 && st.annualTotal < 500) markerColor = "#c0392b";
+                else if (st.annualTotal >= 500) markerColor = "#8e44ad";
 
                /* let markerColor = "#888888";
                 if (st.annualTotal >= 50 && st.annualTotal < 150) markerColor = "#27ae60";
