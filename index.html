@@ -73,10 +73,11 @@
             margin-top: 10px;
             margin-bottom: 6px;
             border: 1px solid #ccc;
-        }*/.color-scale-bar {
+        }*//* NEW: Custom Red-to-Purple Color Bar Gradient */
+        .color-scale-bar {
             height: 12px;
             width: 100%;
-            background: linear-gradient(to right, #ccff90, #64dd17, #ffd54f, #fb8c00, #e53935, #b71c1c);
+            background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a);
             border-radius: 4px;
             margin-top: 10px;
             margin-bottom: 6px;
@@ -245,21 +246,22 @@
             if (value < 1800) return "#d35400"; // Dark Orange
             if (value < 2000) return "#e74c3c"; // Red
             return "#8e44ad";                   // Purple
-        }*/function getColor(value) {
-            if (value < 100) return "#ccff90";  // Bright Lime Green
-            if (value < 200) return "#b2ff59";  
-            if (value < 300) return "#76ff03";  
-            if (value < 400) return "#64dd17";  
-            if (value < 500) return "#00e676";  // Vibrant Green
-            if (value < 600) return "#00c853";  
-            if (value < 800) return "#ffd54f";  // Bright Yellow
-            if (value < 1000) return "#ffca28"; 
-            if (value < 1200) return "#ffb300"; // Amber
-            if (value < 1400) return "#fb8c00"; // Orange
-            if (value < 1600) return "#f4511e"; // Deep Orange
-            if (value < 1800) return "#e53935"; // Red
-            if (value < 2000) return "#c62828"; // Dark Red
-            return "#b71c1c";                   // Crimson
+        }*/// NEW: Custom Extended Color Range
+        function getColor(value) {
+            if (value < 100) return "#c62828"; 
+            if (value < 200) return "#e53935";
+            if (value < 300) return "#f4511e";
+            if (value < 400) return "#fb8c00";
+            if (value < 500) return "#ffca28"; 
+            if (value < 600) return "#ffd54f";
+            if (value < 800) return "#64dd17"; 
+            if (value < 1000) return "#00c853";
+            if (value < 1200) return "#0288d1"; 
+            if (value < 1400) return "#1565c0"; 
+            if (value < 1600) return "#283593";
+            if (value < 1800) return "#4527a0"; 
+            if (value < 2000) return "#6a1b9a";  
+            return "#4a148c"; // Final dark purple for anything 2000 mm or higher
         }
 
         function renderWeatherMatrix(data) {
