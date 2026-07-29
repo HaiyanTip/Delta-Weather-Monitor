@@ -64,16 +64,7 @@
             cursor: pointer;
         }
 
-        /* NEW: Horizontal Color Bar Gradient */
-       /* .color-scale-bar {
-            height: 12px;
-            width: 100%;
-            background: linear-gradient(to right, #e0e0e0, #81d4fa, #03a9f4, #2ecc71, #f1c40f, #e67e22, #e74c3c, #8e44ad);
-            border-radius: 4px;
-            margin-top: 10px;
-            margin-bottom: 6px;
-            border: 1px solid #ccc;
-        }*//* NEW: Custom Red-to-Purple Color Bar Gradient */
+        /* Custom Red-to-Purple Color Bar Gradient */
         .color-scale-bar {
             height: 12px;
             width: 100%;
@@ -141,6 +132,25 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
+        /* NEW: Mobile-Adaptive Legend Styles */
+        @media (max-width: 600px) {
+            .legend-panel {
+                width: 75%;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 15px;
+                padding: 10px;
+                font-size: 11px;
+                max-height: 35vh;
+                overflow-y: auto;
+            }
+            .legend-title { font-size: 12px; margin-bottom: 6px; }
+            .view-toggles label { font-size: 11px; margin-bottom: 4px; }
+            .color-scale-bar { height: 8px; margin-top: 8px; margin-bottom: 4px; }
+            .color-scale-labels { font-size: 9px; }
+            .legend-footer { font-size: 10px; margin-top: 8px; padding-top: 6px; }
+        }
     </style>
 </head>
 <body>
@@ -202,11 +212,6 @@
         });
 
         const DATA_SOURCE = 'thanjavur_stations_rainfall_2026.csv';
-        const districtKeywords = [
-            "Ariyalur", "Pudukkottai", "Trichy", "Tiruchirappalli", "Thanjavur", 
-            "Thiruvarur", "Nagapattinam", "Nagai", "Mayiladuthurai",
-            "Chennai", "Coimbatore", "Madurai", "Salem", "Tirunelveli", "Vellore"
-        ];
 
         Papa.parse(DATA_SOURCE, {
             download: true,
@@ -221,32 +226,7 @@
             }
         });
 
-        function getDistrictName(hierarchyString) {
-            if (!hierarchyString) return "Other";
-            let lowerStr = hierarchyString.toLowerCase();
-            for (let d of districtKeywords) {
-                if (lowerStr.includes(d.toLowerCase())) return d === "Nagai" ? "Nagapattinam" : d === "Trichy" ? "Tiruchirappalli" : d;
-            }
-            return "Other";
-        }
-
-        // NEW: Extended Color Range Mapping up to 2000+
-        /*function getColor(value) {
-            if (value < 100) return "#e0e0e0";  // Grey
-            if (value < 200) return "#b3e5fc";  // V. Light Blue
-            if (value < 300) return "#81d4fa";  // Light Blue
-            if (value < 400) return "#4fc3f7";  // Blue
-            if (value < 500) return "#29b6f6";
-            if (value < 600) return "#03a9f4";
-            if (value < 800) return "#0288d1";  // Dark Blue
-            if (value < 1000) return "#2ecc71"; // Green
-            if (value < 1200) return "#f1c40f"; // Yellow
-            if (value < 1400) return "#f39c12"; // Dark Yellow
-            if (value < 1600) return "#e67e22"; // Orange
-            if (value < 1800) return "#d35400"; // Dark Orange
-            if (value < 2000) return "#e74c3c"; // Red
-            return "#8e44ad";                   // Purple
-        }*/// NEW: Custom Extended Color Range
+        // Custom Extended Color Range
         function getColor(value) {
             if (value < 100) return "#c62828"; 
             if (value < 200) return "#e53935";
@@ -261,7 +241,7 @@
             if (value < 1600) return "#283593";
             if (value < 1800) return "#4527a0"; 
             if (value < 2000) return "#6a1b9a";  
-            return "#4a148c"; // Final dark purple for anything 2000 mm or higher
+            return "#4a148c"; 
         }
 
         function renderWeatherMatrix(data) {
@@ -277,23 +257,26 @@
             
             document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
 
-            // Phase 1: Aggregate by Station
+            // Phase 1: Aggregate by Station using new CSV Columns
             const stationMap = {};
 
             data.forEach(row => {
-                const name = row.Station_Name;
-                const loc = row.Location_Details || "Unknown";
+                const name = row.Station_Name || row['Name of the station'];
                 if (!name) return;
 
-                const uniqueID = name + "_" + loc;
+                // Fallback added to ensure backward compatibility during your transition
+                const taluk = row.Taluk || row.Location_Details || "Unknown";
+                const district = row.District || "Unknown";
+
+                const uniqueID = name + "_" + taluk;
 
                 if (!stationMap[uniqueID]) {
                     stationMap[uniqueID] = {
                         name: name,
                         lat: parseFloat(row.Latitude),
                         lon: parseFloat(row.Longitude),
-                        hierarchy: loc,
-                        district: getDistrictName(loc),
+                        taluk: taluk,
+                        district: district,
                         annualTotal: 0.0,
                         winterTotal: 0.0,
                         summerTotal: 0.0,
@@ -342,17 +325,17 @@
                 }
             });
 
-            // Phase 2: Build Taluk and District Aggregations
+            // Phase 2: Build Taluk and District Aggregations based on dynamic columns
             const talukMap = {};
             const districtMap = {};
 
             Object.values(stationMap).forEach(st => {
                 if (isNaN(st.lat) || isNaN(st.lon)) return;
 
-                if (!talukMap[st.hierarchy]) {
-                    talukMap[st.hierarchy] = { name: st.hierarchy, sub: "Taluk/Region", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
+                if (!talukMap[st.taluk]) {
+                    talukMap[st.taluk] = { name: st.taluk, sub: "Taluk/Region", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
                 }
-                let t = talukMap[st.hierarchy];
+                let t = talukMap[st.taluk];
                 t.count++; t.latSum += st.lat; t.lonSum += st.lon; t.annual += st.annualTotal; t.winter += st.winterTotal; t.summer += st.summerTotal; t.swm += st.swmTotal; t.today += st.todayVal;
 
                 if (!districtMap[st.district]) {
@@ -413,10 +396,13 @@
                         `;
                     }
 
+                    // For single stations, display Taluk and District gracefully in the popup
+                    const subtitle = isAverage ? item.sub : `${item.taluk}, ${item.district}`;
+
                     const popupContent = `
                         <div class="matrix-popup">
                             <div class="popup-header">${item.name}</div>
-                            <div class="popup-sub">${isAverage ? item.sub : item.hierarchy}</div>
+                            <div class="popup-sub">${subtitle}</div>
                             <table class="popup-table">
                                 <tr><td>🌧️ Today (${latestDate})</td><td class="val"><b>${today.toFixed(1)} mm</b></td></tr>
                                 <tr class="total-row"><td>Annual ${isAverage ? 'Average' : 'Total'}</td><td class="val">${annual.toFixed(1)} mm</td></tr>
