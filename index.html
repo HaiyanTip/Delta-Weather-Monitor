@@ -158,7 +158,6 @@
         
         <div class="view-toggles">
             <label><input type="radio" name="viewMode" value="station" checked> 📍 Individual Stations</label>
-            <label><input type="radio" name="viewMode" value="taluk"> ⭕ Taluk/Region Averages</label>
             <label><input type="radio" name="viewMode" value="district"> 🟢 District Averages</label>
         </div>
 
@@ -172,10 +171,11 @@
         </div>
 
         <div class="legend-footer">
-            Colors match total accumulations.<br>Regional views show the <b>Average</b> of all stations.
+            Colors match total accumulations.<br>District views show the <b>Average</b> of all stations.
         </div>
     </div>
-<script>
+
+    <script>
         // Initialize Map
         const map = L.map('map', {
             center: [10.80, 79.35],
@@ -191,14 +191,12 @@
 
         const layers = {
             station: L.layerGroup().addTo(map),
-            taluk: L.layerGroup(),
             district: L.layerGroup()
         };
 
         document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 map.removeLayer(layers.station);
-                map.removeLayer(layers.taluk);
                 map.removeLayer(layers.district);
                 map.addLayer(layers[e.target.value]);
             });
@@ -207,16 +205,13 @@
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
         const STATIONS_DATA = 'stations.csv';
 
-        // Load Rainfall Data First (The crucial data)
+        // Load Rainfall Data First
         Papa.parse(RAINFALL_DATA, {
             download: true,
             header: true,
             skipEmptyLines: true,
             complete: function(rainResults) {
-                if (!rainResults.data || rainResults.data.length === 0) {
-                    console.error("Rainfall CSV is empty or failed to load.");
-                    return;
-                }
+                if (!rainResults.data || rainResults.data.length === 0) return;
                 
                 // Then attempt to load Stations Data
                 Papa.parse(STATIONS_DATA, {
@@ -224,18 +219,12 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function(stationResults) {
-                        // If it loads correctly, render with both!
                         renderWeatherMatrix(rainResults.data, stationResults.data);
                     },
                     error: function() {
-                        // If stations.csv fails, don't crash! Just use the rain data.
-                        console.warn("Could not read stations.csv. Falling back to basic rainfall data.");
                         renderWeatherMatrix(rainResults.data, []);
                     }
                 });
-            },
-            error: function(err) {
-                console.error("Critical error: Could not load the main rainfall data.", err);
             }
         });
 
@@ -272,7 +261,6 @@
                     if (cleanedName) {
                         stationLookup[cleanedName] = {
                             district: (st.District || "Unknown").trim(),
-                            taluk: (st.Taluk || "Unknown").trim(),
                             lat: parseFloat(st.Latitude),
                             lon: parseFloat(st.Longitude)
                         };
@@ -291,6 +279,7 @@
             document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
 
             const stationMap = {};
+            const districtMap = {};
 
             rainData.forEach(row => {
                 const rawName = row.Station_Name || row['Name of the station'];
@@ -299,19 +288,16 @@
                 const cleanedName = cleanName(rawName);
                 const meta = stationLookup[cleanedName] || {};
                 
+                // Establish the district for mapping
                 const district = (meta.district && meta.district !== "Unknown") ? meta.district : (row.District || "Unknown");
-                const taluk = (meta.taluk && meta.taluk !== "Unknown") ? meta.taluk : (row.Taluk || row.Location_Details || "Unknown");
                 const lat = !isNaN(meta.lat) ? meta.lat : parseFloat(row.Latitude);
                 const lon = !isNaN(meta.lon) ? meta.lon : parseFloat(row.Longitude);
 
-                const uniqueID = cleanedName + "_" + taluk;
-
-                if (!stationMap[uniqueID]) {
-                    stationMap[uniqueID] = {
+                if (!stationMap[cleanedName]) {
+                    stationMap[cleanedName] = {
                         name: rawName.trim(),
                         lat: lat,
                         lon: lon,
-                        taluk: taluk,
                         district: district,
                         annualTotal: 0.0,
                         winterTotal: 0.0,
@@ -332,7 +318,7 @@
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
-                const st = stationMap[uniqueID];
+                const st = stationMap[cleanedName];
                 st.annualTotal += mm;
 
                 if (mm > st.highestRain) {
@@ -361,23 +347,34 @@
                 }
             });
 
-            const talukMap = {};
-            const districtMap = {};
-
+            // Group by District
             Object.values(stationMap).forEach(st => {
-                if (isNaN(st.lat) || isNaN(st.lon)) return;
-
-                if (!talukMap[st.taluk]) {
-                    talukMap[st.taluk] = { name: st.taluk, sub: "Taluk/Region Average", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
-                }
-                let t = talukMap[st.taluk];
-                t.count++; t.latSum += st.lat; t.lonSum += st.lon; t.annual += st.annualTotal; t.winter += st.winterTotal; t.summer += st.summerTotal; t.swm += st.swmTotal; t.today += st.todayVal;
+                if (isNaN(st.lat) || isNaN(st.lon) || !st.district || st.district === "Unknown") return;
 
                 if (!districtMap[st.district]) {
-                    districtMap[st.district] = { name: st.district, sub: "District Level Average", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
+                    districtMap[st.district] = { 
+                        name: st.district, 
+                        sub: "District Level Average", 
+                        count: 0, 
+                        latSum: 0, 
+                        lonSum: 0, 
+                        annual: 0, 
+                        winter: 0, 
+                        summer: 0, 
+                        swm: 0, 
+                        today: 0 
+                    };
                 }
+                
                 let d = districtMap[st.district];
-                d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.annual += st.annualTotal; d.winter += st.winterTotal; d.summer += st.summerTotal; d.swm += st.swmTotal; d.today += st.todayVal;
+                d.count++; 
+                d.latSum += st.lat; 
+                d.lonSum += st.lon; 
+                d.annual += st.annualTotal; 
+                d.winter += st.winterTotal; 
+                d.summer += st.summerTotal; 
+                d.swm += st.swmTotal; 
+                d.today += st.todayVal;
             });
 
             function drawLayer(mapData, targetLayer, radiusSize, isAverage) {
@@ -430,7 +427,7 @@
                         `;
                     }
 
-                    const subtitle = isAverage ? item.sub : `${item.taluk}, ${item.district}`;
+                    const subtitle = isAverage ? item.sub : item.district;
 
                     const popupContent = `
                         <div class="matrix-popup">
@@ -453,8 +450,8 @@
             }
 
             drawLayer(stationMap, layers.station, 7, false); 
-            drawLayer(talukMap, layers.taluk, 14, true);     
             drawLayer(districtMap, layers.district, 22, true); 
         }
-    </script></body>
+    </script>
+</body>
 </html>
