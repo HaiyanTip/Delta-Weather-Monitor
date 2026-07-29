@@ -37,12 +37,14 @@
             padding: 4px 8px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; cursor: pointer;
         }
         
-        .view-toggles {
+        .toggle-group {
             background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
-            padding: 8px; margin-bottom: 12px; display: flex; justify-content: space-around;
+            padding: 8px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;
         }
-        .view-toggles label { cursor: pointer; font-weight: 500; color: #34495e; display: flex; align-items: center; font-size: 12px; }
-        .view-toggles input { margin-right: 5px; cursor: pointer; }
+        .toggle-row { display: flex; justify-content: space-around; }
+        .toggle-row label { cursor: pointer; font-weight: 500; color: #34495e; display: flex; align-items: center; font-size: 12px; }
+        .toggle-row input { margin-right: 5px; cursor: pointer; }
+        .toggle-divider { height: 1px; background: #ddd; margin: 2px 0; }
 
         /* Slider Styles */
         .slider-container { margin-bottom: 12px; }
@@ -65,7 +67,15 @@
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
         .metric-lbl { font-size: 9px; color: #7f8c8d; text-transform: uppercase; }
         
-        .chart-container { height: 120px; width: 100%; margin-top: 5px; }
+        /* Stats Table Mode */
+        .stats-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 5px; }
+        .stats-table th, .stats-table td { padding: 4px 2px; border-bottom: 1px solid #eee; text-align: left; }
+        .stats-table th { color: #7f8c8d; font-weight: normal; }
+        .stats-table td { font-weight: bold; color: #2c3e50; text-align: right; }
+        .extreme-val { color: #c0392b; }
+        
+        /* Chart Mode */
+        .chart-container { height: 130px; width: 100%; margin-top: 5px; }
 
         @media (max-width: 600px) {
             .legend-panel { width: 85%; left: 50%; transform: translateX(-50%); bottom: 15px; padding: 10px; }
@@ -82,9 +92,16 @@
             <select id="yearSelect"></select>
         </div>
         
-        <div class="view-toggles">
-            <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
-            <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+        <div class="toggle-group">
+            <div class="toggle-row">
+                <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
+                <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+            </div>
+            <div class="toggle-divider"></div>
+            <div class="toggle-row">
+                <label><input type="radio" name="popupMode" value="stats" checked> 📝 Stats</label>
+                <label><input type="radio" name="popupMode" value="chart"> 📊 Chart</label>
+            </div>
         </div>
 
         <div class="slider-container">
@@ -102,27 +119,22 @@
     </div>
 
     <script>
-        // 1. Core Map Initialization
         const map = L.map('map', { center: [10.80, 79.35], zoom: 9.5 });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
         }).addTo(map);
 
-        const layers = {
-            station: L.layerGroup().addTo(map),
-            district: L.layerGroup()
-        };
+        const layers = { station: L.layerGroup().addTo(map), district: L.layerGroup() };
 
-        // Master Data Storage
         let globalRainData = [];
         let globalStations = {};
         let activeView = 'station';
-        let chartInstances = {}; // To manage Chart.js memory
+        let activePopupMode = 'stats';
+        let chartInstances = {}; 
 
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
-        const STATIONS_DATA = 'Stations.csv'; // Capital S strictly maintained
+        const STATIONS_DATA = 'Stations.csv';
 
-        // 2. Data Loading & Initialization
         Papa.parse(RAINFALL_DATA, {
             download: true, header: true, skipEmptyLines: true,
             complete: function(rainResults) {
@@ -143,7 +155,6 @@
             }
         });
 
-        // 3. Helper Functions
         function cleanName(str) { return str ? str.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim().toLowerCase() : ""; }
 
         function getColor(value) {
@@ -156,7 +167,6 @@
             return "#6a1b9a";  
         }
 
-        // Parses DD-MM-YYYY into a comparable Day of Year (1-366)
         function parseDateString(dateStr) {
             const parts = dateStr.split('-');
             if(parts.length !== 3) return null;
@@ -186,24 +196,22 @@
             });
         }
 
-        // 4. UI Setup (Dropdowns & Sliders)
         function initializeDashboard() {
             const yearSet = new Set();
             let maxDOY = 1;
 
-            // Find all unique years and the max day of the year available
             globalRainData.forEach(row => {
                 if(!row.Date) return;
                 const d = parseDateString(row.Date);
                 if(d) {
                     yearSet.add(d.year);
                     const doy = getDayOfYear(d.day, d.month, d.year);
-                    if(doy > maxDOY) maxDOY = doy; // Find latest day in the dataset
+                    if(doy > maxDOY) maxDOY = doy; 
                 }
             });
 
             const yearSelect = document.getElementById('yearSelect');
-            const years = Array.from(yearSet).sort((a,b) => b - a); // Descending
+            const years = Array.from(yearSet).sort((a,b) => b - a);
             
             years.forEach(y => {
                 const opt = document.createElement('option');
@@ -211,11 +219,10 @@
                 yearSelect.appendChild(opt);
             });
 
-            // Set up UI Event Listeners
             yearSelect.addEventListener('change', updateEngine);
             
             const slider = document.getElementById('timeSlider');
-            slider.max = maxDOY; // Restrict slider to available data
+            slider.max = maxDOY; 
             slider.value = maxDOY;
             slider.addEventListener('input', updateEngine);
 
@@ -229,15 +236,21 @@
                 });
             });
 
-            updateEngine(); // Initial Run
+            document.querySelectorAll('input[name="popupMode"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    activePopupMode = e.target.value;
+                    map.closePopup(); // Close active popup so new mode renders on next click
+                    updateEngine();
+                });
+            });
+
+            updateEngine(); 
         }
 
-        // 5. The Core Engine (Filters data based on Year & Slider)
         function updateEngine() {
             const selectedYear = parseInt(document.getElementById('yearSelect').value);
             const sliderValue = parseInt(document.getElementById('timeSlider').value);
             
-            // Update Slider UI Label
             document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(sliderValue, selectedYear);
 
             layers.station.clearLayers();
@@ -246,13 +259,12 @@
             const stationMap = {};
             const districtMap = {};
 
-            // Process Master CSV through the Time Filter
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
-                if (!d || d.year !== selectedYear) return; // Wrong year
+                if (!d || d.year !== selectedYear) return;
                 
                 const doy = getDayOfYear(d.day, d.month, d.year);
-                if (doy > sliderValue) return; // Happened in the "future" according to slider
+                if (doy > sliderValue) return; 
 
                 const rawName = row.Station_Name || row['Name of the station'];
                 const cleanedName = cleanName(rawName);
@@ -265,29 +277,41 @@
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
-                // Create Station Record if not exists
                 if (!stationMap[cleanedName]) {
                     stationMap[cleanedName] = {
                         id: cleanedName.replace(/[^a-z0-9]/g, ''),
                         name: rawName.trim(), lat: lat, lon: lon, district: district,
                         total: 0, winter: 0, summer: 0, swm: 0, nem: 0,
-                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0] // 12 buckets
+                        vl: 0, mod: 0, heavy: 0, extreme: 0, 
+                        maxRain: 0, maxDate: "-",
+                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0] 
                     };
                 }
 
-                // Add to buckets
                 const st = stationMap[cleanedName];
                 st.total += mm;
                 st.monthly[d.month - 1] += mm;
 
-                // The 4-Season Router
+                // Seasons
                 if (d.month === 1 || d.month === 2) st.winter += mm;
                 else if (d.month >= 3 && d.month <= 5) st.summer += mm;
                 else if (d.month >= 6 && d.month <= 9) st.swm += mm;
                 else if (d.month >= 10 && d.month <= 12) st.nem += mm;
+
+                // IMD Classifications & Max Day
+                if (mm > 0) {
+                    if (mm <= 2.4) st.vl++;
+                    else if (mm <= 64.4) st.mod++;
+                    else if (mm <= 204.4) st.heavy++;
+                    else st.extreme++;
+
+                    if (mm > st.maxRain) {
+                        st.maxRain = mm;
+                        st.maxDate = row.Date;
+                    }
+                }
             });
 
-            // Aggregate District Math
             Object.values(stationMap).forEach(st => {
                 if (isNaN(st.lat) || isNaN(st.lon) || st.district === "Unknown") return;
 
@@ -296,6 +320,7 @@
                         id: st.district.replace(/[^a-zA-Z0-9]/g, ''),
                         name: st.district, sub: "District Level Average", count: 0, 
                         latSum: 0, lonSum: 0, total: 0, winter: 0, summer: 0, swm: 0, nem: 0,
+                        vl: 0, mod: 0, heavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies",
                         monthly: [0,0,0,0,0,0,0,0,0,0,0,0]
                     };
                 }
@@ -304,10 +329,13 @@
                 d.count++; d.latSum += st.lat; d.lonSum += st.lon;
                 d.total += st.total; d.winter += st.winter; d.summer += st.summer; 
                 d.swm += st.swm; d.nem += st.nem;
+                
+                d.vl += st.vl; d.mod += st.mod; d.heavy += st.heavy; d.extreme += st.extreme;
+                if (st.maxRain > d.maxRain) { d.maxRain = st.maxRain; }
+
                 for(let i=0; i<12; i++) d.monthly[i] += st.monthly[i];
             });
 
-            // 6. Draw the Map Points
             function draw(mapData, targetLayer, radiusSize, isAverage) {
                 for (let key in mapData) {
                     const item = mapData[key];
@@ -331,6 +359,26 @@
                     }).addTo(targetLayer);
 
                     const canvasId = `chart-${item.id}`;
+                    
+                    // Conditionally generate the lower half of the popup based on toggle
+                    let modeSpecificHTML = '';
+                    if (activePopupMode === 'stats') {
+                        modeSpecificHTML = `
+                            <table class="stats-table">
+                                <tr><th>Highest 24h Rain</th><td>${item.maxRain.toFixed(1)} mm <br><span style="font-size:9px; color:#7f8c8d;">(${isAverage ? 'District Max' : item.maxDate})</span></td></tr>
+                                <tr><th>Very Light (0-2.4mm)</th><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} Days</td></tr>
+                                <tr><th>Moderate (2.5-64.4mm)</th><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} Days</td></tr>
+                                <tr><th>Heavy (64.5-204.4mm)</th><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} Days</td></tr>
+                                <tr><th>Extreme (> 204.4mm)</th><td class="extreme-val">${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} Days</td></tr>
+                            </table>
+                        `;
+                    } else {
+                        modeSpecificHTML = `
+                            <div class="chart-container">
+                                <canvas id="${canvasId}"></canvas>
+                            </div>
+                        `;
+                    }
 
                     const popupHTML = `
                         <div class="matrix-popup">
@@ -338,49 +386,47 @@
                             <div class="popup-sub">${isAverage ? `Average across ${item.count} stations` : item.district}</div>
                             
                             <div class="metrics-grid">
-                                <div class="metric-box"><div class="metric-val">${total.toFixed(1)} mm</div><div class="metric-lbl">Total</div></div>
-                                <div class="metric-box"><div class="metric-val">${swm.toFixed(1)} mm</div><div class="metric-lbl">SWM</div></div>
-                                <div class="metric-box"><div class="metric-val">${nem.toFixed(1)} mm</div><div class="metric-lbl">NEM</div></div>
-                                <div class="metric-box"><div class="metric-val">${(winter+summer).toFixed(1)} mm</div><div class="metric-lbl">Win/Sum</div></div>
+                                <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total (mm)</div></div>
+                                <div class="metric-box"><div class="metric-val">${swm.toFixed(1)}</div><div class="metric-lbl">SWM (mm)</div></div>
+                                <div class="metric-box"><div class="metric-val">${nem.toFixed(1)}</div><div class="metric-lbl">NEM (mm)</div></div>
+                                <div class="metric-box"><div class="metric-val">${(winter+summer).toFixed(1)}</div><div class="metric-lbl">Win/Sum</div></div>
                             </div>
                             
-                            <!-- Chart Canvas Area -->
-                            <div class="chart-container">
-                                <canvas id="${canvasId}"></canvas>
-                            </div>
+                            ${modeSpecificHTML}
                         </div>
                     `;
                     
                     marker.bindPopup(popupHTML, { maxWidth: 300 });
                     marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`, { sticky: true });
 
-                    // 7. Render Chart.js when popup opens
                     marker.on('popupopen', function() {
-                        const ctx = document.getElementById(canvasId);
-                        if (!ctx) return;
-                        
-                        if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+                        if (activePopupMode === 'chart') {
+                            const ctx = document.getElementById(canvasId);
+                            if (!ctx) return;
+                            
+                            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
 
-                        chartInstances[canvasId] = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: ['J','F','M','A','M','J','J','A','S','O','N','D'],
-                                datasets: [{
-                                    label: 'Rainfall (mm)',
-                                    data: avgMonthly,
-                                    backgroundColor: '#3498db',
-                                    borderRadius: 3
-                                }]
-                            },
-                            options: {
-                                responsive: true, maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: { 
-                                    x: { grid: { display: false } },
-                                    y: { beginAtZero: true, ticks: { font: {size: 9} } }
+                            chartInstances[canvasId] = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['J','F','M','A','M','J','J','A','S','O','N','D'],
+                                    datasets: [{
+                                        label: 'Rainfall (mm)',
+                                        data: avgMonthly,
+                                        backgroundColor: '#3498db',
+                                        borderRadius: 3
+                                    }]
+                                },
+                                options: {
+                                    responsive: true, maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: { 
+                                        x: { grid: { display: false } },
+                                        y: { beginAtZero: true, ticks: { font: {size: 9} } }
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     });
                 }
             }
