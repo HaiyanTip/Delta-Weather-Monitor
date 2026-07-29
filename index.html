@@ -19,7 +19,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
         
-        /* Custom Floating Legend UI */
         .legend-panel {
             position: fixed;
             bottom: 30px;
@@ -41,7 +40,6 @@
             color: #2c3e50;
         }
         
-        /* View Toggle Switches */
         .view-toggles {
             background: #f8f9fa;
             border: 1px solid #ddd;
@@ -64,7 +62,6 @@
             cursor: pointer;
         }
 
-        /* Custom Red-to-Purple Color Bar Gradient */
         .color-scale-bar {
             height: 12px;
             width: 100%;
@@ -90,7 +87,6 @@
             padding-top: 8px;
         }
 
-        /* Beautiful Popup Styling */
         .matrix-popup {
             font-family: Arial, sans-serif;
             font-size: 13px;
@@ -133,7 +129,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* NEW: Mobile-Adaptive Legend Styles */
+        /* Mobile-Adaptive Legend */
         @media (max-width: 600px) {
             .legend-panel {
                 width: 75%;
@@ -194,14 +190,12 @@
             maxZoom: 20
         }).addTo(map);
 
-        // Layer Groups for toggling
         const layers = {
             station: L.layerGroup().addTo(map),
             taluk: L.layerGroup(),
             district: L.layerGroup()
         };
 
-        // UI Event Listener to switch layers
         document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 map.removeLayer(layers.station);
@@ -211,22 +205,22 @@
             });
         });
 
-        const DATA_SOURCE = 'thanjavur_stations_rainfall_2026.csv';
+        const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
+        const STATIONS_DATA = 'stations.csv';
 
-        Papa.parse(DATA_SOURCE, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                try {
-                    renderWeatherMatrix(results.data);
-                } catch (error) {
-                    console.error("Map rendering failed: ", error);
-                }
-            }
+        // Load BOTH files simultaneously before processing
+        Promise.all([
+            new Promise(resolve => Papa.parse(RAINFALL_DATA, { download: true, header: true, skipEmptyLines: true, complete: resolve })),
+            new Promise(resolve => Papa.parse(STATIONS_DATA, { download: true, header: true, skipEmptyLines: true, complete: resolve }))
+        ]).then(results => {
+            const rainfallCSV = results[0].data;
+            const stationsCSV = results[1].data;
+            renderWeatherMatrix(rainfallCSV, stationsCSV);
+        }).catch(err => {
+            console.error("Error loading CSV files:", err);
+            alert("Could not load data. Please ensure stations.csv exists in your repository.");
         });
 
-        // Custom Extended Color Range
         function getColor(value) {
             if (value < 100) return "#c62828"; 
             if (value < 200) return "#e53935";
@@ -244,37 +238,66 @@
             return "#4a148c"; 
         }
 
-        function renderWeatherMatrix(data) {
-            if (!data || data.length === 0) return;
+        // Helper function to clean strings for accurate matching
+        function cleanName(str) {
+            if (!str) return "";
+            // This removes hidden characters and extra spaces from Excel/CSV exports
+            return str.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+        }
+
+        function renderWeatherMatrix(rainData, stationsData) {
+            if (!rainData || rainData.length === 0) return;
             
+            // 1. Build a master dictionary from stations.csv
+            const stationLookup = {};
+            if (stationsData && stationsData.length > 0) {
+                stationsData.forEach(st => {
+                    const rawName = st['Name of the station'] || st.Station_Name || "";
+                    const cleanedName = cleanName(rawName);
+                    if (cleanedName) {
+                        stationLookup[cleanedName] = {
+                            district: (st.District || "Unknown").trim(),
+                            taluk: (st.Taluk || "Unknown").trim(),
+                            lat: parseFloat(st.Latitude),
+                            lon: parseFloat(st.Longitude)
+                        };
+                    }
+                });
+            }
+
             let latestDate = "-";
-            for (let i = data.length - 1; i >= 0; i--) {
-                if (data[i].Date) {
-                    latestDate = data[i].Date;
+            for (let i = rainData.length - 1; i >= 0; i--) {
+                if (rainData[i].Date) {
+                    latestDate = rainData[i].Date;
                     break;
                 }
             }
             
             document.getElementById('legend-date-title').innerText = `Annual Rainfall — Jan to ${latestDate}, 2026`;
 
-            // Phase 1: Aggregate by Station using new CSV Columns
             const stationMap = {};
 
-            data.forEach(row => {
-                const name = row.Station_Name || row['Name of the station'];
-                if (!name) return;
+            // 2. Process Rainfall Data & Cross-Reference with Lookup
+            rainData.forEach(row => {
+                const rawName = row.Station_Name || row['Name of the station'];
+                if (!rawName) return;
+                
+                const cleanedName = cleanName(rawName);
+                
+                // Grab true geographic data from stations.csv, fallback to rain file if missing
+                const meta = stationLookup[cleanedName] || {};
+                const district = (meta.district && meta.district !== "Unknown") ? meta.district : (row.District || "Unknown");
+                const taluk = (meta.taluk && meta.taluk !== "Unknown") ? meta.taluk : (row.Taluk || row.Location_Details || "Unknown");
+                const lat = !isNaN(meta.lat) ? meta.lat : parseFloat(row.Latitude);
+                const lon = !isNaN(meta.lon) ? meta.lon : parseFloat(row.Longitude);
 
-                // Fallback added to ensure backward compatibility during your transition
-                const taluk = row.Taluk || row.Location_Details || "Unknown";
-                const district = row.District || "Unknown";
-
-                const uniqueID = name + "_" + taluk;
+                const uniqueID = cleanedName + "_" + taluk;
 
                 if (!stationMap[uniqueID]) {
                     stationMap[uniqueID] = {
-                        name: name,
-                        lat: parseFloat(row.Latitude),
-                        lon: parseFloat(row.Longitude),
+                        name: rawName.trim(),
+                        lat: lat,
+                        lon: lon,
                         taluk: taluk,
                         district: district,
                         annualTotal: 0.0,
@@ -325,19 +348,21 @@
                 }
             });
 
-            // Phase 2: Build Taluk and District Aggregations based on dynamic columns
+            // 3. Mathematical Division and Grouping
             const talukMap = {};
             const districtMap = {};
 
             Object.values(stationMap).forEach(st => {
                 if (isNaN(st.lat) || isNaN(st.lon)) return;
 
+                // Group by TRUE Taluk
                 if (!talukMap[st.taluk]) {
-                    talukMap[st.taluk] = { name: st.taluk, sub: "Taluk/Region", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
+                    talukMap[st.taluk] = { name: st.taluk, sub: "Taluk/Region Average", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
                 }
                 let t = talukMap[st.taluk];
                 t.count++; t.latSum += st.lat; t.lonSum += st.lon; t.annual += st.annualTotal; t.winter += st.winterTotal; t.summer += st.summerTotal; t.swm += st.swmTotal; t.today += st.todayVal;
 
+                // Group by TRUE District
                 if (!districtMap[st.district]) {
                     districtMap[st.district] = { name: st.district, sub: "District Level Average", count: 0, latSum: 0, lonSum: 0, annual: 0, winter: 0, summer: 0, swm: 0, today: 0 };
                 }
@@ -345,12 +370,13 @@
                 d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.annual += st.annualTotal; d.winter += st.winterTotal; d.summer += st.summerTotal; d.swm += st.swmTotal; d.today += st.todayVal;
             });
 
-            // Phase 3: Function to draw circles
+            // 4. Draw Markers using the correct division logic
             function drawLayer(mapData, targetLayer, radiusSize, isAverage) {
                 for (let key in mapData) {
                     const item = mapData[key];
                     if (isAverage && item.count === 0) continue;
 
+                    // Divide totals by station count (item.count) for precise averages
                     const divider = isAverage ? item.count : 1;
                     const lat = isAverage ? item.latSum / divider : item.lat;
                     const lon = isAverage ? item.lonSum / divider : item.lon;
@@ -396,7 +422,6 @@
                         `;
                     }
 
-                    // For single stations, display Taluk and District gracefully in the popup
                     const subtitle = isAverage ? item.sub : `${item.taluk}, ${item.district}`;
 
                     const popupContent = `
