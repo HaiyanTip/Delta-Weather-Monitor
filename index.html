@@ -203,7 +203,7 @@
         });
 
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
-        const STATIONS_DATA = 'stations.csv';
+        const STATIONS_DATA = 'Stations.csv'; // FIXED: Capital 'S' strictly applied
 
         // Load Rainfall Data First
         Papa.parse(RAINFALL_DATA, {
@@ -245,6 +245,7 @@
             return "#4a148c"; 
         }
 
+        // Deep cleaning to fix invisible spaces from the CSV
         function cleanName(str) {
             if (!str) return "";
             return str.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
@@ -341,7 +342,7 @@
                         const month = dateParts[1]; 
                         if (month === "01" || month === "02") st.winterTotal += mm;
                         else if (month === "03" || month === "04" || month === "05") st.summerTotal += mm;
-                        else if (month === "06") st.swmTotal += mm;
+                        else if (month === "06" || month === "07" || month === "08" || month === "09") st.swmTotal += mm;
                     }
                     if (row.Date === latestDate) st.todayVal = mm;
                 }
