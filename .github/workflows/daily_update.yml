@@ -3,7 +3,7 @@ name: Daily Rainfall Update
 on:
   schedule:
     # Runs at 4:30 AM UTC, which equals 10:00 AM IST
-    - cron: '30 4 * * *'
+    - cron: '30 3 * * *'
   workflow_dispatch: # Allows you to trigger it manually anytime!
 
 jobs:
