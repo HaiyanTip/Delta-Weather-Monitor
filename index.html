@@ -23,27 +23,30 @@
         }
         
         .dashboard-container {
-            max-width: 1400px; /* Reduced overall width */
+            max-width: 1400px; 
             margin: 0 auto; padding: 20px;
             display: flex; flex-direction: column; gap: 20px;
         }
 
-        /* 1. TOP ROW: Control Panel + Map */
+        /* 1. TOP ROW: Matches Sketch Layout */
         .top-row {
-            display: flex; gap: 20px; height: 75vh; min-height: 550px; width: 100%;
+            display: flex; gap: 20px; 
+            height: 80vh; min-height: 600px; /* Increased Map Height */
+            width: 100%;
         }
 
-        /* Dedicated Control Panel (Left) */
+        /* Control Panel (Left - Compact) */
         .control-panel {
-            flex: 0 0 320px; /* Fixed width for controls */
+            flex: 0 0 300px; 
+            height: fit-content; /* Stops the box from stretching downwards */
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             display: flex; flex-direction: column;
         }
         
-        /* Map Panel (Right) */
+        /* Map Panel (Right - Massive) */
         .map-wrapper {
-            flex: 1; border-radius: 12px; overflow: hidden;
+            flex: 1; height: 100%; border-radius: 12px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             background: white; position: relative;
         }
@@ -54,23 +57,24 @@
         .legend-title { font-weight: bold; font-size: 16px; color: #2c3e50; margin: 0; }
         #yearSelect { padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; font-size: 14px;}
         
-        .toggle-group { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .toggle-group { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
         .toggle-row { display: flex; justify-content: space-around; }
         .toggle-row label { cursor: pointer; font-weight: 500; color: #34495e; display: flex; align-items: center; font-size: 13px; }
         .toggle-row input { margin-right: 6px; cursor: pointer; }
         .toggle-divider { height: 1px; background: #ddd; margin: 5px 0; }
         
-        .slider-container { margin-bottom: 20px; margin-top: auto; }
+        .slider-container { margin-bottom: 15px; margin-top: 5px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #7f8c8d; margin-bottom: 8px; }
         input[type=range] { width: 100%; cursor: pointer; }
         
-        .color-scale-container { margin-top: 10px; }
+        .color-scale-container { margin-top: 5px; }
         .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: #7f8c8d; font-weight: bold; }
 
         /* 2. CHART SECTION */
         .chart-section {
-            height: 35vh; min-height: 250px; width: 100%; box-sizing: border-box;
+            height: 45vh; min-height: 400px; /* Increased Chart Height */
+            width: 100%; box-sizing: border-box;
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             display: flex; flex-direction: column;
@@ -88,7 +92,6 @@
         }
         .data-grid-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; display: inline-block;}
         
-        /* Increased table height */
         .table-container { max-height: 700px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
         
         .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; }
@@ -116,7 +119,7 @@
         .col-nem { color: #8e44ad; font-weight: bold; }
         .col-max { color: #c0392b; font-weight: bold; }
 
-        /* Popups (Restored original detailed layout) */
+        /* Popups */
         .matrix-popup { min-width: 270px; }
         .popup-header { font-size: 16px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
         .popup-sub { color: #95a5a6; font-size: 12px; margin-bottom: 10px; }
@@ -147,7 +150,7 @@
         <!-- 1. TOP ROW -->
         <div class="top-row">
             
-            <!-- Left Control Panel -->
+            <!-- Left Control Panel (Compact block) -->
             <div class="control-panel">
                 <div class="header-controls">
                     <div class="legend-title">Rainfall Engine</div>
@@ -182,7 +185,7 @@
                 </div>
             </div>
 
-            <!-- Right Map Panel -->
+            <!-- Right Map Panel (Massive block) -->
             <div class="map-wrapper">
                 <div id="map"></div>
             </div>
@@ -289,7 +292,6 @@
     </div>
 
     <script>
-        // Force map resize check since it's in a flexbox layout now
         const map = L.map('map', { center: [10.80, 79.35], zoom: 9.5 });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
@@ -581,7 +583,6 @@
                     
                     let modeSpecificHTML = '';
                     if (activePopupMode === 'stats') {
-                        // RESTORED: Full detailed popup with IMD breakdown
                         modeSpecificHTML = `
                             <table class="stats-table-exact">
                                 <tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr>
