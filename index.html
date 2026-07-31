@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cauvery Delta Rainfall Dashboard</title>
+    <title>Statewide Rainfall Dashboard</title>
     
     <!-- Leaflet for Mapping -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -12,19 +12,24 @@
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Chart.js for Popup Bar Charts -->
+    <!-- Chart.js for Charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        html, body, #map {
-            height: 100%; width: 100%; margin: 0; padding: 0;
+        /* NEW LAYOUT: Scrolling enabled, map is 60vh */
+        html, body {
+            margin: 0; padding: 0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #f4f7f6;
         }
         
+        .map-container { position: relative; height: 60vh; width: 100%; border-bottom: 3px solid #2c3e50; }
+        #map { height: 100%; width: 100%; }
+
         .legend-panel {
-            position: fixed; bottom: 30px; left: 20px; width: 320px;
+            position: absolute; bottom: 30px; left: 20px; width: 320px;
             background: white; padding: 15px; border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25); z-index: 1000;
             font-size: 13px; line-height: 1.5; border: 1px solid #e0e0e0;
         }
 
@@ -51,25 +56,49 @@
         }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 10px; color: #7f8c8d; font-weight: bold; }
 
+        /* Map Popups */
         .matrix-popup { min-width: 270px; }
         .popup-header { font-size: 16px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
         .popup-sub { color: #95a5a6; font-size: 13px; margin-bottom: 8px; }
-        
         .stats-table-exact { width: 100%; font-size: 13px; border-collapse: collapse; color: #34495e; margin-bottom: 5px; }
         .stats-table-exact td { padding: 6px 4px; border-bottom: 1px solid #f1f2f6; }
         .stats-table-exact td:last-child { text-align: right; font-weight: 600; color: #2c3e50; }
-        
         .row-highlight { background-color: #f1f4f8; }
         .row-highlight td { padding: 8px 4px; font-weight: 700; font-size: 13.5px; border-bottom: 1px solid #e1e5ea; }
-        
         .sec-title { font-size: 11px; color: #7f8c8d; text-transform: uppercase; margin: 12px 0 4px 0; display: flex; align-items: center; gap: 5px; }
         .text-red { color: #c0392b !important; font-weight: bold; }
-        
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
         .metric-box { background: #f8f9fa; border: 1px solid #eee; padding: 4px; border-radius: 4px; text-align: center; }
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
         .metric-lbl { font-size: 9px; color: #7f8c8d; text-transform: uppercase; }
         .chart-container { height: 140px; width: 100%; margin-top: 5px; }
+
+        /* NEW DASHBOARD SECTIONS BELOW MAP */
+        .dashboard-panel { padding: 20px; max-width: 1400px; margin: 0 auto; }
+        
+        .daily-chart-card {
+            background: white; border-radius: 8px; padding: 15px; margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0;
+        }
+        .daily-chart-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .chart-instruction { font-size: 13px; color: #7f8c8d; font-weight: normal; }
+
+        .data-grid-card {
+            background: white; border-radius: 8px; padding: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; overflow-x: auto;
+        }
+        .data-grid-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; }
+        
+        .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; }
+        .master-table th { background: #34495e; color: white; padding: 10px 5px; text-align: center; position: sticky; top: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .master-table td { padding: 8px 5px; border-bottom: 1px solid #f0f0f0; }
+        .master-table td:nth-child(2), .master-table td:nth-child(3) { text-align: left; }
+        
+        .row-district { background-color: #ecf0f1; font-weight: bold; border-top: 2px solid #bdc3c7; border-bottom: 2px solid #bdc3c7; }
+        .col-annual { background-color: #e8f4f8; font-weight: bold; color: #2c3e50; }
+        .col-swm { color: #2980b9; font-weight: bold; }
+        .col-nem { color: #8e44ad; font-weight: bold; }
+        .col-max { color: #c0392b; font-weight: bold; }
 
         @media (max-width: 600px) {
             .legend-panel { width: 85%; left: 50%; transform: translateX(-50%); bottom: 15px; padding: 10px; }
@@ -78,38 +107,75 @@
 </head>
 <body>
 
-    <div id="map"></div>
+    <div class="map-container">
+        <div id="map"></div>
+        <div class="legend-panel">
+            <div class="header-controls">
+                <div class="legend-title">Rainfall Engine</div>
+                <select id="yearSelect"></select>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-row">
+                    <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
+                    <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+                </div>
+                <div class="toggle-divider"></div>
+                <div class="toggle-row">
+                    <label><input type="radio" name="popupMode" value="stats" checked> 📝 Stats</label>
+                    <label><input type="radio" name="popupMode" value="chart"> 📊 Chart</label>
+                </div>
+            </div>
 
-    <div class="legend-panel">
-        <div class="header-controls">
-            <div class="legend-title">Rainfall Dashboard</div>
-            <select id="yearSelect"></select>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Jan 1</span>
+                    <span id="sliderDateDisplay" style="color:#d35400;">Loading...</span>
+                </div>
+                <input type="range" id="timeSlider" min="1" max="365" value="365">
+            </div>
+
+            <div class="color-scale-bar"></div>
+            <div class="color-scale-labels">
+                <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
+            </div>
         </div>
+    </div>
+
+    <div class="dashboard-panel">
         
-        <div class="toggle-group">
-            <div class="toggle-row">
-                <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
-                <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+        <!-- SECTION: Sync-on-Click Daily Chart -->
+        <div class="daily-chart-card" id="chartSection">
+            <div class="daily-chart-header">
+                <span id="masterChartTitle">Daily Rainfall Map</span>
+                <span class="chart-instruction">📍 Click any station on the map to load daily data</span>
             </div>
-            <div class="toggle-divider"></div>
-            <div class="toggle-row">
-                <label><input type="radio" name="popupMode" value="stats" checked> 📝 Stats</label>
-                <label><input type="radio" name="popupMode" value="chart"> 📊 Chart</label>
+            <div style="height: 280px; width: 100%;">
+                <canvas id="masterDailyChart"></canvas>
             </div>
         </div>
 
-        <div class="slider-container">
-            <div class="slider-label">
-                <span>Jan 1</span>
-                <span id="sliderDateDisplay" style="color:#d35400;">Loading...</span>
+        <!-- SECTION: Master Data Grid -->
+        <div class="data-grid-card">
+            <div class="data-grid-header">Master Data Grid</div>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="master-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th><th>District</th><th>Station</th>
+                            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+                            <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+                            <th>Annual</th><th>Winter</th><th>Summer</th><th>SWM</th><th>NEM</th>
+                            <th>Max 24h</th><th>Max Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="masterTableBody">
+                        <tr><td colspan="22" style="text-align:center;">Loading Data Engine...</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <input type="range" id="timeSlider" min="1" max="365" value="365">
         </div>
 
-        <div class="color-scale-bar"></div>
-        <div class="color-scale-labels">
-            <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
-        </div>
     </div>
 
     <script>
@@ -126,6 +192,7 @@
         let activeView = 'station';
         let activePopupMode = 'stats';
         let chartInstances = {}; 
+        let masterChartInstance = null; // Holds the big daily chart
         let currentSliderDateStr = "";
 
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
@@ -180,29 +247,19 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         }
 
-        // ==========================================
-        // NEW BULLETPROOF DATA LINKING ENGINE
-        // ==========================================
         function buildStationLookup(stationsData) {
             stationsData.forEach(st => {
                 const rawName = st['Name of the station'] || st.Station_Name || "";
                 const dist = st.District || "Unknown";
                 const cleanedName = cleanName(rawName);
                 
-                // Safely parse coordinates
                 const lat = parseFloat(st.Latitude) || 0;
                 const lon = parseFloat(st.Longitude) || 0;
                 
                 if (cleanedName) {
-                    // Create an unbreakable unique fingerprint: name_lat_lon (rounded to handle tiny data variations)
                     const uniqueKey = cleanedName + "_" + lat.toFixed(2) + "_" + lon.toFixed(2);
-                    
                     globalStations[uniqueKey] = { district: dist.trim(), lat: lat, lon: lon };
-                    
-                    // Fallback in case coordinates shift slightly in the daily file
-                    if(!fallbackStations[cleanedName]) {
-                        fallbackStations[cleanedName] = { district: dist.trim(), lat: lat, lon: lon };
-                    }
+                    if(!fallbackStations[cleanedName]) { fallbackStations[cleanedName] = { district: dist.trim(), lat: lat, lon: lon }; }
                 }
             });
         }
@@ -255,12 +312,29 @@
                 });
             });
 
+            // Initialize empty daily chart
+            initEmptyDailyChart();
             updateEngine(); 
+        }
+
+        function initEmptyDailyChart() {
+            const ctx = document.getElementById('masterDailyChart').getContext('2d');
+            masterChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' } }, x: { grid: { display: false } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
 
         function updateEngine() {
             const selectedYear = parseInt(document.getElementById('yearSelect').value);
             const sliderValue = parseInt(document.getElementById('timeSlider').value);
+            const isLeap = (selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0);
+            const daysInYear = isLeap ? 366 : 365;
             
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, selectedYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
@@ -281,14 +355,10 @@
                 const rawName = row.Station_Name || row['Name of the station'];
                 const cleanedName = cleanName(rawName);
                 
-                // Safely extract coordinates from daily file
                 const rLat = parseFloat(row.Latitude) || 0;
                 const rLon = parseFloat(row.Longitude) || 0;
                 
-                // Recreate the geographic fingerprint
                 const uniqueKey = cleanedName + "_" + rLat.toFixed(2) + "_" + rLon.toFixed(2);
-                
-                // First try exact coordinate match, fallback to just the name if needed
                 const meta = globalStations[uniqueKey] || fallbackStations[cleanedName] || {};
                 
                 const district = (meta.district && meta.district !== "Unknown") ? meta.district : "Unknown";
@@ -306,13 +376,15 @@
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
                         vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, 
                         maxRain: 0, maxDate: "-",
-                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0] 
+                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0],
+                        dailyArray: new Array(daysInYear).fill(0) // NEW: Store every single day for the chart
                     };
                 }
 
                 const st = stationMap[uniqueKey];
                 st.total += mm;
                 st.monthly[d.month - 1] += mm;
+                st.dailyArray[doy - 1] += mm; // Populate daily array
                 
                 if (doy === sliderValue) st.today += mm;
 
@@ -336,6 +408,7 @@
                 }
             });
 
+            // Build District Aggregations
             Object.values(stationMap).forEach(st => {
                 if (isNaN(st.lat) || isNaN(st.lon) || st.district === "Unknown") return;
 
@@ -345,7 +418,8 @@
                         name: st.district, sub: "District Level Average", count: 0, 
                         latSum: 0, lonSum: 0, total: 0, todaySum: 0, winter: 0, summer: 0, swm: 0, nem: 0,
                         vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies",
-                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0]
+                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0],
+                        dailyArray: new Array(daysInYear).fill(0) // For District Charting
                     };
                 }
                 
@@ -359,8 +433,10 @@
                 if (st.maxRain > d.maxRain) { d.maxRain = st.maxRain; }
 
                 for(let i=0; i<12; i++) d.monthly[i] += st.monthly[i];
+                for(let i=0; i<daysInYear; i++) d.dailyArray[i] += st.dailyArray[i];
             });
 
+            // Map Drawing Function
             function draw(mapData, targetLayer, radiusSize, isAverage) {
                 for (let key in mapData) {
                     const item = mapData[key];
@@ -369,21 +445,20 @@
                     const div = isAverage ? item.count : 1;
                     const lat = isAverage ? item.latSum / div : item.lat;
                     const lon = isAverage ? item.lonSum / div : item.lon;
-                    
-                    const todayVal = isAverage ? item.todaySum / div : item.today;
                     const total = item.total / div;
-                    const winter = item.winter / div;
-                    const summer = item.summer / div;
-                    const swm = item.swm / div;
-                    const nem = item.nem / div;
-
-                    const avgMonthly = item.monthly.map(val => val / div);
-
+                    
                     const marker = L.circleMarker([lat, lon], {
                         radius: radiusSize, fillColor: getColor(total),
                         color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85
                     }).addTo(targetLayer);
 
+                    // Reconstruct properties for popup
+                    const todayVal = isAverage ? item.todaySum / div : item.today;
+                    const winter = item.winter / div;
+                    const summer = item.summer / div;
+                    const swm = item.swm / div;
+                    const nem = item.nem / div;
+                    const avgMonthly = item.monthly.map(val => val / div);
                     const canvasId = `chart-${item.id}`;
                     
                     let modeSpecificHTML = '';
@@ -397,34 +472,21 @@
                                 <tr><td>☁️ SWM</td><td>${swm.toFixed(1)} mm</td></tr>
                                 <tr><td>☔ NEM</td><td>${nem.toFixed(1)} mm</td></tr>
                             </table>
-
-                            <div class="sec-title">🏆 ANNUAL EXTREME</div>
+                            <div class="sec-title">🏆 EXTREME</div>
                             <table class="stats-table-exact">
-                                <tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr>
-                                <tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr>
-                            </table>
-                            
-                            <div class="sec-title">📊 IMD RAIN DAYS</div>
-                            <table class="stats-table-exact">
-                                <tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr>
-                                <tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr>
-                                <tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr>
-                                <tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr>
-                                <tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr>
-                                <tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr>
+                                <tr><td>Highest 24h</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr>
+                                <tr><td>Date</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr>
                             </table>
                         `;
                     } else {
                         modeSpecificHTML = `
                             <div class="metrics-grid">
-                                <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total (mm)</div></div>
-                                <div class="metric-box"><div class="metric-val">${swm.toFixed(1)}</div><div class="metric-lbl">SWM (mm)</div></div>
-                                <div class="metric-box"><div class="metric-val">${nem.toFixed(1)}</div><div class="metric-lbl">NEM (mm)</div></div>
+                                <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total</div></div>
+                                <div class="metric-box"><div class="metric-val">${swm.toFixed(1)}</div><div class="metric-lbl">SWM</div></div>
+                                <div class="metric-box"><div class="metric-val">${nem.toFixed(1)}</div><div class="metric-lbl">NEM</div></div>
                                 <div class="metric-box"><div class="metric-val">${(winter+summer).toFixed(1)}</div><div class="metric-lbl">Win/Sum</div></div>
                             </div>
-                            <div class="chart-container">
-                                <canvas id="${canvasId}"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="${canvasId}"></canvas></div>
                         `;
                     }
 
@@ -439,32 +501,20 @@
                     marker.bindPopup(popupHTML, { maxWidth: 300 });
                     marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`, { sticky: true });
 
+                    // Handle map clicks for daily sync
+                    marker.on('click', function() {
+                        triggerDailyChartSync(item, isAverage, selectedYear, daysInYear, div);
+                    });
+
                     marker.on('popupopen', function() {
                         if (activePopupMode === 'chart') {
                             const ctx = document.getElementById(canvasId);
                             if (!ctx) return;
-                            
                             if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-
                             chartInstances[canvasId] = new Chart(ctx, {
                                 type: 'bar',
-                                data: {
-                                    labels: ['J','F','M','A','M','J','J','A','S','O','N','D'],
-                                    datasets: [{
-                                        label: 'Rainfall (mm)',
-                                        data: avgMonthly,
-                                        backgroundColor: '#3498db',
-                                        borderRadius: 3
-                                    }]
-                                },
-                                options: {
-                                    responsive: true, maintainAspectRatio: false,
-                                    plugins: { legend: { display: false } },
-                                    scales: { 
-                                        x: { grid: { display: false } },
-                                        y: { beginAtZero: true, ticks: { font: {size: 9} } }
-                                    }
-                                }
+                                data: { labels: ['J','F','M','A','M','J','J','A','S','O','N','D'], datasets: [{ data: avgMonthly, backgroundColor: '#3498db', borderRadius: 3 }] },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { font: {size: 9} } } } }
                             });
                         }
                     });
@@ -473,6 +523,104 @@
 
             if (activeView === 'station') draw(stationMap, layers.station, 7, false);
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
+
+            // UPADTE THE MASTER TABLE
+            populateMasterGrid(stationMap, districtMap);
+        }
+
+        // ==========================================
+        // NEW: DASHBOARD EXTENSION FUNCTIONS
+        // ==========================================
+
+        function triggerDailyChartSync(item, isAverage, year, daysInYear, div) {
+            const titleElement = document.getElementById('masterChartTitle');
+            if(isAverage) {
+                titleElement.innerHTML = `Daily Rainfall Map: <span style="color:#2980b9;">${item.name} District Average</span>`;
+            } else {
+                titleElement.innerHTML = `Daily Rainfall Map: <span style="color:#2980b9;">${item.name} (${item.district})</span>`;
+            }
+
+            const labels = [];
+            const data = [];
+            
+            for(let i=0; i<daysInYear; i++) {
+                const date = new Date(year, 0, i + 1);
+                labels.push(date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }));
+                data.push(item.dailyArray[i] / div);
+            }
+
+            masterChartInstance.data.labels = labels;
+            masterChartInstance.data.datasets = [{
+                label: 'Daily Rain (mm)',
+                data: data,
+                backgroundColor: '#3498db',
+                hoverBackgroundColor: '#c0392b',
+                barPercentage: 1.0,
+                categoryPercentage: 1.0
+            }];
+            
+            masterChartInstance.options.plugins.tooltip = {
+                callbacks: {
+                    title: (ctx) => ctx[0].label + ' ' + year,
+                    label: (ctx) => ctx.parsed.y.toFixed(1) + ' mm'
+                }
+            };
+            masterChartInstance.update();
+
+            // Auto-scroll slightly so the user sees it
+            document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function populateMasterGrid(stationMap, districtMap) {
+            const tbody = document.getElementById('masterTableBody');
+            tbody.innerHTML = '';
+            
+            // 1. PIN DISTRICT AVERAGES TO TOP
+            const sortedDistricts = Object.values(districtMap).sort((a,b) => a.name.localeCompare(b.name));
+            sortedDistricts.forEach(d => {
+                const div = d.count > 0 ? d.count : 1;
+                const tr = document.createElement('tr');
+                tr.className = 'row-district';
+                tr.innerHTML = `
+                    <td style="text-align:center; color:#7f8c8d;">-</td>
+                    <td>${d.name.toUpperCase()}</td>
+                    <td style="color:#d35400;">AVG (${d.count} Stations)</td>
+                    <td>${(d.monthly[0]/div).toFixed(1)}</td><td>${(d.monthly[1]/div).toFixed(1)}</td><td>${(d.monthly[2]/div).toFixed(1)}</td>
+                    <td>${(d.monthly[3]/div).toFixed(1)}</td><td>${(d.monthly[4]/div).toFixed(1)}</td><td>${(d.monthly[5]/div).toFixed(1)}</td>
+                    <td>${(d.monthly[6]/div).toFixed(1)}</td><td>${(d.monthly[7]/div).toFixed(1)}</td><td>${(d.monthly[8]/div).toFixed(1)}</td>
+                    <td>${(d.monthly[9]/div).toFixed(1)}</td><td>${(d.monthly[10]/div).toFixed(1)}</td><td>${(d.monthly[11]/div).toFixed(1)}</td>
+                    <td class="col-annual">${(d.total/div).toFixed(1)}</td>
+                    <td>${(d.winter/div).toFixed(1)}</td><td>${(d.summer/div).toFixed(1)}</td>
+                    <td class="col-swm">${(d.swm/div).toFixed(1)}</td><td class="col-nem">${(d.nem/div).toFixed(1)}</td>
+                    <td class="col-max">${d.maxRain.toFixed(1)}</td><td>Dist. Max</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 2. LIST ALL STATIONS
+            let sno = 1;
+            const sortedStations = Object.values(stationMap).sort((a, b) => {
+                if(a.district === b.district) return a.name.localeCompare(b.name);
+                return a.district.localeCompare(b.district);
+            });
+
+            sortedStations.forEach(st => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align:center;">${sno++}</td>
+                    <td>${st.district}</td>
+                    <td style="font-weight:bold;">${st.name}</td>
+                    <td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td>
+                    <td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td>
+                    <td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td>
+                    <td>${st.monthly[9].toFixed(1)}</td><td>${st.monthly[10].toFixed(1)}</td><td>${st.monthly[11].toFixed(1)}</td>
+                    <td class="col-annual">${st.total.toFixed(1)}</td>
+                    <td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td>
+                    <td class="col-swm">${st.swm.toFixed(1)}</td><td class="col-nem">${st.nem.toFixed(1)}</td>
+                    <td class="col-max">${st.maxRain.toFixed(1)}</td><td>${st.maxDate}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
     </script>
 </body>
