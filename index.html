@@ -28,23 +28,23 @@
             display: flex; flex-direction: column; gap: 20px;
         }
 
-        /* 1. TOP ROW: Matches Sketch Layout */
+        /* 1. TOP ROW */
         .top-row {
             display: flex; gap: 20px; 
-            height: 80vh; min-height: 600px; /* Increased Map Height */
+            height: 80vh; min-height: 600px;
             width: 100%;
         }
 
-        /* Control Panel (Left - Compact) */
+        /* Control Panel */
         .control-panel {
             flex: 0 0 300px; 
-            height: fit-content; /* Stops the box from stretching downwards */
+            height: fit-content;
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             display: flex; flex-direction: column;
         }
         
-        /* Map Panel (Right - Massive) */
+        /* Map Panel */
         .map-wrapper {
             flex: 1; height: 100%; border-radius: 12px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
@@ -52,7 +52,6 @@
         }
         #map { height: 100%; width: 100%; }
 
-        /* Control Panel Internals */
         .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .legend-title { font-weight: bold; font-size: 16px; color: #2c3e50; margin: 0; }
         #yearSelect { padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; font-size: 14px;}
@@ -71,58 +70,60 @@
         .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: #7f8c8d; font-weight: bold; }
 
-        /* 2. CHART SECTION */
+        /* 2. CHART SECTION WITH NEW CONTROLS */
         .chart-section {
-            height: 45vh; min-height: 400px; /* Increased Chart Height */
+            height: 45vh; min-height: 400px; 
             width: 100%; box-sizing: border-box;
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             display: flex; flex-direction: column;
         }
-        .daily-chart-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .chart-instruction { font-size: 13px; color: #7f8c8d; font-weight: normal; }
+        .daily-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .chart-title-wrapper { display: flex; flex-direction: column; }
+        #masterChartTitle { font-size: 18px; font-weight: bold; color: #2c3e50; }
+        .chart-instruction { font-size: 12px; color: #7f8c8d; font-weight: normal; margin-top: 2px; }
+        
+        /* New Chart Dropdown Controls */
+        .chart-dropdown-group { display: flex; gap: 10px; }
+        .chart-dropdown-group select {
+            padding: 6px 10px; border-radius: 6px; border: 1px solid #bdc3c7;
+            font-size: 13px; font-weight: 500; color: #2c3e50; background: #ecf0f1;
+            cursor: pointer; outline: none; min-width: 180px;
+        }
+        .chart-dropdown-group select:focus { border-color: #3498db; }
+        .chart-dropdown-group select:disabled { opacity: 0.6; cursor: not-allowed; }
+
         .chart-wrapper { flex: 1; position: relative; width: 100%; }
 
         /* 3. TABLES SECTION */
         .tables-section { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-        
-        .data-grid-card {
-            background: white; border-radius: 12px; padding: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
-        }
+        .data-grid-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da; }
         .data-grid-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; display: inline-block;}
-        
         .table-container { max-height: 700px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
-        
         .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; }
-        .master-table th { 
-            background: #2c3e50; color: white; padding: 10px 5px; text-align: center; 
-            position: sticky; top: 0; font-size: 11px; text-transform: uppercase; z-index: 10;
-        }
-        
+        .master-table th { background: #2c3e50; color: white; padding: 10px 5px; text-align: center; position: sticky; top: 0; font-size: 11px; text-transform: uppercase; z-index: 10; }
         th[data-sort] { cursor: pointer; transition: background-color 0.2s; user-select: none; }
         th[data-sort]:hover { background-color: #34495e; color: #f1c40f; }
         .sort-icon { display: inline-block; width: 12px; font-size: 10px; margin-left: 2px; color: #f1c40f; }
-
         .master-table td { padding: 8px 5px; border-bottom: 1px solid #f0f0f0; }
         .master-table td:nth-child(2), .master-table td:nth-child(3) { text-align: left; }
-        
-        .filter-dropdown {
-            background: #34495e; color: white; border: 1px solid #7f8c8d; 
-            border-radius: 4px; padding: 2px 5px; margin-left: 5px; 
-            font-size: 11px; font-weight: bold; cursor: pointer; outline: none;
-        }
-        
+        .filter-dropdown { background: #34495e; color: white; border: 1px solid #7f8c8d; border-radius: 4px; padding: 2px 5px; margin-left: 5px; font-size: 11px; font-weight: bold; cursor: pointer; outline: none; }
         .row-hover:hover { background-color: #f1f4f8; }
         .col-annual { background-color: #e8f4f8; font-weight: bold; color: #2c3e50; }
         .col-swm { color: #2980b9; font-weight: bold; }
         .col-nem { color: #8e44ad; font-weight: bold; }
         .col-max { color: #c0392b; font-weight: bold; }
 
-        /* Popups */
-        .matrix-popup { min-width: 270px; }
+        /* NEW SLIDER/TAB POPUPS */
+        .matrix-popup { min-width: 280px; }
         .popup-header { font-size: 16px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
-        .popup-sub { color: #95a5a6; font-size: 12px; margin-bottom: 10px; }
+        .popup-sub { color: #95a5a6; font-size: 12px; margin-bottom: 8px; }
+        
+        .popup-tabs { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 10px; }
+        .popup-tab { flex: 1; text-align: center; font-size: 11.5px; font-weight: bold; padding: 6px; cursor: pointer; color: #95a5a6; transition: all 0.2s; }
+        .popup-tab:hover { color: #34495e; }
+        .popup-tab.active { color: #2980b9; border-bottom: 2px solid #2980b9; }
+
         .stats-table-exact { width: 100%; font-size: 12.5px; border-collapse: collapse; color: #34495e; margin-bottom: 5px; }
         .stats-table-exact td { padding: 5px 2px; border-bottom: 1px solid #f1f2f6; }
         .stats-table-exact td:last-child { text-align: right; font-weight: 600; color: #2c3e50; }
@@ -140,17 +141,28 @@
             .top-row { flex-direction: column; height: auto; }
             .control-panel { flex: none; width: auto; }
             .map-wrapper { height: 50vh; }
+            .chart-dropdown-group { width: 100%; flex-direction: column; }
         }
     </style>
 </head>
 <body>
+
+    <!-- Global Tab Switcher Function for Popups -->
+    <script>
+        window.switchPopupTab = function(el, paneId) {
+            const container = el.closest('.matrix-popup');
+            container.querySelectorAll('.popup-tab').forEach(t => t.classList.remove('active'));
+            container.querySelectorAll('.popup-pane').forEach(p => p.style.display = 'none');
+            el.classList.add('active');
+            container.querySelector('#' + paneId).style.display = 'block';
+        };
+    </script>
 
     <div class="dashboard-container">
         
         <!-- 1. TOP ROW -->
         <div class="top-row">
             
-            <!-- Left Control Panel (Compact block) -->
             <div class="control-panel">
                 <div class="header-controls">
                     <div class="legend-title">Rainfall Engine</div>
@@ -185,7 +197,6 @@
                 </div>
             </div>
 
-            <!-- Right Map Panel (Massive block) -->
             <div class="map-wrapper">
                 <div id="map"></div>
             </div>
@@ -195,8 +206,20 @@
         <!-- 2. CHART SECTION -->
         <div class="chart-section" id="chartTarget">
             <div class="daily-chart-header">
-                <span id="masterChartTitle">Daily Rainfall Trends</span>
-                <span class="chart-instruction">📍 Click any station/district on the map to load daily data</span>
+                <div class="chart-title-wrapper">
+                    <span id="masterChartTitle">Daily Rainfall Trends</span>
+                    <span class="chart-instruction">Use the dropdowns below to explore historical daily data.</span>
+                </div>
+                
+                <!-- NEW INDEPENDENT DROPDOWNS -->
+                <div class="chart-dropdown-group">
+                    <select id="chartDistSelect">
+                        <option value="">Select District...</option>
+                    </select>
+                    <select id="chartStnSelect" disabled>
+                        <option value="">Select Station...</option>
+                    </select>
+                </div>
             </div>
             <div class="chart-wrapper">
                 <canvas id="masterDailyChart"></canvas>
@@ -311,6 +334,10 @@
 
         let currentDistrictData = [];
         let currentStationData = [];
+        
+        // Expose raw maps globally for the dropdown selectors to easily access
+        let rawStationMap = {};
+        let rawDistrictMap = {};
 
         let sortConfig = {
             district: { key: 'name', dir: 'asc' },
@@ -440,6 +467,7 @@
 
             setupSortingListeners();
             document.getElementById('districtFilter').addEventListener('change', function(e) { renderTables(); });
+            setupChartDropdownListeners();
 
             initEmptyDailyChart();
             updateEngine(); 
@@ -456,6 +484,76 @@
                     plugins: { legend: { display: false } }
                 }
             });
+        }
+
+        // --- NEW: Chart Dropdown Logic ---
+        function setupChartDropdownListeners() {
+            const distSelect = document.getElementById('chartDistSelect');
+            const stnSelect = document.getElementById('chartStnSelect');
+
+            distSelect.addEventListener('change', (e) => {
+                const districtName = e.target.value;
+                stnSelect.innerHTML = '<option value="">Select Station...</option>';
+                
+                if (!districtName) {
+                    stnSelect.disabled = true;
+                    return;
+                }
+
+                // Populate station dropdown
+                stnSelect.disabled = false;
+                stnSelect.innerHTML += `<option value="DISTRICT_AVG">⭐ ${districtName} (District Average)</option>`;
+                
+                const stationsInDist = currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name));
+                stationsInDist.forEach(st => {
+                    const opt = document.createElement('option');
+                    opt.value = st.id; // using raw id string
+                    opt.innerText = st.name;
+                    stnSelect.appendChild(opt);
+                });
+                
+                // Automatically trigger the district average chart
+                stnSelect.value = "DISTRICT_AVG";
+                stnSelect.dispatchEvent(new Event('change'));
+            });
+
+            stnSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                const dist = distSelect.value;
+                const year = parseInt(document.getElementById('yearSelect').value);
+                const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+                const daysInYear = isLeap ? 366 : 365;
+
+                if (!val) return;
+
+                if (val === "DISTRICT_AVG") {
+                    const dData = rawDistrictMap[dist];
+                    if (dData) triggerDailyChartSync(dData, true, year, daysInYear, dData.count || 1);
+                } else {
+                    const sData = currentStationData.find(s => s.id === val);
+                    if (sData) triggerDailyChartSync(sData, false, year, daysInYear, 1);
+                }
+            });
+        }
+
+        function populateChartDropdowns() {
+            const distSelect = document.getElementById('chartDistSelect');
+            const currentDist = distSelect.value;
+            
+            const uniqueDistricts = new Set();
+            currentStationData.forEach(st => { if (st.district !== "Unknown") uniqueDistricts.add(st.district); });
+            
+            distSelect.innerHTML = '<option value="">Select District...</option>';
+            Array.from(uniqueDistricts).sort().forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d; opt.innerText = d;
+                distSelect.appendChild(opt);
+            });
+            
+            if (Array.from(uniqueDistricts).includes(currentDist)) {
+                distSelect.value = currentDist;
+                // We don't forcefully trigger a re-draw here so we don't interrupt the user's flow
+            }
         }
 
         function updateEngine() {
@@ -559,6 +657,13 @@
                 for(let i=0; i<daysInYear; i++) d.dailyArray[i] += st.dailyArray[i];
             });
 
+            // Make raw maps globally accessible
+            rawStationMap = stationMap;
+            rawDistrictMap = districtMap;
+            
+            currentDistrictData = Object.values(districtMap);
+            currentStationData = Object.values(stationMap);
+
             function draw(mapData, targetLayer, radiusSize, isAverage) {
                 for (let key in mapData) {
                     const item = mapData[key];
@@ -583,29 +688,41 @@
                     
                     let modeSpecificHTML = '';
                     if (activePopupMode === 'stats') {
+                        // NEW TABBED POPUP INTERFACE
                         modeSpecificHTML = `
-                            <table class="stats-table-exact">
-                                <tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr>
-                                <tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr>
-                                <tr><td>❄️ Winter</td><td>${winter.toFixed(1)} mm</td></tr>
-                                <tr><td>☀️ Summer</td><td>${summer.toFixed(1)} mm</td></tr>
-                                <tr><td>☁️ SWM (so far)</td><td>${swm.toFixed(1)} mm</td></tr>
-                                <tr><td>☔ NEM</td><td>${nem.toFixed(1)} mm</td></tr>
-                            </table>
-                            <div class="sec-title">🏆 ANNUAL EXTREME</div>
-                            <table class="stats-table-exact">
-                                <tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr>
-                                <tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr>
-                            </table>
-                            <div class="sec-title">📊 IMD RAIN DAYS</div>
-                            <table class="stats-table-exact">
-                                <tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr>
-                                <tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr>
-                                <tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr>
-                                <tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr>
-                                <tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr>
-                                <tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr>
-                            </table>
+                            <div class="popup-tabs">
+                                <div class="popup-tab active" onclick="switchPopupTab(this, 'pane-overview-${item.id}')">Overview</div>
+                                <div class="popup-tab" onclick="switchPopupTab(this, 'pane-imd-${item.id}')">IMD Days</div>
+                            </div>
+                            
+                            <!-- TAB 1: OVERVIEW -->
+                            <div class="popup-pane" id="pane-overview-${item.id}">
+                                <table class="stats-table-exact">
+                                    <tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr>
+                                    <tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr>
+                                    <tr><td>❄️ Winter</td><td>${winter.toFixed(1)} mm</td></tr>
+                                    <tr><td>☀️ Summer</td><td>${summer.toFixed(1)} mm</td></tr>
+                                    <tr><td>☁️ SWM (so far)</td><td>${swm.toFixed(1)} mm</td></tr>
+                                    <tr><td>☔ NEM</td><td>${nem.toFixed(1)} mm</td></tr>
+                                </table>
+                                <div class="sec-title">🏆 ANNUAL EXTREME</div>
+                                <table class="stats-table-exact">
+                                    <tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr>
+                                    <tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr>
+                                </table>
+                            </div>
+
+                            <!-- TAB 2: IMD DAYS -->
+                            <div class="popup-pane" id="pane-imd-${item.id}" style="display:none;">
+                                <table class="stats-table-exact">
+                                    <tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr>
+                                    <tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr>
+                                    <tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr>
+                                    <tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr>
+                                    <tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr>
+                                    <tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr>
+                                </table>
+                            </div>
                         `;
                     } else {
                         modeSpecificHTML = `
@@ -629,9 +746,18 @@
                     marker.bindPopup(popupHTML, { maxWidth: 320 });
                     marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`, { sticky: true });
 
+                    // Map click syncs dropdowns and updates chart (NO SCROLLING)
                     marker.on('click', function() {
-                        triggerDailyChartSync(item, isAverage, selectedYear, daysInYear, div);
-                        document.getElementById('chartTarget').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        const distSelect = document.getElementById('chartDistSelect');
+                        const stnSelect = document.getElementById('chartStnSelect');
+                        
+                        distSelect.value = isAverage ? item.name : item.district;
+                        distSelect.dispatchEvent(new Event('change')); 
+                        
+                        setTimeout(() => {
+                            stnSelect.value = isAverage ? "DISTRICT_AVG" : item.id;
+                            stnSelect.dispatchEvent(new Event('change'));
+                        }, 50);
                     });
 
                     marker.on('popupopen', function() {
@@ -652,9 +778,6 @@
             if (activeView === 'station') draw(stationMap, layers.station, 7, false);
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
 
-            currentDistrictData = Object.values(districtMap);
-            currentStationData = Object.values(stationMap);
-
             const filterDropdown = document.getElementById('districtFilter');
             const currentSelection = filterDropdown.value;
             const uniqueDistricts = new Set();
@@ -668,15 +791,16 @@
             });
             if(Array.from(uniqueDistricts).includes(currentSelection)) { filterDropdown.value = currentSelection; }
 
+            populateChartDropdowns();
             renderTables();
         }
 
         function triggerDailyChartSync(item, isAverage, year, daysInYear, div) {
             const titleElement = document.getElementById('masterChartTitle');
             if(isAverage) {
-                titleElement.innerHTML = `Daily Trends: <span style="color:#2980b9;">${item.name} District Average</span>`;
+                titleElement.innerHTML = `<span style="color:#2980b9;">${item.name} District</span> Daily Trends`;
             } else {
-                titleElement.innerHTML = `Daily Trends: <span style="color:#2980b9;">${item.name} (${item.district})</span>`;
+                titleElement.innerHTML = `<span style="color:#2980b9;">${item.name} (${item.district})</span> Daily Trends`;
             }
 
             const labels = []; const data = [];
