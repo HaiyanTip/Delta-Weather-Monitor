@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cauvery Delta Rainfall Dashboard</title>
+    <title>Cauvery Delta Climate Dashboard</title>
     
     <!-- Leaflet for Mapping -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -12,208 +12,207 @@
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Chart.js for Popup Bar Charts -->
+    <!-- Chart.js for Popup & Sidebar Charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* NORMAL WEBPAGE SCROLLING - No more locked 100vh */
+        :root { --bg-light: #f4f7f6; --text-main: #2c3e50; --border-color: #dcdde1; --brand-blue: #3498db; }
+        
         html, body {
-            margin: 0; padding: 0;
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #f4f6f8;
-        }
-        
-        /* TOP CONTROL PANEL */
-        .top-panel {
-            background: white; padding: 15px 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;
-            position: relative;
-        }
-        .controls-row-1 { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 12px; }
-        .controls-row-2 { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        
-        .app-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin: 0; }
-        
-        #yearSelect { padding: 6px 12px; border-radius: 6px; border: 1px solid #bdc3c7; font-weight: bold; font-size: 14px; cursor: pointer; }
-        
-        .toggle-group { background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 6px; padding: 4px 6px; display: flex; gap: 12px; }
-        .toggle-row { display: flex; align-items: center; gap: 6px; padding: 2px 6px; }
-        .toggle-row label { cursor: pointer; font-weight: 600; color: #34495e; display: flex; align-items: center; font-size: 13px; }
-        .toggle-row input { margin-right: 4px; cursor: pointer; }
-        .toggle-divider { width: 1px; background: #bdc3c7; }
-
-        /* Slider */
-        .slider-wrapper { flex-grow: 1; min-width: 250px; display: flex; align-items: center; gap: 15px; }
-        #sliderDateDisplay { color: #16a085; background: #e8f8f5; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; white-space: nowrap; }
-        input[type=range] { width: 100%; cursor: pointer; margin: 0; }
-
-        /* Color Bar */
-        .color-bar-wrapper { width: 320px; }
-        .color-scale-bar { height: 10px; width: 100%; border-radius: 4px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
-        .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: #7f8c8d; font-weight: bold; margin-top: 4px; }
-
-        /* MAP CONTAINER - Massive and Guaranteed Height */
-        #map-container { 
-            width: 100%; 
-            height: 70vh;          /* Takes up 70% of the screen height */
-            min-height: 550px;     /* Never gets smaller than this */
-            background-color: #e5e9ec; 
-            z-index: 1; 
-            border-bottom: 3px solid #bdc3c7;
-        }
-        #map { width: 100%; height: 100%; }
-        
-        /* BOTTOM TABLE PANEL - Natural Flow */
-        .bottom-panel {
-            background: white; padding: 25px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            min-height: 400px;
+            background-color: var(--bg-light); color: var(--text-main); overflow: hidden;
         }
 
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .panel-title { font-size: 18px; font-weight: 800; color: #2c3e50; }
-        #tableDataSelect { padding: 8px 12px; border-radius: 6px; border: 1px solid #bdc3c7; font-weight: bold; font-size: 14px; cursor: pointer; background: #f8f9fa; }
-
-        .dash-table { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; }
-        .dash-table th { background: #ecf0f1; color: #7f8c8d; font-weight: 700; padding: 12px; border-bottom: 2px solid #bdc3c7; text-transform: uppercase; font-size: 12px; }
-        .dash-table td { padding: 12px; border-bottom: 1px solid #f1f2f6; color: #34495e; font-weight: 500; }
-        .dash-table tr:hover { background-color: #f1f4f8; }
-        .val-highlight { font-weight: 800; color: #2980b9; font-size: 14.5px; }
-
-        /* POPUP STYLES */
-        .matrix-popup { min-width: 260px; }
-        .popup-header { font-size: 15px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
-        .popup-sub { color: #95a5a6; font-size: 12px; margin-bottom: 8px; }
-        .stats-table-exact { width: 100%; font-size: 12px; border-collapse: collapse; color: #34495e; margin-bottom: 5px; }
-        .stats-table-exact td { padding: 5px 3px; border-bottom: 1px solid #f1f2f6; }
-        .stats-table-exact td:last-child { text-align: right; font-weight: 600; color: #2c3e50; }
-        .row-highlight { background-color: #f1f4f8; }
-        .row-highlight td { padding: 6px 3px; font-weight: 700; font-size: 12.5px; border-bottom: 1px solid #e1e5ea; }
-        .sec-title { font-size: 10px; color: #7f8c8d; text-transform: uppercase; margin: 10px 0 3px 0; display: flex; align-items: center; gap: 5px; }
-        .text-red { color: #c0392b !important; font-weight: bold; }
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
-        .metric-box { background: #f8f9fa; border: 1px solid #eee; padding: 4px; border-radius: 4px; text-align: center; }
-        .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
-        .metric-lbl { font-size: 9px; color: #7f8c8d; text-transform: uppercase; }
-        .chart-container { height: 130px; width: 100%; margin-top: 5px; }
-
-        @media (max-width: 768px) {
-            .controls-row-1, .controls-row-2 { flex-direction: column; align-items: stretch; }
+        /* CSS GRID LAYOUT */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            grid-template-rows: 55vh 45vh;
+            height: 100vh;
+            width: 100vw;
         }
+
+        /* LEFT SIDEBAR */
+        .sidebar {
+            grid-column: 1; grid-row: 1 / 3;
+            background: white; border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 1000;
+        }
+
+        .header { padding: 20px; border-bottom: 1px solid var(--border-color); background: #2c3e50; color: white; }
+        .header h1 { margin: 0; font-size: 18px; font-weight: 800; }
+        
+        .controls-section { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .control-block { margin-bottom: 15px; }
+        .control-label { display: block; font-size: 11px; font-weight: 700; color: #7f8c8d; text-transform: uppercase; margin-bottom: 6px; }
+        
+        select, input[type=range] { width: 100%; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); font-weight: bold; font-size: 14px; background: #f8f9fa; cursor: pointer; }
+        
+        .radio-toggles { display: flex; background: #ecf0f1; border-radius: 6px; padding: 4px; gap: 5px; }
+        .radio-toggles label { flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 4px; }
+        .radio-toggles label:hover { background: #dfe6e9; }
+        .radio-toggles input[type="radio"] { display: none; }
+        .radio-toggles input[type="radio"]:checked + span { color: var(--brand-blue); }
+
+        .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        #sliderDateDisplay { font-size: 13px; font-weight: 800; color: #16a085; background: #e8f8f5; padding: 2px 6px; border-radius: 4px; }
+
+        /* DAILY CHART SECTION IN SIDEBAR */
+        .chart-section { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+        .chart-wrapper { flex-grow: 1; position: relative; min-height: 250px; margin-top: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: #fdfdfd; padding: 10px;}
+        
+        /* TOP RIGHT - MAP */
+        .map-section { grid-column: 2; grid-row: 1; position: relative; border-bottom: 1px solid var(--border-color); }
+        #map { width: 100%; height: 100%; background: #e5e9ec; }
+        
+        .map-legend { position: absolute; bottom: 20px; left: 20px; z-index: 999; background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .color-bar { height: 8px; width: 250px; border-radius: 4px; margin-top: 5px; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
+        .color-labels { display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: #7f8c8d; margin-top: 4px; }
+
+        /* BOTTOM RIGHT - TABLE */
+        .table-section { grid-column: 2; grid-row: 2; background: white; display: flex; flex-direction: column; overflow: hidden; }
+        .table-toolbar { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; }
+        
+        .table-controls { display: flex; gap: 15px; align-items: center; }
+        #tableDistFilter { display: none; width: 250px; } /* Hidden by default until station mode */
+
+        .table-container { flex-grow: 1; overflow-y: auto; padding: 0 20px; }
+        .dash-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-bottom: 20px; }
+        .dash-table th { position: sticky; top: 0; background: white; color: #7f8c8d; font-weight: 700; padding: 12px 8px; border-bottom: 2px solid var(--border-color); z-index: 5; text-transform: uppercase; font-size: 11px; }
+        .dash-table td { padding: 10px 8px; border-bottom: 1px solid #f1f2f6; font-weight: 500; }
+        .dash-table tr.interactive-row { cursor: pointer; transition: background 0.2s; }
+        .dash-table tr.interactive-row:hover { background-color: #e3f2fd; }
+        .val-highlight { font-weight: 800; color: var(--brand-blue); font-size: 14px; }
+        .active-row { background-color: #bbdefb !important; }
+
+        /* Popup Styles */
+        .matrix-popup { min-width: 220px; }
+        .popup-header { font-size: 15px; font-weight: bold; margin-bottom: 2px; }
+        .popup-sub { color: #7f8c8d; font-size: 12px; margin-bottom: 8px; }
+        .stats-table-exact { width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 5px; }
+        .stats-table-exact td { padding: 4px 2px; border-bottom: 1px solid #f1f2f6; }
+        .stats-table-exact td:last-child { text-align: right; font-weight: bold; }
+
     </style>
 </head>
 <body>
 
-    <!-- TOP CONTROL PANEL -->
-    <div class="top-panel">
-        <div class="controls-row-1">
-            <h1 class="app-title">Rainfall Matrix Engine</h1>
-            
-            <div class="slider-wrapper">
-                <span id="sliderDateDisplay">Jan 1</span>
-                <input type="range" id="timeSlider" min="1" max="365" value="365">
+    <div class="dashboard-grid">
+        
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="header">
+                <h1>Rainfall Matrix Engine</h1>
             </div>
 
-            <select id="yearSelect"></select>
-        </div>
-
-        <div class="controls-row-2">
-            <div class="toggle-group">
-                <div class="toggle-row">
-                    <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
-                    <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+            <div class="controls-section">
+                <div class="control-block">
+                    <span class="control-label">Observation Year</span>
+                    <select id="yearSelect"></select>
                 </div>
-                <div class="toggle-divider"></div>
-                <div class="toggle-row">
-                    <label><input type="radio" name="popupMode" value="stats" checked> 📝 Exact Stats</label>
-                    <label><input type="radio" name="popupMode" value="chart"> 📊 Charts</label>
+
+                <div class="control-block">
+                    <span class="control-label">Accumulate Data Up To:</span>
+                    <div class="slider-header">
+                        <span style="font-size:11px; color:#7f8c8d;">Jan 1</span>
+                        <span id="sliderDateDisplay">Loading...</span>
+                    </div>
+                    <input type="range" id="timeSlider" min="1" max="365" value="365">
+                </div>
+
+                <div class="control-block">
+                    <span class="control-label">Map Visual Mode</span>
+                    <div class="radio-toggles">
+                        <label><input type="radio" name="mapViewMode" value="station" checked><span>📍 Stations</span></label>
+                        <label><input type="radio" name="mapViewMode" value="district"><span>🟢 District Avg</span></label>
+                    </div>
                 </div>
             </div>
 
-            <div class="color-bar-wrapper">
-                <div class="color-scale-bar"></div>
-                <div class="color-scale-labels">
-                    <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+ mm</span>
+            <div class="chart-section">
+                <span class="control-label" id="chartTitle">Daily Rainfall Trend (Click a Station)</span>
+                <div class="chart-wrapper">
+                    <canvas id="dailySidebarChart"></canvas>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- MAIN MAP -->
-    <div id="map-container">
-        <div id="map"></div>
-    </div>
-    
-    <!-- BOTTOM DATA PANEL -->
-    <div class="bottom-panel">
-        <div class="panel-header">
-            <span class="panel-title">Data Leaderboards</span>
-            <select id="tableDataSelect">
-                <option value="district_all">🟢 All District Averages</option>
-                <option value="station_all">📍 All Stations (Statewide)</option>
-                <!-- District specific options injected here by JS -->
-            </select>
+        <!-- TOP RIGHT: MAP -->
+        <div class="map-section">
+            <div id="map"></div>
+            <div class="map-legend">
+                <span style="font-size: 11px; font-weight:bold; color: #2c3e50;">RAINFALL SCALE (mm)</span>
+                <div class="color-bar"></div>
+                <div class="color-labels"><span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span></div>
+            </div>
         </div>
-        <table class="dash-table" id="dashboard-table">
-            <!-- Table dynamically injected here -->
-        </table>
+
+        <!-- BOTTOM RIGHT: TABLE -->
+        <div class="table-section">
+            <div class="table-toolbar">
+                <h2 style="margin:0; font-size: 16px; color: #2c3e50;">Data Leaderboards</h2>
+                
+                <div class="table-controls">
+                    <div class="radio-toggles" style="background: white; border: 1px solid #dcdde1;">
+                        <label><input type="radio" name="tableViewMode" value="district" checked><span>🟢 District Mode</span></label>
+                        <label><input type="radio" name="tableViewMode" value="station"><span>📍 Station Mode</span></label>
+                    </div>
+                    
+                    <select id="tableDistFilter">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="dash-table" id="dashboard-table">
+                    <!-- Injected by JS -->
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Init Map
         const map = L.map('map', { center: [10.80, 79.35], zoom: 9 });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
-        }).addTo(map);
-
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
         const layers = { station: L.layerGroup().addTo(map), district: L.layerGroup() };
 
+        // Globals
         let globalRainData = [];
-        let globalStations = {};
-        let activeView = 'station';
-        let activePopupMode = 'stats';
-        let chartInstances = {}; 
-        let currentSliderDateStr = "";
+        let globalStations = {}; // Maps strict ID to lat/lon
         
-        let lastStationMap = {};
-        let lastDistrictMap = {};
+        let lastEngineState = { stations: {}, districts: {} };
+        let activeMapView = 'station';
+        let sidebarChartInst = null;
+        let selectedStationIdForChart = null;
 
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
         const STATIONS_DATA = 'Stations.csv';
 
-        Papa.parse(RAINFALL_DATA, {
-            download: true, header: true, skipEmptyLines: true,
-            complete: function(rainResults) {
-                if (!rainResults.data || rainResults.data.length === 0) return;
-                globalRainData = rainResults.data;
-                
-                Papa.parse(STATIONS_DATA, {
-                    download: true, header: true, skipEmptyLines: true,
-                    complete: function(stationResults) {
-                        buildStationLookup(stationResults.data);
-                        initializeDashboard();
-                    },
-                    error: function() {
-                        buildStationLookup([]); 
-                        initializeDashboard();
-                    }
-                });
-            }
-        });
-
-        function cleanName(str) { return str ? str.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim().toLowerCase() : ""; }
-        function normalizeDistrict(districtStr) {
-            let d = cleanName(districtStr);
-            d = d.replace('thirunelveli', 'tirunelveli').replace('thanjavoor', 'thanjavur');
-            return d;
+        // Helper functions
+        function cleanStr(str) { 
+            if(!str) return "unknown"; 
+            return str.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim().toLowerCase().replace(/[^a-z0-9]/g, ''); 
+        }
+        function normalizeDistrict(d) {
+            let n = cleanStr(d);
+            return n.replace('thirunelveli', 'tirunelveli').replace('thanjavoor', 'thanjavur');
+        }
+        
+        // Strict ID Generator for Papanasam Fix
+        function generateId(district, station) {
+            return normalizeDistrict(district) + "_" + cleanStr(station);
         }
 
-        function getColor(value) {
-            if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
-            if (value < 300) return "#f4511e"; if (value < 400) return "#fb8c00";
-            if (value < 500) return "#ffca28"; if (value < 600) return "#ffd54f";
-            if (value < 800) return "#64dd17"; if (value < 1000) return "#00c853";
-            if (value < 1200) return "#0288d1"; if (value < 1400) return "#1565c0"; 
-            if (value < 1600) return "#283593"; if (value < 1800) return "#4527a0"; 
+        function getColor(val) {
+            if (val < 100) return "#c62828"; if (val < 200) return "#e53935"; if (val < 300) return "#f4511e"; 
+            if (val < 400) return "#fb8c00"; if (val < 500) return "#ffca28"; if (val < 600) return "#ffd54f";
+            if (val < 800) return "#64dd17"; if (val < 1000) return "#00c853"; if (val < 1200) return "#0288d1"; 
+            if (val < 1400) return "#1565c0"; if (val < 1600) return "#283593"; if (val < 1800) return "#4527a0"; 
             return "#6a1b9a";  
         }
 
@@ -222,42 +221,42 @@
             if(parts.length !== 3) return null;
             return { day: parseInt(parts[0]), month: parseInt(parts[1]), year: parseInt(parts[2]) };
         }
-
         function getDayOfYear(day, month, year) {
             const date = new Date(year, month - 1, day);
             const start = new Date(year, 0, 0);
             return Math.floor((date - start) / (1000 * 60 * 60 * 24));
         }
-
-        function getFormattedDateFromDOY(doy, year) {
+        function formatDisplayDate(doy, year) {
             const date = new Date(year, 0, doy);
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
-        // Papanasam Duplicate Poisoning Engine
-        function buildStationLookup(stationsData) {
-            globalStations = {};
-            stationsData.forEach(st => {
-                const rawName = st['Name of the station'] || st.Station_Name || "";
-                const districtRaw = st.District || st.district || "Unknown";
-                const cleanedName = cleanName(rawName);
-                const normDist = normalizeDistrict(districtRaw);
+        // Data Loading
+        Papa.parse(RAINFALL_DATA, {
+            download: true, header: true, skipEmptyLines: true,
+            complete: function(res) {
+                globalRainData = res.data || [];
+                Papa.parse(STATIONS_DATA, {
+                    download: true, header: true, skipEmptyLines: true,
+                    complete: function(resSt) { buildStationLookup(resSt.data); initApp(); },
+                    error: function() { buildStationLookup([]); initApp(); }
+                });
+            }
+        });
 
-                if (cleanedName) {
-                    const uniqueKey = cleanedName + "_" + normDist;
-                    const metaData = { district: districtRaw.trim(), lat: parseFloat(st.Latitude), lon: parseFloat(st.Longitude) };
-                    globalStations[uniqueKey] = metaData;
-
-                    if (!globalStations[cleanedName]) {
-                        globalStations[cleanedName] = metaData;
-                    } else if (globalStations[cleanedName].district && globalStations[cleanedName].district.toLowerCase() !== metaData.district.toLowerCase()) {
-                        globalStations[cleanedName] = 'DUPLICATE'; 
-                    }
-                }
+        // 1. Build Lookup strictly relying on composite key
+        function buildStationLookup(data) {
+            data.forEach(st => {
+                const sName = st['Name of the station'] || st.Station_Name || "";
+                const dName = st.District || st.district || "";
+                if(!sName) return;
+                
+                const strictId = generateId(dName, sName);
+                globalStations[strictId] = { lat: parseFloat(st.Latitude), lon: parseFloat(st.Longitude) };
             });
         }
 
-        function initializeDashboard() {
+        function initApp() {
             const yearSet = new Set();
             let maxDOY = 1;
 
@@ -267,216 +266,225 @@
                 if(d) {
                     yearSet.add(d.year);
                     const doy = getDayOfYear(d.day, d.month, d.year);
-                    if(doy > maxDOY) maxDOY = doy; 
+                    if(doy > maxDOY) maxDOY = doy;
                 }
             });
 
-            const yearSelect = document.getElementById('yearSelect');
-            const years = Array.from(yearSet).sort((a,b) => b - a);
-            years.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; yearSelect.appendChild(opt); });
-
-            yearSelect.addEventListener('change', updateEngine);
+            const ys = document.getElementById('yearSelect');
+            Array.from(yearSet).sort((a,b)=>b-a).forEach(y => ys.add(new Option(y,y)));
+            
             const slider = document.getElementById('timeSlider');
             slider.max = maxDOY; slider.value = maxDOY;
-            slider.addEventListener('input', updateEngine);
-
-            document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => { activeView = e.target.value; map.removeLayer(layers.station); map.removeLayer(layers.district); map.addLayer(layers[activeView]); updateEngine(); });
+            
+            // Event Listeners
+            ys.addEventListener('change', runEngine);
+            slider.addEventListener('input', runEngine);
+            
+            document.querySelectorAll('input[name="mapViewMode"]').forEach(r => {
+                r.addEventListener('change', (e) => { 
+                    activeMapView = e.target.value; 
+                    map.removeLayer(layers.station); map.removeLayer(layers.district); map.addLayer(layers[activeMapView]);
+                    drawMap(); 
+                });
             });
 
-            document.querySelectorAll('input[name="popupMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => { activePopupMode = e.target.value; map.closePopup(); updateEngine(); });
+            document.querySelectorAll('input[name="tableViewMode"]').forEach(r => {
+                r.addEventListener('change', updateTableUI);
             });
-
-            document.getElementById('tableDataSelect').addEventListener('change', renderTable);
+            
+            document.getElementById('tableDistFilter').addEventListener('change', renderTable);
             window.addEventListener('resize', () => map.invalidateSize());
 
-            updateEngine();
-            setTimeout(() => { map.invalidateSize(); }, 200); 
+            runEngine();
+            setTimeout(() => map.invalidateSize(), 300);
         }
 
-        function updateDropdownList(districtMap) {
-            const select = document.getElementById('tableDataSelect');
-            const currentVal = select.value;
+        // The Data Cruncher
+        function runEngine() {
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const sliderDOY = parseInt(document.getElementById('timeSlider').value);
+            document.getElementById('sliderDateDisplay').innerText = formatDisplayDate(sliderDOY, year);
 
-            let html = `
-                <option value="district_all">🟢 All District Averages</option>
-                <option value="station_all">📍 All Stations (Statewide)</option>
-                <optgroup label="Filter by Specific District">
-            `;
-
-            const sortedDistricts = Object.values(districtMap).map(d => d.name).sort();
-            sortedDistricts.forEach(d => {
-                html += `<option value="dist_${d}">🏢 ${d} Stations</option>`;
-            });
-            html += `</optgroup>`;
-            
-            select.innerHTML = html;
-            
-            // Restore selection if it still exists
-            if (Array.from(select.options).some(opt => opt.value === currentVal)) {
-                select.value = currentVal;
-            } else {
-                select.value = 'district_all';
-            }
-        }
-
-        function updateEngine() {
-            const selectedYear = parseInt(document.getElementById('yearSelect').value);
-            const sliderValue = parseInt(document.getElementById('timeSlider').value);
-            
-            currentSliderDateStr = getFormattedDateFromDOY(sliderValue, selectedYear);
-            document.getElementById('sliderDateDisplay').innerText = `Accumulated to: ${currentSliderDateStr}`;
-
-            layers.station.clearLayers();
-            layers.district.clearLayers();
-
-            const stationMap = {};
-            const districtMap = {};
+            const sMap = {};
+            const dMap = {};
+            const availableDistricts = new Set();
 
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
-                if (!d || d.year !== selectedYear) return;
-                const doy = getDayOfYear(d.day, d.month, d.year);
-                if (doy > sliderValue) return; 
+                if (!d || d.year !== year) return;
+                const rowDOY = getDayOfYear(d.day, d.month, d.year);
+                
+                const sName = row.Station_Name || row['Name of the station'] || "";
+                const dNameRaw = row.District || row.district || "Unknown";
+                if(!sName) return;
 
-                const rawName = row.Station_Name || row['Name of the station'] || row.Station || "";
-                const districtRaw = row.District || row.district || "Unknown";
-                const cleanedName = cleanName(rawName);
-                const normDist = normalizeDistrict(districtRaw);
-                const uniqueKey = cleanedName + "_" + normDist;
+                // STRICT COMPOSITE ID (Solves Papanasam)
+                const strictId = generateId(dNameRaw, sName);
                 
-                let meta = globalStations[uniqueKey];
-                if (!meta && globalStations[cleanedName] && globalStations[cleanedName] !== 'DUPLICATE') {
-                    meta = globalStations[cleanedName];
-                }
-                meta = meta || {};
-                
-                const finalDistrict = (meta.district && meta.district !== "Unknown") ? meta.district : districtRaw;
-                const lat = !isNaN(meta.lat) ? meta.lat : parseFloat(row.Latitude);
-                const lon = !isNaN(meta.lon) ? meta.lon : parseFloat(row.Longitude);
-                let mm = parseFloat(row.Rainfall_mm); if (isNaN(mm)) mm = 0.0;
-                
-                const stKey = cleanedName + "_" + normalizeDistrict(finalDistrict);
+                let mm = parseFloat(row.Rainfall_mm); if(isNaN(mm)) mm = 0;
 
-                if (!stationMap[stKey]) {
-                    stationMap[stKey] = {
-                        id: stKey.replace(/[^a-z0-9]/g, ''), name: rawName.trim(), lat: lat, lon: lon, district: finalDistrict,
-                        total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0, rainDays: 0, vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0] 
+                if (!sMap[strictId]) {
+                    const coords = globalStations[strictId] || {lat: NaN, lon: NaN};
+                    
+                    sMap[strictId] = {
+                        id: strictId, name: sName.trim(), district: dNameRaw.trim(),
+                        lat: coords.lat, lon: coords.lon,
+                        total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0, rainDays: 0,
+                        dailySeries: new Array(366).fill(0) // For the Chart
                     };
                 }
 
-                const st = stationMap[stKey];
-                st.total += mm; st.monthly[d.month - 1] += mm;
-                if (doy === sliderValue) st.today += mm;
-                if (d.month === 1 || d.month === 2) st.winter += mm; else if (d.month >= 3 && d.month <= 5) st.summer += mm; else if (d.month >= 6 && d.month <= 9) st.swm += mm; else if (d.month >= 10 && d.month <= 12) st.nem += mm;
-                if (mm > 0) {
-                    st.rainDays++;
-                    if (mm <= 2.4) st.vl++; else if (mm <= 15.5) st.light++; else if (mm <= 64.4) st.mod++; else if (mm <= 115.5) st.heavy++; else if (mm <= 204.4) st.vheavy++; else st.extreme++;
-                    if (mm > st.maxRain) { st.maxRain = mm; st.maxDate = row.Date; }
+                const st = sMap[strictId];
+                if (rowDOY <= sliderDOY) {
+                    st.total += mm;
+                    st.dailySeries[rowDOY] = mm;
+                    if(rowDOY === sliderDOY) st.today += mm;
+                    
+                    if (d.month <= 2) st.winter += mm; else if (d.month <= 5) st.summer += mm; 
+                    else if (d.month <= 9) st.swm += mm; else st.nem += mm;
+                    
+                    if (mm > 0) st.rainDays++;
                 }
             });
 
-            Object.values(stationMap).forEach(st => {
-                if (!st.district || st.district === "Unknown") return; 
-                if (!districtMap[st.district]) {
-                    districtMap[st.district] = { id: st.district.replace(/[^a-zA-Z0-9]/g, ''), name: st.district, sub: "District Level Average", count: 0, latSum: 0, lonSum: 0, validCoordsCount: 0, total: 0, todaySum: 0, winter: 0, summer: 0, swm: 0, nem: 0, rainDays: 0, vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies", monthly: [0,0,0,0,0,0,0,0,0,0,0,0] };
+            // Aggregate to Districts
+            Object.values(sMap).forEach(st => {
+                if(!st.district || st.district === "Unknown") return;
+                availableDistricts.add(st.district);
+                
+                const dId = cleanStr(st.district);
+                if (!dMap[dId]) {
+                    dMap[dId] = { name: st.district, count: 0, total: 0, winter:0, summer:0, swm:0, nem:0, validCoords: 0, latSum:0, lonSum:0 };
                 }
                 
-                let d = districtMap[st.district];
-                d.count++; 
-                if(!isNaN(st.lat) && !isNaN(st.lon)) { d.latSum += st.lat; d.lonSum += st.lon; d.validCoordsCount++; }
-                d.total += st.total; d.todaySum += st.today; d.winter += st.winter; d.summer += st.summer; d.swm += st.swm; d.nem += st.nem;
-                d.rainDays += st.rainDays; d.vl += st.vl; d.light += st.light; d.mod += st.mod; d.heavy += st.heavy; d.vheavy += st.vheavy; d.extreme += st.extreme;
-                if (st.maxRain > d.maxRain) d.maxRain = st.maxRain; for(let i=0; i<12; i++) d.monthly[i] += st.monthly[i];
+                let d = dMap[dId];
+                d.count++; d.total += st.total; d.winter += st.winter; d.summer += st.summer; d.swm += st.swm; d.nem += st.nem;
+                if(!isNaN(st.lat)) { d.validCoords++; d.latSum += st.lat; d.lonSum += st.lon; }
             });
 
-            lastStationMap = stationMap;
-            lastDistrictMap = districtMap;
+            lastEngineState = { stations: sMap, districts: dMap };
             
-            updateDropdownList(districtMap);
-            renderTable();
+            // Populate Dropdown
+            const filterEl = document.getElementById('tableDistFilter');
+            const currentDist = filterEl.value;
+            filterEl.innerHTML = '';
+            Array.from(availableDistricts).sort().forEach(dist => {
+                filterEl.add(new Option("🏢 " + dist, dist));
+            });
+            
+            // Default to Thanjavur if available, otherwise restore previous
+            let hasThanjavur = Array.from(filterEl.options).some(opt => opt.value === 'Thanjavur');
+            if(hasThanjavur && currentDist === "") filterEl.value = 'Thanjavur'; 
+            else if (Array.from(filterEl.options).some(opt => opt.value === currentDist)) filterEl.value = currentDist;
 
-            // Draw map markers logic
-            function draw(mapData, targetLayer, radiusSize, isAverage) {
-                for (let key in mapData) {
-                    const item = mapData[key];
-                    if (isAverage && item.validCoordsCount === 0) continue;
-                    if (!isAverage && (isNaN(item.lat) || isNaN(item.lon))) continue;
-
-                    const div = isAverage ? item.count : 1;
-                    const lat = isAverage ? item.latSum / item.validCoordsCount : item.lat;
-                    const lon = isAverage ? item.lonSum / item.validCoordsCount : item.lon;
-                    const todayVal = isAverage ? item.todaySum / div : item.today;
-                    const total = item.total / div; const winter = item.winter / div; const summer = item.summer / div; const swm = item.swm / div; const nem = item.nem / div;
-                    const avgMonthly = item.monthly.map(val => val / div);
-
-                    const marker = L.circleMarker([lat, lon], { radius: radiusSize, fillColor: getColor(total), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(targetLayer);
-                    const canvasId = `chart-${item.id}`;
-                    
-                    let modeSpecificHTML = '';
-                    if (activePopupMode === 'stats') {
-                        modeSpecificHTML = `<table class="stats-table-exact"><tr><td>🌧️ Today</td><td>${todayVal.toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${winter.toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${summer.toFixed(1)} mm</td></tr><tr><td>☁️ SWM</td><td>${swm.toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${nem.toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr></table><div class="sec-title">📊 IMD RAIN DAYS</div><table class="stats-table-exact"><tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr><tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr><tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr><tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr><tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr><tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr></table>`;
-                    } else {
-                        modeSpecificHTML = `<div class="metrics-grid"><div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total (mm)</div></div><div class="metric-box"><div class="metric-val">${swm.toFixed(1)}</div><div class="metric-lbl">SWM (mm)</div></div><div class="metric-box"><div class="metric-val">${nem.toFixed(1)}</div><div class="metric-lbl">NEM (mm)</div></div><div class="metric-box"><div class="metric-val">${(winter+summer).toFixed(1)}</div><div class="metric-lbl">Win/Sum</div></div></div><div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
-                    }
-                    marker.bindPopup(`<div class="matrix-popup"><div class="popup-header">${item.name}</div><div class="popup-sub">${isAverage ? `Average across ${item.count} stations` : item.district}</div>${modeSpecificHTML}</div>`, { maxWidth: 300 });
-                    marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`, { sticky: true });
-
-                    marker.on('popupopen', function() {
-                        if (activePopupMode === 'chart') {
-                            const ctx = document.getElementById(canvasId);
-                            if (!ctx) return;
-                            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-                            chartInstances[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: ['J','F','M','A','M','J','J','A','S','O','N','D'], datasets: [{ label: 'Rainfall (mm)', data: avgMonthly, backgroundColor: '#3498db', borderRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { font: {size: 9} } } } } });
-                        }
-                    });
-                }
+            drawMap();
+            updateTableUI();
+            
+            // Update chart if a station is currently selected
+            if (selectedStationIdForChart && sMap[selectedStationIdForChart]) {
+                drawDailyChart(selectedStationIdForChart);
             }
+        }
 
-            if (activeView === 'station') draw(stationMap, layers.station, 7, false);
-            if (activeView === 'district') draw(districtMap, layers.district, 22, true);
+        function drawMap() {
+            layers.station.clearLayers(); layers.district.clearLayers();
+            
+            const targetData = activeMapView === 'station' ? Object.values(lastEngineState.stations) : Object.values(lastEngineState.districts);
+            const targetLayer = layers[activeMapView];
+            
+            targetData.forEach(item => {
+                const isAvg = activeMapView === 'district';
+                if(isAvg && item.validCoords === 0) return;
+                if(!isAvg && isNaN(item.lat)) return;
+
+                const div = isAvg ? item.count : 1;
+                const lat = isAvg ? item.latSum/div : item.lat;
+                const lon = isAvg ? item.lonSum/div : item.lon;
+                const total = item.total/div;
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius: isAvg ? 18 : 6, fillColor: getColor(total), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.9
+                }).addTo(targetLayer);
+
+                const popTbl = `<table class="stats-table-exact"><tr><td>Total</td><td>${total.toFixed(1)}</td></tr><tr><td>SWM</td><td>${(item.swm/div).toFixed(1)}</td></tr><tr><td>NEM</td><td>${(item.nem/div).toFixed(1)}</td></tr></table>`;
+                marker.bindPopup(`<div class="matrix-popup"><div class="popup-header">${item.name}</div><div class="popup-sub">${isAvg ? 'District Avg' : item.district}</div>${popTbl}</div>`);
+                marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`);
+                
+                if(!isAvg) {
+                    marker.on('click', () => drawDailyChart(item.id));
+                }
+            });
+        }
+
+        function updateTableUI() {
+            const mode = document.querySelector('input[name="tableViewMode"]:checked').value;
+            const filterEl = document.getElementById('tableDistFilter');
+            
+            if(mode === 'station') { filterEl.style.display = 'block'; } 
+            else { filterEl.style.display = 'none'; }
+            renderTable();
         }
 
         function renderTable() {
-            const viewMode = document.getElementById('tableDataSelect').value;
-            let html = `
-                <tr>
-                    <th>${viewMode === 'district_all' ? 'District' : 'Station Name'}</th>
-                    <th>${viewMode === 'district_all' ? 'Stations' : 'District'}</th>
-                    <th>Total (mm)</th>
-                    <th>Winter</th>
-                    <th>Summer</th>
-                    <th>SWM</th>
-                    <th>NEM</th>
-                    <th>Rain Days</th>
-                </tr>
-            `;
+            const mode = document.querySelector('input[name="tableViewMode"]:checked').value;
+            const tableBody = document.getElementById('dashboard-table');
+            
+            let html = `<tr><th>${mode==='district'?'District':'Station'}</th><th>${mode==='district'?'Stations':'District'}</th><th>Total</th><th>Winter</th><th>Summer</th><th>SWM</th><th>NEM</th></tr>`;
 
-            if (viewMode === 'district_all') {
-                let distArray = Object.values(lastDistrictMap).sort((a,b) => (b.total/b.count) - (a.total/a.count));
-                if(distArray.length === 0) html += `<tr><td colspan="8">No data found.</td></tr>`;
-                distArray.forEach(d => {
-                    html += `<tr><td style="font-weight:700;">${d.name}</td><td>${d.count}</td><td class="val-highlight">${(d.total/d.count).toFixed(1)}</td><td>${(d.winter/d.count).toFixed(1)}</td><td>${(d.summer/d.count).toFixed(1)}</td><td>${(d.swm/d.count).toFixed(1)}</td><td>${(d.nem/d.count).toFixed(1)}</td><td>${(d.rainDays/d.count).toFixed(1)}</td></tr>`;
+            if(mode === 'district') {
+                let dArr = Object.values(lastEngineState.districts).sort((a,b) => (b.total/b.count) - (a.total/a.count));
+                dArr.forEach(d => {
+                    html += `<tr><td style="font-weight:700;">${d.name}</td><td>${d.count}</td><td class="val-highlight">${(d.total/d.count).toFixed(1)}</td><td>${(d.winter/d.count).toFixed(1)}</td><td>${(d.summer/d.count).toFixed(1)}</td><td>${(d.swm/d.count).toFixed(1)}</td><td>${(d.nem/d.count).toFixed(1)}</td></tr>`;
                 });
             } else {
-                let stArray = Object.values(lastStationMap);
+                const targetDist = document.getElementById('tableDistFilter').value;
+                let sArr = Object.values(lastEngineState.stations).filter(st => st.district === targetDist).sort((a,b) => b.total - a.total);
                 
-                // If a specific district is selected (e.g. "dist_Thanjavur")
-                if (viewMode.startsWith('dist_')) {
-                    const targetDist = viewMode.replace('dist_', '');
-                    stArray = stArray.filter(st => st.district === targetDist);
-                }
-                
-                stArray.sort((a,b) => b.total - a.total);
-                
-                if(stArray.length === 0) html += `<tr><td colspan="8">No data found for this selection.</td></tr>`;
-                
-                stArray.forEach(st => {
-                    html += `<tr><td style="font-weight:700;">${st.name}</td><td>${st.district}</td><td class="val-highlight">${st.total.toFixed(1)}</td><td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td><td>${st.swm.toFixed(1)}</td><td>${st.nem.toFixed(1)}</td><td>${st.rainDays}</td></tr>`;
+                if(sArr.length === 0) html += `<tr><td colspan="7">No data.</td></tr>`;
+                sArr.forEach(st => {
+                    const trClass = (st.id === selectedStationIdForChart) ? 'interactive-row active-row' : 'interactive-row';
+                    html += `<tr class="${trClass}" onclick="drawDailyChart('${st.id}')"><td style="font-weight:700;">${st.name}</td><td>${st.district}</td><td class="val-highlight">${st.total.toFixed(1)}</td><td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td><td>${st.swm.toFixed(1)}</td><td>${st.nem.toFixed(1)}</td></tr>`;
                 });
             }
-            document.getElementById('dashboard-table').innerHTML = html;
+            tableBody.innerHTML = html;
+        }
+
+        // Daily Chart Logic
+        function drawDailyChart(stationId) {
+            selectedStationIdForChart = stationId;
+            const st = lastEngineState.stations[stationId];
+            if(!st) return;
+
+            document.getElementById('chartTitle').innerText = `Daily Rainfall: ${st.name} (${st.district})`;
+            renderTable(); // Refresh table to highlight active row
+            
+            const maxDoy = parseInt(document.getElementById('timeSlider').value);
+            const rawData = st.dailySeries.slice(1, maxDoy + 1);
+            
+            // Generate basic x-axis labels (Day 1, Day 2, etc.)
+            const labels = Array.from({length: maxDoy}, (_, i) => `Day ${i+1}`);
+
+            const ctx = document.getElementById('dailySidebarChart').getContext('2d');
+            if(sidebarChartInst) sidebarChartInst.destroy();
+            
+            sidebarChartInst = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Rainfall (mm)', data: rawData,
+                        backgroundColor: '#3498db', hoverBackgroundColor: '#e74c3c'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false }, // Hide x-axis labels to avoid clutter
+                        y: { beginAtZero: true, ticks: { font: {size: 10} } }
+                    }
+                }
+            });
         }
     </script>
 </body>
