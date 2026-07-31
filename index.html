@@ -127,6 +127,7 @@
 
         let globalRainData = [];
         let globalStations = {};
+        let fallbackStations = {}; // In case district names are completely missing in data
         let activeView = 'station';
         let activePopupMode = 'stats';
         let chartInstances = {}; 
@@ -184,14 +185,22 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         }
 
+        // UPDATED: Now uses District + Station Name to prevent duplicates overwriting each other
         function buildStationLookup(stationsData) {
             stationsData.forEach(st => {
-                const cleanedName = cleanName(st['Name of the station'] || st.Station_Name);
+                const rawName = st['Name of the station'] || st.Station_Name;
+                const dist = st.District || "Unknown";
+                const cleanedName = cleanName(rawName);
+                
                 if (cleanedName) {
-                    globalStations[cleanedName] = {
-                        district: (st.District || "Unknown").trim(),
+                    const uniqueKey = cleanName(dist) + "_" + cleanedName;
+                    const metaData = {
+                        district: dist.trim(),
                         lat: parseFloat(st.Latitude), lon: parseFloat(st.Longitude)
                     };
+                    
+                    globalStations[uniqueKey] = metaData;
+                    if(!fallbackStations[cleanedName]) fallbackStations[cleanedName] = metaData; // Safety net
                 }
             });
         }
@@ -268,19 +277,26 @@
                 if (doy > sliderValue) return; 
 
                 const rawName = row.Station_Name || row['Name of the station'];
+                const rawDist = row.District || "Unknown";
                 const cleanedName = cleanName(rawName);
-                const meta = globalStations[cleanedName] || {};
                 
-                const district = (meta.district && meta.district !== "Unknown") ? meta.district : (row.District || "Unknown");
+                // UPDATED: Create the same unique key for data mapping
+                const uniqueKey = cleanName(rawDist) + "_" + cleanedName;
+                
+                // Fetch coordinates using the exact District + Name match first
+                const meta = globalStations[uniqueKey] || fallbackStations[cleanedName] || {};
+                
+                const district = (meta.district && meta.district !== "Unknown") ? meta.district : rawDist;
                 const lat = !isNaN(meta.lat) ? meta.lat : parseFloat(row.Latitude);
                 const lon = !isNaN(meta.lon) ? meta.lon : parseFloat(row.Longitude);
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
-                if (!stationMap[cleanedName]) {
-                    stationMap[cleanedName] = {
-                        id: cleanedName.replace(/[^a-z0-9]/g, ''),
+                // UPDATED: Save data under the unique key to prevent merging different districts
+                if (!stationMap[uniqueKey]) {
+                    stationMap[uniqueKey] = {
+                        id: uniqueKey.replace(/[^a-z0-9]/g, ''),
                         name: rawName.trim(), lat: lat, lon: lon, district: district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
                         vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, 
@@ -289,20 +305,17 @@
                     };
                 }
 
-                const st = stationMap[cleanedName];
+                const st = stationMap[uniqueKey];
                 st.total += mm;
                 st.monthly[d.month - 1] += mm;
                 
-                // Track "Today's" Rain based on Slider position
                 if (doy === sliderValue) st.today = mm;
 
-                // Seasons
                 if (d.month === 1 || d.month === 2) st.winter += mm;
                 else if (d.month >= 3 && d.month <= 5) st.summer += mm;
                 else if (d.month >= 6 && d.month <= 9) st.swm += mm;
                 else if (d.month >= 10 && d.month <= 12) st.nem += mm;
 
-                // IMD Classifications & Max Day
                 if (mm > 0) {
                     if (mm <= 2.4) st.vl++;
                     else if (mm <= 15.5) st.light++;
@@ -370,7 +383,6 @@
                     
                     let modeSpecificHTML = '';
                     if (activePopupMode === 'stats') {
-                        // Perfectly matches the screenshot layout
                         modeSpecificHTML = `
                             <table class="stats-table-exact">
                                 <tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr>
@@ -398,7 +410,6 @@
                             </table>
                         `;
                     } else {
-                        // Chart View
                         modeSpecificHTML = `
                             <div class="metrics-grid">
                                 <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total (mm)</div></div>
