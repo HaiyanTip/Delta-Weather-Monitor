@@ -21,7 +21,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
         
-        /* Legend Panel */
         .legend-panel {
             position: fixed; bottom: 30px; left: 20px; width: 320px;
             background: white; padding: 15px; border-radius: 10px;
@@ -42,7 +41,6 @@
         .toggle-row input { margin-right: 5px; cursor: pointer; }
         .toggle-divider { height: 1px; background: #ddd; margin: 2px 0; }
 
-        /* Slider Styles */
         .slider-container { margin-bottom: 12px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; }
         input[type=range] { width: 100%; cursor: pointer; }
@@ -53,12 +51,10 @@
         }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 10px; color: #7f8c8d; font-weight: bold; }
 
-        /* POPUP STYLES: Restored from Screenshot */
         .matrix-popup { min-width: 270px; }
         .popup-header { font-size: 16px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
         .popup-sub { color: #95a5a6; font-size: 13px; margin-bottom: 8px; }
         
-        /* Stats Mode Formatting */
         .stats-table-exact { width: 100%; font-size: 13px; border-collapse: collapse; color: #34495e; margin-bottom: 5px; }
         .stats-table-exact td { padding: 6px 4px; border-bottom: 1px solid #f1f2f6; }
         .stats-table-exact td:last-child { text-align: right; font-weight: 600; color: #2c3e50; }
@@ -69,7 +65,6 @@
         .sec-title { font-size: 11px; color: #7f8c8d; text-transform: uppercase; margin: 12px 0 4px 0; display: flex; align-items: center; gap: 5px; }
         .text-red { color: #c0392b !important; font-weight: bold; }
         
-        /* Chart Mode Formatting */
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
         .metric-box { background: #f8f9fa; border: 1px solid #eee; padding: 4px; border-radius: 4px; text-align: center; }
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
@@ -127,7 +122,7 @@
 
         let globalRainData = [];
         let globalStations = {};
-        let fallbackStations = {}; // In case district names are completely missing in data
+        let fallbackStations = {}; 
         let activeView = 'station';
         let activePopupMode = 'stats';
         let chartInstances = {}; 
@@ -185,22 +180,29 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         }
 
-        // UPDATED: Now uses District + Station Name to prevent duplicates overwriting each other
+        // ==========================================
+        // NEW BULLETPROOF DATA LINKING ENGINE
+        // ==========================================
         function buildStationLookup(stationsData) {
             stationsData.forEach(st => {
-                const rawName = st['Name of the station'] || st.Station_Name;
+                const rawName = st['Name of the station'] || st.Station_Name || "";
                 const dist = st.District || "Unknown";
                 const cleanedName = cleanName(rawName);
                 
+                // Safely parse coordinates
+                const lat = parseFloat(st.Latitude) || 0;
+                const lon = parseFloat(st.Longitude) || 0;
+                
                 if (cleanedName) {
-                    const uniqueKey = cleanName(dist) + "_" + cleanedName;
-                    const metaData = {
-                        district: dist.trim(),
-                        lat: parseFloat(st.Latitude), lon: parseFloat(st.Longitude)
-                    };
+                    // Create an unbreakable unique fingerprint: name_lat_lon (rounded to handle tiny data variations)
+                    const uniqueKey = cleanedName + "_" + lat.toFixed(2) + "_" + lon.toFixed(2);
                     
-                    globalStations[uniqueKey] = metaData;
-                    if(!fallbackStations[cleanedName]) fallbackStations[cleanedName] = metaData; // Safety net
+                    globalStations[uniqueKey] = { district: dist.trim(), lat: lat, lon: lon };
+                    
+                    // Fallback in case coordinates shift slightly in the daily file
+                    if(!fallbackStations[cleanedName]) {
+                        fallbackStations[cleanedName] = { district: dist.trim(), lat: lat, lon: lon };
+                    }
                 }
             });
         }
@@ -277,27 +279,30 @@
                 if (doy > sliderValue) return; 
 
                 const rawName = row.Station_Name || row['Name of the station'];
-                const rawDist = row.District || "Unknown";
                 const cleanedName = cleanName(rawName);
                 
-                // UPDATED: Create the same unique key for data mapping
-                const uniqueKey = cleanName(rawDist) + "_" + cleanedName;
+                // Safely extract coordinates from daily file
+                const rLat = parseFloat(row.Latitude) || 0;
+                const rLon = parseFloat(row.Longitude) || 0;
                 
-                // Fetch coordinates using the exact District + Name match first
+                // Recreate the geographic fingerprint
+                const uniqueKey = cleanedName + "_" + rLat.toFixed(2) + "_" + rLon.toFixed(2);
+                
+                // First try exact coordinate match, fallback to just the name if needed
                 const meta = globalStations[uniqueKey] || fallbackStations[cleanedName] || {};
                 
-                const district = (meta.district && meta.district !== "Unknown") ? meta.district : rawDist;
-                const lat = !isNaN(meta.lat) ? meta.lat : parseFloat(row.Latitude);
-                const lon = !isNaN(meta.lon) ? meta.lon : parseFloat(row.Longitude);
+                const district = (meta.district && meta.district !== "Unknown") ? meta.district : "Unknown";
+                const lat = !isNaN(meta.lat) ? meta.lat : rLat;
+                const lon = !isNaN(meta.lon) ? meta.lon : rLon;
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
-                // UPDATED: Save data under the unique key to prevent merging different districts
                 if (!stationMap[uniqueKey]) {
                     stationMap[uniqueKey] = {
                         id: uniqueKey.replace(/[^a-z0-9]/g, ''),
-                        name: rawName.trim(), lat: lat, lon: lon, district: district,
+                        name: rawName ? rawName.trim() : "Unknown", 
+                        lat: lat, lon: lon, district: district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
                         vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, 
                         maxRain: 0, maxDate: "-",
@@ -309,7 +314,7 @@
                 st.total += mm;
                 st.monthly[d.month - 1] += mm;
                 
-                if (doy === sliderValue) st.today = mm;
+                if (doy === sliderValue) st.today += mm;
 
                 if (d.month === 1 || d.month === 2) st.winter += mm;
                 else if (d.month >= 3 && d.month <= 5) st.summer += mm;
