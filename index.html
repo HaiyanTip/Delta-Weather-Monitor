@@ -149,6 +149,7 @@
                         <span>Jan 1</span>
                         <span id="sliderDateDisplay" style="color:#d35400;">Loading...</span>
                     </div>
+                    <!-- The slider now uses input for fast text updates, and change for map recalculations -->
                     <input type="range" id="timeSlider" min="1" max="365" value="365">
                 </div>
                 <div class="color-scale-bar"></div>
@@ -380,7 +381,13 @@
             const slider = document.getElementById('timeSlider');
             slider.max = maxDOY; 
             slider.value = maxDOY;
-            slider.addEventListener('input', updateEngine);
+            
+            // OPTIMIZATION 1: Update text instantly while sliding, but only calculate data on let go
+            slider.addEventListener('input', (e) => {
+                const selectedYear = parseInt(document.getElementById('yearSelect').value);
+                document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), selectedYear);
+            });
+            slider.addEventListener('change', updateEngine);
 
             document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
@@ -643,7 +650,7 @@
         }
 
         // ==========================================
-        // SORTING AND RENDERING ENGINE
+        // SORTING AND RENDERING ENGINE (OPTIMIZED)
         // ==========================================
         function setupSortingListeners() {
             document.querySelectorAll('th[data-sort]').forEach(th => {
@@ -704,16 +711,16 @@
             const statHeader = document.querySelector(`#stationTable th[data-sort="${sortConfig.station.key}"] .sort-icon`);
             if(statHeader) statHeader.innerHTML = sortConfig.station.dir === 'asc' ? '↑' : '↓';
 
-            // 1. Render District Table
-            const distTbody = document.getElementById('districtTableBody');
-            distTbody.innerHTML = '';
-            let dSno = 1;
+            // OPTIMIZATION 2: Build HTML string entirely in memory before updating the DOM once.
             
+            // 1. Render District Table
+            let distHTML = '';
+            let dSno = 1;
             const sortedDistricts = sortDataArray(currentDistrictData, sortConfig.district, true);
             
             sortedDistricts.forEach(d => {
                 const div = d.count > 0 ? d.count : 1;
-                distTbody.innerHTML += `
+                distHTML += `
                     <tr class="row-hover">
                         <td style="text-align:center; color:#7f8c8d;">${dSno++}</td>
                         <td style="font-weight:bold;">${d.name.toUpperCase()}</td>
@@ -729,19 +736,18 @@
                     </tr>
                 `;
             });
+            document.getElementById('districtTableBody').innerHTML = distHTML;
 
             // 2. Render Station Table
-            const statTbody = document.getElementById('stationTableBody');
-            statTbody.innerHTML = '';
+            let statHTML = '';
             let sSno = 1;
-            
             const activeFilter = document.getElementById('districtFilter').value;
             const sortedStations = sortDataArray(currentStationData, sortConfig.station, false);
 
             sortedStations.forEach(st => {
-                if (activeFilter !== 'ALL' && activeFilter !== st.district) return; // Apply Filter Filter
+                if (activeFilter !== 'ALL' && activeFilter !== st.district) return; // Apply Filter
                 
-                statTbody.innerHTML += `
+                statHTML += `
                     <tr class="row-hover">
                         <td style="text-align:center;">${sSno++}</td>
                         <td>${st.district}</td>
@@ -757,6 +763,7 @@
                     </tr>
                 `;
             });
+            document.getElementById('stationTableBody').innerHTML = statHTML;
         }
     </script>
 </body>
