@@ -401,11 +401,67 @@
                     const stObj = { district: dist.trim(), lat: lat, lon: lon };
 
                     globalStations[compositeKey] = stObj;
-                    if(!fallbackStations[cleanedName]) { 
-                        fallbackStations[cleanedName] = stObj; 
+
+                    // Dedicated Papanasam Geographic Map inside lookup
+                    if (cleanedName.includes("papanasam")) {
+                        if (lat > 10.0 || cleanedDist.includes("thanjavur")) {
+                            globalStations["thanjavur_papanasam"] = { district: "Thanjavur", lat: 10.92, lon: 79.27 };
+                        }
+                    } else {
+                        if(!fallbackStations[cleanedName]) { 
+                            fallbackStations[cleanedName] = stObj; 
+                        }
                     }
                 }
             });
+        }
+
+        // --- LOCATION DISAMBIGUATION ENGINE ---
+        function resolveStationMeta(rawName, rawDist, rLat, rLon) {
+            const cName = cleanName(rawName);
+            const cDist = cleanName(rawDist);
+
+            // Special Location-Based Handler for Papanasam
+            if (cName.includes("papanasam")) {
+                const lat = rLat || 0;
+                const lon = rLon || 0;
+
+                // Thanjavur / Delta Papanasam (Lat ~10.92 N, Lon ~79.27 E)
+                if (lat > 10.0 || lon > 78.5 || cDist.includes("thanjavur") || cDist.includes("tanjore")) {
+                    return {
+                        uniqueKey: "thanjavur_papanasam",
+                        district: "Thanjavur",
+                        name: "Papanasam",
+                        lat: lat > 0 ? lat : 10.92,
+                        lon: lon > 0 ? lon : 79.27
+                    };
+                }
+                // Tirunelveli / Southern Papanasam (Lat ~8.70 N, Lon ~77.37 E)
+                if (lat > 0 && lat < 9.5) {
+                    return {
+                        uniqueKey: "tirunelveli_papanasam",
+                        district: "Tirunelveli",
+                        name: "Papanasam (TNV)",
+                        lat: lat,
+                        lon: lon
+                    };
+                }
+            }
+
+            // Standard resolver for all other stations
+            const meta = globalStations[cDist + "_" + cName] || fallbackStations[cName] || {};
+            const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
+            const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
+            const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
+            const uniqueKey = cleanName(district) + "_" + cName;
+
+            return {
+                uniqueKey: uniqueKey,
+                district: district,
+                name: rawName ? rawName.trim() : "Unknown",
+                lat: lat,
+                lon: lon
+            };
         }
 
         function initializeDashboard() {
@@ -575,22 +631,16 @@
 
                 const rawName = row.Station_Name || row['Name of the station'];
                 const rawDist = row.District || "";
-                const cName = cleanName(rawName);
-                const cDist = cleanName(rawDist);
-
-                // Look up in station metadata
-                const meta = globalStations[cDist + "_" + cName] || fallbackStations[cName] || {};
-                
-                const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
-                
                 const rLat = parseFloat(row.Latitude) || 0;
                 const rLon = parseFloat(row.Longitude) || 0;
-                const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
-                const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
 
-                // COMPOSITE UNIQUE KEY: District + Station Name
-                // Prevents Papanasam (Thanjavur) and Papanasam (Tirunelveli) from colliding!
-                const uniqueKey = cleanName(district) + "_" + cName;
+                // Resolve Metadata using Location Guard
+                const resolved = resolveStationMeta(rawName, rawDist, rLat, rLon);
+
+                const uniqueKey = resolved.uniqueKey;
+                const district = resolved.district;
+                const lat = resolved.lat;
+                const lon = resolved.lon;
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
@@ -598,7 +648,7 @@
                 if (!stationMap[uniqueKey]) {
                     stationMap[uniqueKey] = {
                         id: uniqueKey,
-                        name: rawName ? rawName.trim() : "Unknown", 
+                        name: resolved.name, 
                         lat: lat, lon: lon, district: district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
                         vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0,
