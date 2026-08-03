@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Statewide Rainfall Dashboard</title>
     
     <!-- Leaflet for Mapping -->
@@ -20,18 +20,19 @@
             margin: 0; padding: 0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: #f0f2f5;
+            overflow-x: hidden;
         }
         
         .dashboard-container {
             max-width: 1400px; 
-            margin: 0 auto; padding: 20px;
+            margin: 0 auto; padding: 15px;
             display: flex; flex-direction: column; gap: 20px;
         }
 
         /* 1. TOP ROW */
         .top-row {
             display: flex; gap: 20px; 
-            height: 80vh; min-height: 600px;
+            height: 75vh; min-height: 550px;
             width: 100%;
         }
 
@@ -41,14 +42,16 @@
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             display: flex; flex-direction: column;
+            box-sizing: border-box;
         }
         
         .map-wrapper {
-            flex: 1; height: 100%; border-radius: 12px; overflow: hidden;
+            flex: 1; height: 100%; width: 100%; border-radius: 12px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
             background: white; position: relative;
+            min-height: 400px;
         }
-        #map { height: 100%; width: 100%; }
+        #map { height: 100%; width: 100%; min-height: 400px; }
 
         .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .legend-title { font-weight: bold; font-size: 16px; color: #2c3e50; margin: 0; }
@@ -70,7 +73,7 @@
 
         /* 2. CHART SECTION */
         .chart-section {
-            height: 45vh; min-height: 400px; 
+            height: 45vh; min-height: 380px; 
             width: 100%; box-sizing: border-box;
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da;
@@ -81,23 +84,23 @@
         #masterChartTitle { font-size: 18px; font-weight: bold; color: #2c3e50; }
         .chart-instruction { font-size: 12px; color: #7f8c8d; font-weight: normal; margin-top: 2px; }
         
-        .chart-dropdown-group { display: flex; gap: 10px; }
+        .chart-dropdown-group { display: flex; gap: 10px; flex-wrap: wrap; }
         .chart-dropdown-group select {
-            padding: 6px 10px; border-radius: 6px; border: 1px solid #bdc3c7;
+            padding: 8px 12px; border-radius: 6px; border: 1px solid #bdc3c7;
             font-size: 13px; font-weight: 500; color: #2c3e50; background: #ecf0f1;
             cursor: pointer; outline: none; min-width: 180px;
         }
         .chart-dropdown-group select:focus { border-color: #3498db; }
         .chart-dropdown-group select:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .chart-wrapper { flex: 1; position: relative; width: 100%; }
+        .chart-wrapper { flex: 1; position: relative; width: 100%; min-height: 260px; }
 
         /* 3. TABLES SECTION */
         .tables-section { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-        .data-grid-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da; }
+        .data-grid-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ced4da; overflow: hidden; }
         .data-grid-header { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; display: inline-block;}
-        .table-container { max-height: 700px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
-        .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; }
+        .table-container { max-height: 600px; overflow-y: auto; overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 6px; -webkit-overflow-scrolling: touch; }
+        .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1100px; }
         .master-table th { background: #2c3e50; color: white; padding: 10px 5px; text-align: center; position: sticky; top: 0; font-size: 11px; text-transform: uppercase; z-index: 10; }
         th[data-sort] { cursor: pointer; transition: background-color 0.2s; user-select: none; }
         th[data-sort]:hover { background-color: #34495e; color: #f1c40f; }
@@ -112,7 +115,7 @@
         .col-max { color: #c0392b; font-weight: bold; }
 
         /* POPUPS */
-        .matrix-popup { min-width: 280px; }
+        .matrix-popup { min-width: 260px; }
         .popup-header { font-size: 16px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
         .popup-sub { color: #95a5a6; font-size: 12px; margin-bottom: 8px; }
         
@@ -134,11 +137,24 @@
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
         .metric-lbl { font-size: 9px; color: #7f8c8d; text-transform: uppercase; }
 
+        /* MOBILE OPTIMIZATION RULES */
         @media (max-width: 1024px) {
             .top-row { flex-direction: column; height: auto; }
-            .control-panel { flex: none; width: auto; }
-            .map-wrapper { height: 50vh; }
+            .control-panel { flex: none; width: 100%; }
+            .map-wrapper { height: 450px; min-height: 450px; width: 100%; }
+            #map { height: 450px; min-height: 450px; width: 100%; }
+            .chart-dropdown-group { width: 100%; }
+            .chart-dropdown-group select { flex: 1; }
+            .chart-section { height: auto; min-height: 350px; }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard-container { padding: 10px; gap: 15px; }
+            .map-wrapper, #map { height: 380px; min-height: 380px; }
+            .chart-wrapper { min-height: 240px; }
+            .daily-chart-header { flex-direction: column; align-items: flex-start; }
             .chart-dropdown-group { width: 100%; flex-direction: column; }
+            .chart-dropdown-group select { width: 100%; }
         }
     </style>
 </head>
@@ -306,11 +322,20 @@
     </div>
 
     <script>
-        const map = L.map('map', { center: [10.80, 79.35], zoom: 9.5 });
+        // Leaflet tap:false prevents touch-event blocking on mobile browsers
+        const map = L.map('map', { 
+            center: [10.80, 79.35], 
+            zoom: 9.5,
+            tap: false 
+        });
+        
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
         }).addTo(map);
-        setTimeout(() => { map.invalidateSize(); }, 500);
+        
+        // Force container redraw on mobile after layout rendering
+        setTimeout(() => { map.invalidateSize(); }, 600);
+        window.addEventListener('resize', () => { map.invalidateSize(); });
 
         const layers = { station: L.layerGroup().addTo(map), district: L.layerGroup() };
 
@@ -402,7 +427,6 @@
 
                     globalStations[compositeKey] = stObj;
 
-                    // Dedicated Papanasam Geographic Map inside lookup
                     if (cleanedName.includes("papanasam")) {
                         if (lat > 10.0 || cleanedDist.includes("thanjavur")) {
                             globalStations["thanjavur_papanasam"] = { district: "Thanjavur", lat: 10.92, lon: 79.27 };
@@ -416,17 +440,14 @@
             });
         }
 
-        // --- LOCATION DISAMBIGUATION ENGINE ---
         function resolveStationMeta(rawName, rawDist, rLat, rLon) {
             const cName = cleanName(rawName);
             const cDist = cleanName(rawDist);
 
-            // Special Location-Based Handler for Papanasam
             if (cName.includes("papanasam")) {
                 const lat = rLat || 0;
                 const lon = rLon || 0;
 
-                // Thanjavur / Delta Papanasam (Lat ~10.92 N, Lon ~79.27 E)
                 if (lat > 10.0 || lon > 78.5 || cDist.includes("thanjavur") || cDist.includes("tanjore")) {
                     return {
                         uniqueKey: "thanjavur_papanasam",
@@ -436,7 +457,6 @@
                         lon: lon > 0 ? lon : 79.27
                     };
                 }
-                // Tirunelveli / Southern Papanasam (Lat ~8.70 N, Lon ~77.37 E)
                 if (lat > 0 && lat < 9.5) {
                     return {
                         uniqueKey: "tirunelveli_papanasam",
@@ -448,7 +468,6 @@
                 }
             }
 
-            // Standard resolver for all other stations
             const meta = globalStations[cDist + "_" + cName] || fallbackStations[cName] || {};
             const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
             const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
@@ -531,9 +550,24 @@
                 type: 'bar',
                 data: { labels: [], datasets: [] },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' } }, x: { grid: { display: false } } },
-                    plugins: { legend: { display: false } }
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    // MOBILE BOOST: Makes bars wider and easier to tap
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: { 
+                        y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' } }, 
+                        x: { grid: { display: false } } 
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            // Increases touch radius so mobile taps catch the bar easily
+                            hitRadius: 15
+                        }
+                    }
                 }
             });
         }
@@ -634,7 +668,6 @@
                 const rLat = parseFloat(row.Latitude) || 0;
                 const rLon = parseFloat(row.Longitude) || 0;
 
-                // Resolve Metadata using Location Guard
                 const resolved = resolveStationMeta(rawName, rawDist, rLat, rLon);
 
                 const uniqueKey = resolved.uniqueKey;
@@ -867,7 +900,13 @@
 
             masterChartInstance.data.labels = labels;
             masterChartInstance.data.datasets = [{
-                label: 'Rain (mm)', data: data, backgroundColor: '#3498db', hoverBackgroundColor: '#c0392b', barPercentage: 1.0, categoryPercentage: 1.0
+                label: 'Rain (mm)', 
+                data: data, 
+                backgroundColor: '#3498db', 
+                hoverBackgroundColor: '#c0392b', 
+                // THICKER BARS FOR MOBILE TOUCH:
+                barPercentage: 1.0, 
+                categoryPercentage: 0.9
             }];
             masterChartInstance.options.plugins.tooltip = { callbacks: { title: (ctx) => ctx[0].label + ' ' + year, label: (ctx) => ctx.parsed.y.toFixed(1) + ' mm' } };
             masterChartInstance.update();
