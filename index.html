@@ -356,7 +356,6 @@
             }
         });
 
-        // THE FIX: Aggressively strip EVERYTHING except letters and numbers for a foolproof match.
         function cleanName(str) { 
             return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; 
         }
@@ -393,15 +392,18 @@
                 const rawName = st['Name of the station'] || st.Station_Name || "";
                 const dist = st.District || "Unknown";
                 const cleanedName = cleanName(rawName);
+                const cleanedDist = cleanName(dist);
                 const lat = parseFloat(st.Latitude) || 0;
                 const lon = parseFloat(st.Longitude) || 0;
                 
                 if (cleanedName) {
-                    const uniqueKey = cleanedName + "_" + lat.toFixed(2) + "_" + lon.toFixed(2);
-                    globalStations[uniqueKey] = { district: dist.trim(), lat: lat, lon: lon };
-                    
-                    // Fallback map uses ONLY the cleaned name for bulletproof grouping
-                    if(!fallbackStations[cleanedName]) { fallbackStations[cleanedName] = { district: dist.trim(), lat: lat, lon: lon }; }
+                    const compositeKey = cleanedDist + "_" + cleanedName;
+                    const stObj = { district: dist.trim(), lat: lat, lon: lon };
+
+                    globalStations[compositeKey] = stObj;
+                    if(!fallbackStations[cleanedName]) { 
+                        fallbackStations[cleanedName] = stObj; 
+                    }
                 }
             });
         }
@@ -572,24 +574,30 @@
                 if (doy > sliderValue) return; 
 
                 const rawName = row.Station_Name || row['Name of the station'];
+                const rawDist = row.District || "";
+                const cName = cleanName(rawName);
+                const cDist = cleanName(rawDist);
+
+                // Look up in station metadata
+                const meta = globalStations[cDist + "_" + cName] || fallbackStations[cName] || {};
                 
-                // THE CORE FIX: We only group by name. No coordinate mismatches will ruin the sums now.
-                const uniqueKey = cleanName(rawName);
-                const meta = fallbackStations[uniqueKey] || {};
+                const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
                 
                 const rLat = parseFloat(row.Latitude) || 0;
                 const rLon = parseFloat(row.Longitude) || 0;
-                
-                const district = (meta.district && meta.district !== "Unknown") ? meta.district : "Unknown";
                 const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
                 const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
+
+                // COMPOSITE UNIQUE KEY: District + Station Name
+                // Prevents Papanasam (Thanjavur) and Papanasam (Tirunelveli) from colliding!
+                const uniqueKey = cleanName(district) + "_" + cName;
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
                 if (!stationMap[uniqueKey]) {
                     stationMap[uniqueKey] = {
-                        id: uniqueKey, // Use the cleaned string as ID
+                        id: uniqueKey,
                         name: rawName ? rawName.trim() : "Unknown", 
                         lat: lat, lon: lon, district: district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
@@ -737,7 +745,7 @@
                     `;
                     
                     marker.bindPopup(popupHTML, { maxWidth: 320 });
-                    marker.bindTooltip(`<b>${item.name}</b><br>${total.toFixed(1)} mm`, { sticky: true });
+                    marker.bindTooltip(`<b>${item.name}</b> (${item.district})<br>${total.toFixed(1)} mm`, { sticky: true });
 
                     marker.on('click', function() {
                         const distSelect = document.getElementById('chartDistSelect');
