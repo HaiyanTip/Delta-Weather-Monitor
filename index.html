@@ -356,8 +356,10 @@
             }
         });
 
-        // FIX 1: Aggressive name cleaning to strip spaces and special characters
-        function cleanName(str) { return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; }
+        // THE FIX: Aggressively strip EVERYTHING except letters and numbers for a foolproof match.
+        function cleanName(str) { 
+            return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; 
+        }
 
         function getColor(value) {
             if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
@@ -397,6 +399,8 @@
                 if (cleanedName) {
                     const uniqueKey = cleanedName + "_" + lat.toFixed(2) + "_" + lon.toFixed(2);
                     globalStations[uniqueKey] = { district: dist.trim(), lat: lat, lon: lon };
+                    
+                    // Fallback map uses ONLY the cleaned name for bulletproof grouping
                     if(!fallbackStations[cleanedName]) { fallbackStations[cleanedName] = { district: dist.trim(), lat: lat, lon: lon }; }
                 }
             });
@@ -528,7 +532,7 @@
             const currentDist = distSelect.value;
             
             const uniqueDistricts = new Set();
-            currentStationData.forEach(st => { if (st.district !== "Unknown") uniqueDistricts.add(st.district); });
+            currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
             
             distSelect.innerHTML = '<option value="">Select District...</option>';
             Array.from(uniqueDistricts).sort().forEach(d => {
@@ -537,7 +541,10 @@
                 distSelect.appendChild(opt);
             });
             
-            if (Array.from(uniqueDistricts).includes(currentDist)) {
+            if (currentStationData.some(st => st.district === "Unassigned")) {
+                distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
+            }
+            if (Array.from(uniqueDistricts).includes(currentDist) || currentDist === "Unassigned") {
                 distSelect.value = currentDist;
             }
         }
@@ -565,24 +572,24 @@
                 if (doy > sliderValue) return; 
 
                 const rawName = row.Station_Name || row['Name of the station'];
-                const cleanedName = cleanName(rawName);
+                
+                // THE CORE FIX: We only group by name. No coordinate mismatches will ruin the sums now.
+                const uniqueKey = cleanName(rawName);
+                const meta = fallbackStations[uniqueKey] || {};
                 
                 const rLat = parseFloat(row.Latitude) || 0;
                 const rLon = parseFloat(row.Longitude) || 0;
                 
-                const uniqueKey = cleanedName + "_" + rLat.toFixed(2) + "_" + rLon.toFixed(2);
-                const meta = globalStations[uniqueKey] || fallbackStations[cleanedName] || {};
-                
                 const district = (meta.district && meta.district !== "Unknown") ? meta.district : "Unknown";
-                const lat = !isNaN(meta.lat) ? meta.lat : rLat;
-                const lon = !isNaN(meta.lon) ? meta.lon : rLon;
+                const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
+                const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
 
                 let mm = parseFloat(row.Rainfall_mm);
                 if (isNaN(mm)) mm = 0.0;
 
                 if (!stationMap[uniqueKey]) {
                     stationMap[uniqueKey] = {
-                        id: uniqueKey.replace(/[^a-z0-9]/g, ''),
+                        id: uniqueKey, // Use the cleaned string as ID
                         name: rawName ? rawName.trim() : "Unknown", 
                         lat: lat, lon: lon, district: district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
@@ -617,7 +624,6 @@
             });
 
             Object.values(stationMap).forEach(st => {
-                // FIX 2: Do not completely skip unmapped stations. Group them in 'Unassigned'.
                 const safeDistrict = st.district === "Unknown" ? "Unassigned" : st.district;
 
                 if (!districtMap[safeDistrict]) {
@@ -659,7 +665,6 @@
                     const lat = isAverage ? item.latSum / div : item.lat;
                     const lon = isAverage ? item.lonSum / div : item.lon;
                     
-                    // FIX 3: Skip drawing on the map if coordinates are missing (0,0), but keep in tables.
                     if (lat === 0 || lon === 0 || isNaN(lat) || isNaN(lon)) continue;
 
                     const total = item.total / div;
@@ -776,7 +781,6 @@
                 opt.value = d; opt.innerText = d;
                 filterDropdown.appendChild(opt);
             });
-            // Ensure Unassigned is added if it exists
             if (currentStationData.some(st => st.district === "Unassigned")) {
                 filterDropdown.innerHTML += '<option value="Unassigned">Unassigned</option>';
             }
