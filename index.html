@@ -192,12 +192,20 @@
             background: var(--input-bg); color: var(--text-main); font-family: inherit; box-sizing: border-box; outline: none;
         }
 
+        /* QUICK SELECT BUTTONS */
+        .quick-select-bar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .btn-quick-select {
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            color: var(--text-main); border-radius: 4px; padding: 5px 10px;
+            font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-quick-select:hover { background: #3498db; color: white; border-color: #3498db;}
+
         .checklist-container {
             max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
             border-radius: 6px; padding: 10px; background: var(--input-bg);
         }
         .checklist-item { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; cursor: pointer;}
-        .select-all-wrapper { border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
@@ -206,37 +214,64 @@
         .btn-download-final { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         /* PREVIEW MODAL SPECIFICS */
-        #previewModal .modal-content { max-width: 600px; text-align: center; }
-        #previewContainer { max-height: 60vh; overflow-y: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        #previewModal .modal-content { max-width: 800px; text-align: center; } /* Wider to accommodate potential landscape preview */
+        #previewContainer { max-height: 65vh; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
         #previewImage { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
-        /* OFF-SCREEN CARD GENERATOR (TALL VERTICAL FOR EXPORT) */
+        /* OFF-SCREEN CARD GENERATOR */
         #exportCardWrapper {
             position: absolute; left: -9999px; top: 0;
-            width: 1080px; min-height: 1920px;
-            background-color: #121212; /* Sleek Dark Theme for Export */
+            background-color: #121212; 
             color: #ffffff; font-family: Arial, sans-serif;
             box-sizing: border-box; padding: 60px;
             display: flex; flex-direction: column;
             overflow: hidden; z-index: -1;
         }
+        
+        /* DYNAMIC LAYOUT CLASSES */
+        .layout-vertical { width: 1080px; min-height: 1920px; }
+        .layout-landscape { width: 1920px; min-height: 1080px; }
+
         .export-watermark-bg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 220px; font-weight: 900; color: rgba(255, 255, 255, 0.02); /* Extremely Subtle */
+            font-size: 240px; font-weight: 900; color: rgba(255, 255, 255, 0.02);
             white-space: nowrap; pointer-events: none; z-index: 0;
         }
+        
         .export-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
         .export-header { border-bottom: 4px solid #3498db; padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
         .export-title { font-size: 54px; font-weight: 900; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         .export-date { font-size: 32px; font-weight: 300; color: #bdc3c7; margin: 0; }
         
-        .export-body { flex: 1; display: flex; flex-direction: column; gap: 40px; }
-        .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); }
+        .export-body { flex: 1; }
+        
+        /* Layout: Vertical (<5 districts) */
+        .layout-vertical .export-body { display: flex; flex-direction: column; gap: 40px; }
+        
+        /* Layout: Landscape (>=5 districts) - Masonry Grid */
+        .layout-landscape .export-body {
+            column-count: 4;
+            column-gap: 40px;
+        }
+
+        .export-district-block { 
+            background: rgba(255, 255, 255, 0.05); border-radius: 16px; 
+            padding: 30px; border: 1px solid rgba(255,255,255,0.08); 
+        }
+
+        .layout-landscape .export-district-block {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 40px;
+            display: inline-block; /* Forces block to stay together in column */
+            width: 100%; box-sizing: border-box;
+        }
+
         .export-district-name { font-size: 36px; font-weight: bold; color: #3498db; margin: 0 0 20px 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .export-row { display: flex; justify-content: space-between; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; }
         .export-row:last-child { border-bottom: none; }
         .export-stn { font-weight: 500; }
-        .export-val { font-weight: 900; } /* Color dynamically applied via JS */
+        .export-val { font-weight: 900; } 
         
         /* FOOTER & LEGEND */
         .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 25px; }
@@ -259,11 +294,8 @@
         function toggleDarkMode() {
             const body = document.body;
             const currentTheme = body.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                body.removeAttribute('data-theme');
-            } else {
-                body.setAttribute('data-theme', 'dark');
-            }
+            if (currentTheme === 'dark') { body.removeAttribute('data-theme'); } 
+            else { body.setAttribute('data-theme', 'dark'); }
             if(masterChartInstance) {
                 const isDark = body.getAttribute('data-theme') === 'dark';
                 masterChartInstance.options.scales.x.ticks.color = isDark ? '#e0e0e0' : '#666';
@@ -281,9 +313,17 @@
             container.querySelector('#' + paneId).style.display = 'block';
         };
 
-        function toggleSelectAllDistricts(source) {
-            document.querySelectorAll('.dist-chk').forEach(cb => {
-                cb.checked = source.checked;
+        function quickSelectDistricts(mode) {
+            const checkboxes = document.querySelectorAll('.dist-chk');
+            const cdzCore = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
+            const cdzExt = [...cdzCore, 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukottai'];
+            
+            checkboxes.forEach(cb => {
+                const val = cb.value.toLowerCase();
+                if (mode === 'ALL') { cb.checked = true; }
+                else if (mode === 'CLEAR') { cb.checked = false; }
+                else if (mode === 'CDZ_CORE') { cb.checked = cdzCore.some(d => val.includes(d)); }
+                else if (mode === 'CDZ_EXT') { cb.checked = cdzExt.some(d => val.includes(d)); }
             });
         }
     </script>
@@ -470,6 +510,12 @@
 
             <div class="modal-group">
                 <label>Select Districts:</label>
+                <div class="quick-select-bar">
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('ALL')">All TN</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_CORE')">CDZ Core</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT')">CDZ Extended</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR')">Clear</button>
+                </div>
                 <div class="checklist-container" id="reportDistrictChecklist">
                     <!-- Populated via JS -->
                 </div>
@@ -487,7 +533,6 @@
         <div class="modal-content">
             <div class="modal-title">Preview Generated Card</div>
             <div id="previewContainer">
-                <!-- Base64 Image rendered here -->
                 <span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>
             </div>
             <div class="modal-actions" style="justify-content: center;">
@@ -498,7 +543,7 @@
     </div>
 
     <!-- HIDDEN DOM ELEMENT FOR HTML2CANVAS SNAPSHOT -->
-    <div id="exportCardWrapper">
+    <div id="exportCardWrapper" class="layout-vertical">
         <div class="export-watermark-bg">HaiyanTip</div>
         <div class="export-content">
             <div class="export-header">
@@ -578,9 +623,7 @@
             }
         });
 
-        function cleanName(str) { 
-            return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; 
-        }
+        function cleanName(str) { return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; }
 
         function getColor(value) {
             if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
@@ -662,8 +705,7 @@
         }
 
         function initializeDashboard() {
-            const yearSet = new Set();
-            let maxDOY = 1;
+            const yearSet = new Set(); let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
                 if(d) { yearSet.add(d.year); const doy = getDayOfYear(d.day, d.month, d.year); if(doy > maxDOY) maxDOY = doy; }
@@ -678,7 +720,6 @@
             
             const slider = document.getElementById('timeSlider');
             slider.max = maxDOY; slider.value = maxDOY;
-            
             slider.addEventListener('input', (e) => { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); });
             slider.addEventListener('change', updateEngine);
 
@@ -693,58 +734,39 @@
             document.getElementById('districtFilter').addEventListener('change', function(e) { renderTables(); });
             setupChartDropdownListeners();
 
-            initEmptyDailyChart();
-            updateEngine(); 
+            initEmptyDailyChart(); updateEngine(); 
         }
 
         function initEmptyDailyChart() {
             const ctx = document.getElementById('masterDailyChart').getContext('2d');
             masterChartInstance = new Chart(ctx, {
                 type: 'bar', data: { labels: [], datasets: [] },
-                options: {
-                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' }, grid: {color: '#e5e5e5'} }, x: { grid: { display: false } } },
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' }, grid: {color: '#e5e5e5'} }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
             });
         }
 
         function setupChartDropdownListeners() {
-            const distSelect = document.getElementById('chartDistSelect');
-            const stnSelect = document.getElementById('chartStnSelect');
-
+            const distSelect = document.getElementById('chartDistSelect'); const stnSelect = document.getElementById('chartStnSelect');
             distSelect.addEventListener('change', (e) => {
-                const districtName = e.target.value;
-                stnSelect.innerHTML = '<option value="">Select Station...</option>';
+                const districtName = e.target.value; stnSelect.innerHTML = '<option value="">Select Station...</option>';
                 if (!districtName) { stnSelect.disabled = true; return; }
                 stnSelect.disabled = false;
                 stnSelect.innerHTML += `<option value="DISTRICT_AVG">⭐ ${districtName} (District Average)</option>`;
-                currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name)).forEach(st => {
-                    const opt = document.createElement('option'); opt.value = st.id; opt.innerText = st.name; stnSelect.appendChild(opt);
-                });
+                currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name)).forEach(st => { const opt = document.createElement('option'); opt.value = st.id; opt.innerText = st.name; stnSelect.appendChild(opt); });
                 stnSelect.value = "DISTRICT_AVG"; stnSelect.dispatchEvent(new Event('change'));
             });
-
             stnSelect.addEventListener('change', (e) => {
                 const val = e.target.value; const dist = distSelect.value;
-                const isLeap = (datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0);
-                const daysInYear = isLeap ? 366 : 365;
+                const daysInYear = ((datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0)) ? 366 : 365;
                 if (!val) return;
-                if (val === "DISTRICT_AVG") {
-                    const dData = rawDistrictMap[dist];
-                    if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1);
-                } else {
-                    const sData = currentStationData.find(s => s.id === val);
-                    if (sData) triggerDailyChartSync(sData, false, datasetActiveYear, daysInYear, 1);
-                }
+                if (val === "DISTRICT_AVG") { const dData = rawDistrictMap[dist]; if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1); } 
+                else { const sData = currentStationData.find(s => s.id === val); if (sData) triggerDailyChartSync(sData, false, datasetActiveYear, daysInYear, 1); }
             });
         }
 
         function populateChartDropdowns() {
-            const distSelect = document.getElementById('chartDistSelect');
-            const currentDist = distSelect.value;
-            const uniqueDistricts = new Set();
-            currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
+            const distSelect = document.getElementById('chartDistSelect'); const currentDist = distSelect.value;
+            const uniqueDistricts = new Set(); currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
             distSelect.innerHTML = '<option value="">Select District...</option>';
             Array.from(uniqueDistricts).sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; distSelect.appendChild(opt); });
             if (currentStationData.some(st => st.district === "Unassigned")) distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
@@ -753,8 +775,7 @@
 
         function updateEngine() {
             const sliderValue = parseInt(document.getElementById('timeSlider').value);
-            const isLeap = (datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0);
-            const daysInYear = isLeap ? 366 : 365;
+            const daysInYear = ((datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0)) ? 366 : 365;
             
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, datasetActiveYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
@@ -764,8 +785,7 @@
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
                 if (!d || d.year !== datasetActiveYear) return;
-                const doy = getDayOfYear(d.day, d.month, d.year);
-                if (doy > sliderValue) return; 
+                const doy = getDayOfYear(d.day, d.month, d.year); if (doy > sliderValue) return; 
 
                 const resolved = resolveStationMeta(row.Station_Name || row['Name of the station'], row.District || "", parseFloat(row.Latitude) || 0, parseFloat(row.Longitude) || 0);
                 let mm = parseFloat(row.Rainfall_mm); if (isNaN(mm)) mm = 0.0;
@@ -777,15 +797,11 @@
                         maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
                     };
                 }
-
                 const st = stationMap[resolved.uniqueKey];
                 st.total += mm; st.monthly[d.month - 1] += mm; st.dailyArray[doy - 1] += mm;
                 if (doy === sliderValue) st.today += mm;
 
-                if (d.month <= 2) st.winter += mm;
-                else if (d.month <= 5) st.summer += mm;
-                else if (d.month <= 9) st.swm += mm;
-                else st.nem += mm;
+                if (d.month <= 2) st.winter += mm; else if (d.month <= 5) st.summer += mm; else if (d.month <= 9) st.swm += mm; else st.nem += mm;
                 
                 if (mm > 0) {
                     if (mm <= 2.4) st.vl++; else if (mm <= 15.5) st.light++; else if (mm <= 64.4) st.mod++;
@@ -798,10 +814,8 @@
                 const safeDistrict = st.district === "Unknown" ? "Unassigned" : st.district;
                 if (!districtMap[safeDistrict]) {
                     districtMap[safeDistrict] = { 
-                        id: safeDistrict.replace(/[^a-zA-Z0-9]/g, ''), name: safeDistrict, count: 0, 
-                        latSum: 0, lonSum: 0, total: 0, todaySum: 0, winter: 0, summer: 0, swm: 0, nem: 0,
-                        vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies", 
-                        monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
+                        id: safeDistrict.replace(/[^a-zA-Z0-9]/g, ''), name: safeDistrict, count: 0, latSum: 0, lonSum: 0, total: 0, todaySum: 0, winter: 0, summer: 0, swm: 0, nem: 0,
+                        vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
                     };
                 }
                 let d = districtMap[safeDistrict];
@@ -824,13 +838,11 @@
                     const total = item.total / div;
                     const marker = L.circleMarker([lat, lon], { radius: radiusSize, fillColor: getColor(total), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(targetLayer);
 
-                    const todayVal = isAverage ? item.todaySum / div : item.today;
                     const canvasId = `chart-${item.id}`;
-                    
                     let modeSpecificHTML = '';
                     if (activePopupMode === 'stats') {
                         modeSpecificHTML = `<div class="popup-tabs"><div class="popup-tab active" onclick="switchPopupTab(this, 'pane-overview-${item.id}')">Overview</div><div class="popup-tab" onclick="switchPopupTab(this, 'pane-imd-${item.id}')">IMD Days</div></div>
-                            <div class="popup-pane" id="pane-overview-${item.id}"><table class="stats-table-exact"><tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${(item.winter/div).toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${(item.summer/div).toFixed(1)} mm</td></tr><tr><td>☁️ SWM (so far)</td><td>${(item.swm/div).toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${(item.nem/div).toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr></table></div>
+                            <div class="popup-pane" id="pane-overview-${item.id}"><table class="stats-table-exact"><tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${(isAverage ? item.todaySum/div : item.today).toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${(item.winter/div).toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${(item.summer/div).toFixed(1)} mm</td></tr><tr><td>☁️ SWM (so far)</td><td>${(item.swm/div).toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${(item.nem/div).toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr></table></div>
                             <div class="popup-pane" id="pane-imd-${item.id}" style="display:none;"><table class="stats-table-exact"><tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr><tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr><tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr><tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr><tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr><tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr></table></div>`;
                     } else {
                         modeSpecificHTML = `<div class="metrics-grid"><div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total</div></div><div class="metric-box"><div class="metric-val">${(item.swm/div).toFixed(1)}</div><div class="metric-lbl">SWM</div></div><div class="metric-box"><div class="metric-val">${(item.nem/div).toFixed(1)}</div><div class="metric-lbl">NEM</div></div></div><div style="height:120px; width:100%;"><canvas id="${canvasId}"></canvas></div>`;
@@ -838,13 +850,11 @@
 
                     marker.bindPopup(`<div class="matrix-popup"><div class="popup-header">${item.name}</div><div class="popup-sub">${isAverage ? `Average across ${item.count} stations` : item.district}</div>${modeSpecificHTML}</div>`, { maxWidth: 320 });
                     marker.bindTooltip(`<b>${item.name}</b> (${item.district})<br>${total.toFixed(1)} mm`, { sticky: true });
-
                     marker.on('click', function() {
                         const distSelect = document.getElementById('chartDistSelect'); const stnSelect = document.getElementById('chartStnSelect');
                         distSelect.value = isAverage ? item.name : item.district; distSelect.dispatchEvent(new Event('change')); 
                         setTimeout(() => { stnSelect.value = isAverage ? "DISTRICT_AVG" : item.id; stnSelect.dispatchEvent(new Event('change')); }, 50);
                     });
-
                     marker.on('popupopen', function() {
                         if (activePopupMode === 'chart') {
                             const ctx = document.getElementById(canvasId); if (!ctx) return;
@@ -934,15 +944,6 @@
             const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
             
-            chkContainer.innerHTML += `
-                <div class="select-all-wrapper">
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" onchange="toggleSelectAllDistricts(this)"> 
-                        Select All Districts
-                    </label>
-                </div>
-            `;
-
             Array.from(uniqueDistricts).sort().forEach(dist => {
                 chkContainer.innerHTML += `<label class="checklist-item"><input type="checkbox" value="${dist}" class="dist-chk"> ${dist}</label>`;
             });
@@ -955,7 +956,7 @@
         
         function closePreviewModal() { 
             document.getElementById('previewModal').style.display = 'none';
-            document.getElementById('reportModal').style.display = 'flex'; // Go back to settings
+            document.getElementById('reportModal').style.display = 'flex'; 
         }
 
         function generateReportPreview() {
@@ -976,6 +977,16 @@
             const doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
 
             finalImageFileName = `Rainfall_Report_${dateVal}.png`;
+
+            // Setup Layout Based on Selection Count
+            const targetDiv = document.getElementById('exportCardWrapper');
+            if (selectedDistricts.length >= 5) {
+                targetDiv.classList.remove('layout-vertical');
+                targetDiv.classList.add('layout-landscape');
+            } else {
+                targetDiv.classList.remove('layout-landscape');
+                targetDiv.classList.add('layout-vertical');
+            }
 
             // Group Data
             const results = {};
@@ -1016,7 +1027,7 @@
             });
 
             if (!hasAnyData) {
-                htmlStr = `<div style="text-align:center; font-size:36px; color:#bdc3c7; margin-top:50px;">No rainfall met the selected criteria in these districts.</div>`;
+                htmlStr = `<div style="text-align:center; width: 100%; font-size:36px; color:#bdc3c7; margin-top:50px; grid-column: 1 / -1;">No rainfall met the selected criteria in these districts.</div>`;
             }
 
             document.getElementById('exportBodyContent').innerHTML = htmlStr;
@@ -1029,7 +1040,6 @@
 
             // Allow DOM to apply styles, then snapshot
             setTimeout(() => {
-                const targetDiv = document.getElementById('exportCardWrapper');
                 html2canvas(targetDiv, { scale: 2, backgroundColor: "#121212" }).then(canvas => {
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
