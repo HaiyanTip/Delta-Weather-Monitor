@@ -167,8 +167,9 @@
         .row-highlight td { font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border-color); padding: 6px 2px;}
         .sec-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin: 12px 0 4px 0; font-weight: bold; }
         
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
-        .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; text-align: center; }
+        /* Updated Grid for 5 Items */
+        .metrics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 10px; }
+        .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; text-align: center; flex: 1 1 30%; min-width: 60px; box-sizing: border-box; }
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
         .metric-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
 
@@ -855,7 +856,13 @@
                             <div class="popup-pane" id="pane-overview-${item.id}"><table class="stats-table-exact"><tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${(isAverage ? item.todaySum/div : item.today).toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${(item.winter/div).toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${(item.summer/div).toFixed(1)} mm</td></tr><tr><td>☁️ SWM (so far)</td><td>${(item.swm/div).toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${(item.nem/div).toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr></table></div>
                             <div class="popup-pane" id="pane-imd-${item.id}" style="display:none;"><table class="stats-table-exact"><tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr><tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr><tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr><tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr><tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr><tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr></table></div>`;
                     } else {
-                        modeSpecificHTML = `<div class="metrics-grid"><div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total</div></div><div class="metric-box"><div class="metric-val">${(item.swm/div).toFixed(1)}</div><div class="metric-lbl">SWM</div></div><div class="metric-box"><div class="metric-val">${(item.nem/div).toFixed(1)}</div><div class="metric-lbl">NEM</div></div></div><div style="height:120px; width:100%;"><canvas id="${canvasId}"></canvas></div>`;
+                        modeSpecificHTML = `<div class="metrics-grid">
+                            <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Annual</div></div>
+                            <div class="metric-box"><div class="metric-val">${(item.winter/div).toFixed(1)}</div><div class="metric-lbl">Winter</div></div>
+                            <div class="metric-box"><div class="metric-val">${(item.summer/div).toFixed(1)}</div><div class="metric-lbl">Summer</div></div>
+                            <div class="metric-box"><div class="metric-val">${(item.swm/div).toFixed(1)}</div><div class="metric-lbl">SWM</div></div>
+                            <div class="metric-box"><div class="metric-val">${(item.nem/div).toFixed(1)}</div><div class="metric-lbl">NEM</div></div>
+                        </div><div style="height:120px; width:100%;"><canvas id="${canvasId}"></canvas></div>`;
                     }
 
                     marker.bindPopup(`<div class="matrix-popup"><div class="popup-header">${item.name}</div><div class="popup-sub">${isAverage ? `Average across ${item.count} stations` : item.district}</div>${modeSpecificHTML}</div>`, { maxWidth: 320 });
