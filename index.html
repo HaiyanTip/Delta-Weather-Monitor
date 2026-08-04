@@ -47,7 +47,6 @@
             --table-head-text: #e0e0e0;
             --input-bg: #2c2c2c;
             --popup-bg: #1e1e1e;
-            /* Inverts the Carto Light map to a Dark map automatically */
             --map-filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); 
         }
 
@@ -167,44 +166,53 @@
         .row-highlight { background-color: var(--hover-bg); }
         .row-highlight td { font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border-color); padding: 6px 2px;}
         .sec-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin: 12px 0 4px 0; font-weight: bold; }
-        .text-red { color: #e74c3c !important; font-weight: bold; }
         
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
         .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; text-align: center; }
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
         .metric-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
 
-        /* MODAL OVERLAY */
+        /* MODAL OVERLAYS */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 9999; display: none;
-            justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.7); z-index: 9999; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(3px);
         }
         .modal-content {
             background: var(--card-bg); padding: 25px; border-radius: 12px;
-            width: 90%; max-width: 400px; color: var(--text-main);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 90%; max-width: 450px; color: var(--text-main);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
         }
         .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
         .modal-group { margin-bottom: 15px; }
         .modal-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted); }
-        .modal-group input[type="date"] {
+        
+        .modal-group select, .modal-group input[type="date"] {
             width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);
-            background: var(--input-bg); color: var(--text-main); font-family: inherit; box-sizing: border-box;
+            background: var(--input-bg); color: var(--text-main); font-family: inherit; box-sizing: border-box; outline: none;
         }
+
         .checklist-container {
-            max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color);
+            max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
             border-radius: 6px; padding: 10px; background: var(--input-bg);
         }
-        .checklist-item { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 5px; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .btn-generate { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .checklist-item { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; cursor: pointer;}
+        .select-all-wrapper { border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
+        .btn-generate { background: #3498db; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s;}
+        .btn-generate:hover { background: #2980b9; }
+        .btn-download-final { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* PREVIEW MODAL SPECIFICS */
+        #previewModal .modal-content { max-width: 600px; text-align: center; }
+        #previewContainer { max-height: 60vh; overflow-y: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        #previewImage { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+
         /* OFF-SCREEN CARD GENERATOR (TALL VERTICAL FOR EXPORT) */
         #exportCardWrapper {
             position: absolute; left: -9999px; top: 0;
-            /* 1080x1920 is a standard 9:16 vertical resolution */
             width: 1080px; min-height: 1920px;
             background-color: #121212; /* Sleek Dark Theme for Export */
             color: #ffffff; font-family: Arial, sans-serif;
@@ -214,7 +222,7 @@
         }
         .export-watermark-bg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 180px; font-weight: 900; color: rgba(255, 255, 255, 0.03);
+            font-size: 220px; font-weight: 900; color: rgba(255, 255, 255, 0.02); /* Extremely Subtle */
             white-space: nowrap; pointer-events: none; z-index: 0;
         }
         .export-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
@@ -223,16 +231,19 @@
         .export-date { font-size: 32px; font-weight: 300; color: #bdc3c7; margin: 0; }
         
         .export-body { flex: 1; display: flex; flex-direction: column; gap: 40px; }
-        .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); }
+        .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); }
         .export-district-name { font-size: 36px; font-weight: bold; color: #3498db; margin: 0 0 20px 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .export-row { display: flex; justify-content: space-between; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; }
         .export-row:last-child { border-bottom: none; }
         .export-stn { font-weight: 500; }
-        .export-val { font-weight: 900; color: #2ecc71; }
+        .export-val { font-weight: 900; } /* Color dynamically applied via JS */
         
-        .export-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 20px; }
-        .export-source { font-size: 24px; color: #7f8c8d; font-weight: bold; }
-        .export-brand { font-size: 36px; font-weight: 900; background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* FOOTER & LEGEND */
+        .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 25px; }
+        .export-legend { display: flex; gap: 20px; font-size: 18px; font-weight: bold; flex-wrap: wrap; justify-content: center; }
+        .export-legend span { display: flex; align-items: center; gap: 8px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+        .export-source { font-size: 24px; color: #7f8c8d; font-weight: bold; align-self: flex-start; }
 
         @media (max-width: 1024px) {
             .top-row { flex-direction: column; height: auto; display: flex; }
@@ -269,6 +280,12 @@
             el.classList.add('active');
             container.querySelector('#' + paneId).style.display = 'block';
         };
+
+        function toggleSelectAllDistricts(source) {
+            document.querySelectorAll('.dist-chk').forEach(cb => {
+                cb.checked = source.checked;
+            });
+        }
     </script>
 
     <div class="dashboard-container">
@@ -429,10 +446,10 @@
         </div>
     </div>
 
-    <!-- UI MODAL FOR REPORT GENERATION -->
+    <!-- UI MODAL: REPORT CONFIGURATION -->
     <div class="modal-overlay" id="reportModal">
         <div class="modal-content">
-            <div class="modal-title">Generate Image Report</div>
+            <div class="modal-title">Report Settings</div>
             
             <div class="modal-group">
                 <label>Select Date:</label>
@@ -440,15 +457,42 @@
             </div>
 
             <div class="modal-group">
-                <label>Select Districts (Multi):</label>
+                <label>Minimum Intensity (IMD Classification):</label>
+                <select id="intensityFilter">
+                    <option value="0.1">All Recorded Rainfall (> 0 mm)</option>
+                    <option value="2.5">Light Rain & Above (≥ 2.5 mm)</option>
+                    <option value="15.6">Moderate Rain & Above (≥ 15.6 mm)</option>
+                    <option value="64.5">Heavy Rain & Above (≥ 64.5 mm)</option>
+                    <option value="115.6">Very Heavy & Above (≥ 115.6 mm)</option>
+                    <option value="204.5">Extremely Heavy Only (≥ 204.5 mm)</option>
+                </select>
+            </div>
+
+            <div class="modal-group">
+                <label>Select Districts:</label>
                 <div class="checklist-container" id="reportDistrictChecklist">
-                    <!-- Checkboxes populated via JS -->
+                    <!-- Populated via JS -->
                 </div>
             </div>
 
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal()">Cancel</button>
-                <button class="btn-generate" onclick="executeImageExport()">Download Image</button>
+                <button class="btn-generate" onclick="generateReportPreview()">Generate Preview</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: IMAGE PREVIEW & DOWNLOAD -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-title">Preview Generated Card</div>
+            <div id="previewContainer">
+                <!-- Base64 Image rendered here -->
+                <span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-cancel" onclick="closePreviewModal()">Back to Settings</button>
+                <button class="btn-download-final" onclick="downloadPreviewImage()">Download PNG</button>
             </div>
         </div>
     </div>
@@ -465,9 +509,17 @@
             <!-- District Blocks Injected Here -->
             <div class="export-body" id="exportBodyContent"></div>
             
+            <!-- Legend and Footer -->
             <div class="export-footer">
+                <div class="export-legend">
+                    <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff;"></span>Very Light</span>
+                    <span style="color:#98fb98;"><span class="legend-dot" style="background:#98fb98;"></span>Light</span>
+                    <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span>Moderate</span>
+                    <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span>Heavy</span>
+                    <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span>Very Heavy</span>
+                    <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span>Extreme</span>
+                </div>
                 <div class="export-source">Data: TNSMART</div>
-                <div class="export-brand">HaiyanTip</div>
             </div>
         </div>
     </div>
@@ -490,6 +542,8 @@
         let masterChartInstance = null; 
         let currentSliderDateStr = "";
         let datasetActiveYear = 2026;
+        let finalImageBase64 = null;
+        let finalImageFileName = "Rainfall_Report.png";
 
         let currentDistrictData = [];
         let currentStationData = [];
@@ -538,6 +592,15 @@
             return "#6a1b9a";  
         }
 
+        function getIMDColor(mm) {
+            if (mm <= 2.4) return '#ffffff'; // White (Very Light)
+            if (mm <= 15.5) return '#98fb98'; // Light Green (Light)
+            if (mm <= 64.4) return '#2ecc71'; // Green (Moderate)
+            if (mm <= 115.5) return '#f1c40f'; // Yellow (Heavy)
+            if (mm <= 204.4) return '#e67e22'; // Orange (Very Heavy)
+            return '#e74c3c'; // Red (Extremely Heavy)
+        }
+
         function parseDateString(dateStr) {
             const parts = dateStr.split('-');
             if(parts.length !== 3) return null;
@@ -567,17 +630,13 @@
                 if (cleanedName) {
                     const compositeKey = cleanedDist + "_" + cleanedName;
                     const stObj = { district: dist.trim(), lat: lat, lon: lon };
-
                     globalStations[compositeKey] = stObj;
-
                     if (cleanedName.includes("papanasam")) {
                         if (lat > 10.0 || cleanedDist.includes("thanjavur")) {
                             globalStations["thanjavur_papanasam"] = { district: "Thanjavur", lat: 10.92, lon: 79.27 };
                         }
                     } else {
-                        if(!fallbackStations[cleanedName]) { 
-                            fallbackStations[cleanedName] = stObj; 
-                        }
+                        if(!fallbackStations[cleanedName]) { fallbackStations[cleanedName] = stObj; }
                     }
                 }
             });
@@ -586,100 +645,48 @@
         function resolveStationMeta(rawName, rawDist, rLat, rLon) {
             const cName = cleanName(rawName);
             const cDist = cleanName(rawDist);
-
             if (cName.includes("papanasam")) {
-                const lat = rLat || 0;
-                const lon = rLon || 0;
-
+                const lat = rLat || 0; const lon = rLon || 0;
                 if (lat > 10.0 || lon > 78.5 || cDist.includes("thanjavur") || cDist.includes("tanjore")) {
-                    return {
-                        uniqueKey: "thanjavur_papanasam",
-                        district: "Thanjavur",
-                        name: "Papanasam",
-                        lat: lat > 0 ? lat : 10.92,
-                        lon: lon > 0 ? lon : 79.27
-                    };
+                    return { uniqueKey: "thanjavur_papanasam", district: "Thanjavur", name: "Papanasam", lat: lat > 0 ? lat : 10.92, lon: lon > 0 ? lon : 79.27 };
                 }
                 if (lat > 0 && lat < 9.5) {
-                    return {
-                        uniqueKey: "tirunelveli_papanasam",
-                        district: "Tirunelveli",
-                        name: "Papanasam (TNV)",
-                        lat: lat,
-                        lon: lon
-                    };
+                    return { uniqueKey: "tirunelveli_papanasam", district: "Tirunelveli", name: "Papanasam (TNV)", lat: lat, lon: lon };
                 }
             }
-
             const meta = globalStations[cDist + "_" + cName] || fallbackStations[cName] || {};
             const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
             const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
             const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
-            const uniqueKey = cleanName(district) + "_" + cName;
-
-            return {
-                uniqueKey: uniqueKey,
-                district: district,
-                name: rawName ? rawName.trim() : "Unknown",
-                lat: lat,
-                lon: lon
-            };
+            return { uniqueKey: cleanName(district) + "_" + cName, district: district, name: rawName ? rawName.trim() : "Unknown", lat: lat, lon: lon };
         }
 
         function initializeDashboard() {
             const yearSet = new Set();
             let maxDOY = 1;
-
             globalRainData.forEach(row => {
-                if(!row.Date) return;
                 const d = parseDateString(row.Date);
-                if(d) {
-                    yearSet.add(d.year);
-                    const doy = getDayOfYear(d.day, d.month, d.year);
-                    if(doy > maxDOY) maxDOY = doy; 
-                }
+                if(d) { yearSet.add(d.year); const doy = getDayOfYear(d.day, d.month, d.year); if(doy > maxDOY) maxDOY = doy; }
             });
 
             const yearSelect = document.getElementById('yearSelect');
             const years = Array.from(yearSet).sort((a,b) => b - a);
-            
-            years.forEach(y => {
-                const opt = document.createElement('option');
-                opt.value = y; opt.innerText = y;
-                yearSelect.appendChild(opt);
-            });
+            years.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; yearSelect.appendChild(opt); });
             datasetActiveYear = years.length > 0 ? years[0] : new Date().getFullYear();
 
-            yearSelect.addEventListener('change', (e) => {
-                datasetActiveYear = parseInt(e.target.value);
-                updateEngine();
-            });
+            yearSelect.addEventListener('change', (e) => { datasetActiveYear = parseInt(e.target.value); updateEngine(); });
             
             const slider = document.getElementById('timeSlider');
-            slider.max = maxDOY; 
-            slider.value = maxDOY;
+            slider.max = maxDOY; slider.value = maxDOY;
             
-            slider.addEventListener('input', (e) => {
-                document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear);
-            });
+            slider.addEventListener('input', (e) => { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); });
             slider.addEventListener('change', updateEngine);
 
             document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    activeView = e.target.value;
-                    map.removeLayer(layers.station);
-                    map.removeLayer(layers.district);
-                    map.addLayer(layers[activeView]);
-                    updateEngine();
-                });
+                radio.addEventListener('change', (e) => { activeView = e.target.value; map.removeLayer(layers.station); map.removeLayer(layers.district); map.addLayer(layers[activeView]); updateEngine(); });
             });
-
             document.querySelectorAll('input[name="popupMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    activePopupMode = e.target.value;
-                    map.closePopup(); 
-                    updateEngine();
-                });
+                radio.addEventListener('change', (e) => { activePopupMode = e.target.value; map.closePopup(); updateEngine(); });
             });
 
             setupSortingListeners();
@@ -693,16 +700,10 @@
         function initEmptyDailyChart() {
             const ctx = document.getElementById('masterDailyChart').getContext('2d');
             masterChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: [], datasets: [] },
+                type: 'bar', data: { labels: [], datasets: [] },
                 options: {
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: { 
-                        y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' }, grid: {color: '#e5e5e5'} }, 
-                        x: { grid: { display: false } } 
-                    },
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Rainfall (mm)' }, grid: {color: '#e5e5e5'} }, x: { grid: { display: false } } },
                     plugins: { legend: { display: false } }
                 }
             });
@@ -715,34 +716,20 @@
             distSelect.addEventListener('change', (e) => {
                 const districtName = e.target.value;
                 stnSelect.innerHTML = '<option value="">Select Station...</option>';
-                
-                if (!districtName) {
-                    stnSelect.disabled = true;
-                    return;
-                }
-
+                if (!districtName) { stnSelect.disabled = true; return; }
                 stnSelect.disabled = false;
                 stnSelect.innerHTML += `<option value="DISTRICT_AVG">⭐ ${districtName} (District Average)</option>`;
-                
-                const stationsInDist = currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name));
-                stationsInDist.forEach(st => {
-                    const opt = document.createElement('option');
-                    opt.value = st.id; opt.innerText = st.name;
-                    stnSelect.appendChild(opt);
+                currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name)).forEach(st => {
+                    const opt = document.createElement('option'); opt.value = st.id; opt.innerText = st.name; stnSelect.appendChild(opt);
                 });
-                
-                stnSelect.value = "DISTRICT_AVG";
-                stnSelect.dispatchEvent(new Event('change'));
+                stnSelect.value = "DISTRICT_AVG"; stnSelect.dispatchEvent(new Event('change'));
             });
 
             stnSelect.addEventListener('change', (e) => {
-                const val = e.target.value;
-                const dist = distSelect.value;
+                const val = e.target.value; const dist = distSelect.value;
                 const isLeap = (datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0);
                 const daysInYear = isLeap ? 366 : 365;
-
                 if (!val) return;
-
                 if (val === "DISTRICT_AVG") {
                     const dData = rawDistrictMap[dist];
                     if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1);
@@ -756,23 +743,12 @@
         function populateChartDropdowns() {
             const distSelect = document.getElementById('chartDistSelect');
             const currentDist = distSelect.value;
-            
             const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
-            
             distSelect.innerHTML = '<option value="">Select District...</option>';
-            Array.from(uniqueDistricts).sort().forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d; opt.innerText = d;
-                distSelect.appendChild(opt);
-            });
-            
-            if (currentStationData.some(st => st.district === "Unassigned")) {
-                distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
-            }
-            if (Array.from(uniqueDistricts).includes(currentDist) || currentDist === "Unassigned") {
-                distSelect.value = currentDist;
-            }
+            Array.from(uniqueDistricts).sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; distSelect.appendChild(opt); });
+            if (currentStationData.some(st => st.district === "Unassigned")) distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
+            if (Array.from(uniqueDistricts).includes(currentDist) || currentDist === "Unassigned") distSelect.value = currentDist;
         }
 
         function updateEngine() {
@@ -782,38 +758,23 @@
             
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, datasetActiveYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
-
-            layers.station.clearLayers();
-            layers.district.clearLayers();
-
-            const stationMap = {};
-            const districtMap = {};
+            layers.station.clearLayers(); layers.district.clearLayers();
+            const stationMap = {}; const districtMap = {};
 
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
                 if (!d || d.year !== datasetActiveYear) return;
-                
                 const doy = getDayOfYear(d.day, d.month, d.year);
                 if (doy > sliderValue) return; 
 
-                const rawName = row.Station_Name || row['Name of the station'];
-                const rawDist = row.District || "";
-                const rLat = parseFloat(row.Latitude) || 0;
-                const rLon = parseFloat(row.Longitude) || 0;
-
-                const resolved = resolveStationMeta(rawName, rawDist, rLat, rLon);
-
-                let mm = parseFloat(row.Rainfall_mm);
-                if (isNaN(mm)) mm = 0.0;
+                const resolved = resolveStationMeta(row.Station_Name || row['Name of the station'], row.District || "", parseFloat(row.Latitude) || 0, parseFloat(row.Longitude) || 0);
+                let mm = parseFloat(row.Rainfall_mm); if (isNaN(mm)) mm = 0.0;
 
                 if (!stationMap[resolved.uniqueKey]) {
                     stationMap[resolved.uniqueKey] = {
-                        id: resolved.uniqueKey, name: resolved.name, 
-                        lat: resolved.lat, lon: resolved.lon, district: resolved.district,
-                        total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0,
-                        vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0,
-                        maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0],
-                        dailyArray: new Array(daysInYear).fill(0) 
+                        id: resolved.uniqueKey, name: resolved.name, lat: resolved.lat, lon: resolved.lon, district: resolved.district,
+                        total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0, vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0,
+                        maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
                     };
                 }
 
@@ -821,10 +782,10 @@
                 st.total += mm; st.monthly[d.month - 1] += mm; st.dailyArray[doy - 1] += mm;
                 if (doy === sliderValue) st.today += mm;
 
-                if (d.month === 1 || d.month === 2) st.winter += mm;
-                else if (d.month >= 3 && d.month <= 5) st.summer += mm;
-                else if (d.month >= 6 && d.month <= 9) st.swm += mm;
-                else if (d.month >= 10 && d.month <= 12) st.nem += mm;
+                if (d.month <= 2) st.winter += mm;
+                else if (d.month <= 5) st.summer += mm;
+                else if (d.month <= 9) st.swm += mm;
+                else st.nem += mm;
                 
                 if (mm > 0) {
                     if (mm <= 2.4) st.vl++; else if (mm <= 15.5) st.light++; else if (mm <= 64.4) st.mod++;
@@ -843,7 +804,6 @@
                         monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
                     };
                 }
-                
                 let d = districtMap[safeDistrict];
                 d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.total += st.total; d.todaySum += st.today; 
                 d.winter += st.winter; d.summer += st.summer; d.swm += st.swm; d.nem += st.nem;
@@ -853,88 +813,43 @@
                 for(let i=0; i<daysInYear; i++) d.dailyArray[i] += st.dailyArray[i];
             });
 
-            rawStationMap = stationMap;
-            rawDistrictMap = districtMap;
-            currentDistrictData = Object.values(districtMap);
-            currentStationData = Object.values(stationMap);
+            rawStationMap = stationMap; rawDistrictMap = districtMap;
+            currentDistrictData = Object.values(districtMap); currentStationData = Object.values(stationMap);
 
             function draw(mapData, targetLayer, radiusSize, isAverage) {
                 for (let key in mapData) {
-                    const item = mapData[key];
-                    if (isAverage && item.count === 0) continue;
-                    
-                    const div = isAverage ? item.count : 1;
-                    const lat = isAverage ? item.latSum / div : item.lat;
-                    const lon = isAverage ? item.lonSum / div : item.lon;
+                    const item = mapData[key]; if (isAverage && item.count === 0) continue;
+                    const div = isAverage ? item.count : 1; const lat = isAverage ? item.latSum / div : item.lat; const lon = isAverage ? item.lonSum / div : item.lon;
                     if (lat === 0 || lon === 0 || isNaN(lat) || isNaN(lon)) continue;
-
                     const total = item.total / div;
                     const marker = L.circleMarker([lat, lon], { radius: radiusSize, fillColor: getColor(total), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(targetLayer);
 
                     const todayVal = isAverage ? item.todaySum / div : item.today;
-                    const winter = item.winter / div; const summer = item.summer / div; const swm = item.swm / div; const nem = item.nem / div;
-                    const avgMonthly = item.monthly.map(val => val / div);
                     const canvasId = `chart-${item.id}`;
                     
                     let modeSpecificHTML = '';
                     if (activePopupMode === 'stats') {
-                        modeSpecificHTML = `
-                            <div class="popup-tabs">
-                                <div class="popup-tab active" onclick="switchPopupTab(this, 'pane-overview-${item.id}')">Overview</div>
-                                <div class="popup-tab" onclick="switchPopupTab(this, 'pane-imd-${item.id}')">IMD Days</div>
-                            </div>
-                            <div class="popup-pane" id="pane-overview-${item.id}">
-                                <table class="stats-table-exact">
-                                    <tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr>
-                                    <tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr>
-                                    <tr><td>❄️ Winter</td><td>${winter.toFixed(1)} mm</td></tr>
-                                    <tr><td>☀️ Summer</td><td>${summer.toFixed(1)} mm</td></tr>
-                                    <tr><td>☁️ SWM (so far)</td><td>${swm.toFixed(1)} mm</td></tr>
-                                    <tr><td>☔ NEM</td><td>${nem.toFixed(1)} mm</td></tr>
-                                </table>
-                                <div class="sec-title">🏆 ANNUAL EXTREME</div>
-                                <table class="stats-table-exact">
-                                    <tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr>
-                                    <tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr>
-                                </table>
-                            </div>
-                            <div class="popup-pane" id="pane-imd-${item.id}" style="display:none;">
-                                <table class="stats-table-exact">
-                                    <tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr>
-                                    <tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr>
-                                    <tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr>
-                                    <tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr>
-                                    <tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr>
-                                    <tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr>
-                                </table>
-                            </div>`;
+                        modeSpecificHTML = `<div class="popup-tabs"><div class="popup-tab active" onclick="switchPopupTab(this, 'pane-overview-${item.id}')">Overview</div><div class="popup-tab" onclick="switchPopupTab(this, 'pane-imd-${item.id}')">IMD Days</div></div>
+                            <div class="popup-pane" id="pane-overview-${item.id}"><table class="stats-table-exact"><tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${todayVal.toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${(item.winter/div).toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${(item.summer/div).toFixed(1)} mm</td></tr><tr><td>☁️ SWM (so far)</td><td>${(item.swm/div).toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${(item.nem/div).toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${item.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>${isAverage ? 'District Max' : item.maxDate}</td></tr></table></div>
+                            <div class="popup-pane" id="pane-imd-${item.id}" style="display:none;"><table class="stats-table-exact"><tr><td>V. Light (&lt; 2.5)</td><td>${isAverage ? (item.vl / div).toFixed(1) : item.vl} days</td></tr><tr><td>Light (2.5 - 15.5)</td><td>${isAverage ? (item.light / div).toFixed(1) : item.light} days</td></tr><tr><td>Moderate (15.6 - 64.4)</td><td>${isAverage ? (item.mod / div).toFixed(1) : item.mod} days</td></tr><tr><td>Heavy (64.5 - 115.5)</td><td>${isAverage ? (item.heavy / div).toFixed(1) : item.heavy} days</td></tr><tr><td>V. Heavy (115.6 - 204.4)</td><td>${isAverage ? (item.vheavy / div).toFixed(1) : item.vheavy} days</td></tr><tr><td>Ext. Heavy (&gt; 204.4)</td><td>${isAverage ? (item.extreme / div).toFixed(1) : item.extreme} days</td></tr></table></div>`;
                     } else {
-                        modeSpecificHTML = `
-                            <div class="metrics-grid">
-                                <div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total</div></div>
-                                <div class="metric-box"><div class="metric-val">${swm.toFixed(1)}</div><div class="metric-lbl">SWM</div></div>
-                                <div class="metric-box"><div class="metric-val">${nem.toFixed(1)}</div><div class="metric-lbl">NEM</div></div>
-                            </div>
-                            <div style="height:120px; width:100%;"><canvas id="${canvasId}"></canvas></div>`;
+                        modeSpecificHTML = `<div class="metrics-grid"><div class="metric-box"><div class="metric-val">${total.toFixed(1)}</div><div class="metric-lbl">Total</div></div><div class="metric-box"><div class="metric-val">${(item.swm/div).toFixed(1)}</div><div class="metric-lbl">SWM</div></div><div class="metric-box"><div class="metric-val">${(item.nem/div).toFixed(1)}</div><div class="metric-lbl">NEM</div></div></div><div style="height:120px; width:100%;"><canvas id="${canvasId}"></canvas></div>`;
                     }
 
                     marker.bindPopup(`<div class="matrix-popup"><div class="popup-header">${item.name}</div><div class="popup-sub">${isAverage ? `Average across ${item.count} stations` : item.district}</div>${modeSpecificHTML}</div>`, { maxWidth: 320 });
                     marker.bindTooltip(`<b>${item.name}</b> (${item.district})<br>${total.toFixed(1)} mm`, { sticky: true });
 
                     marker.on('click', function() {
-                        const distSelect = document.getElementById('chartDistSelect');
-                        const stnSelect = document.getElementById('chartStnSelect');
-                        distSelect.value = isAverage ? item.name : item.district;
-                        distSelect.dispatchEvent(new Event('change')); 
+                        const distSelect = document.getElementById('chartDistSelect'); const stnSelect = document.getElementById('chartStnSelect');
+                        distSelect.value = isAverage ? item.name : item.district; distSelect.dispatchEvent(new Event('change')); 
                         setTimeout(() => { stnSelect.value = isAverage ? "DISTRICT_AVG" : item.id; stnSelect.dispatchEvent(new Event('change')); }, 50);
                     });
 
                     marker.on('popupopen', function() {
                         if (activePopupMode === 'chart') {
-                            const ctx = document.getElementById(canvasId);
-                            if (!ctx) return;
+                            const ctx = document.getElementById(canvasId); if (!ctx) return;
                             if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-                            chartInstances[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: ['J','F','M','A','M','J','J','A','S','O','N','D'], datasets: [{ data: avgMonthly, backgroundColor: '#3498db', borderRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { font: {size: 9} } } } } });
+                            chartInstances[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: ['J','F','M','A','M','J','J','A','S','O','N','D'], datasets: [{ data: item.monthly.map(val => val / div), backgroundColor: '#3498db', borderRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { font: {size: 9} } } } } });
                         }
                     });
                 }
@@ -944,33 +859,20 @@
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
 
             const filterDropdown = document.getElementById('districtFilter');
-            const currentSelection = filterDropdown.value;
-            const uniqueDistricts = new Set();
+            const currentSelection = filterDropdown.value; const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
-            
             filterDropdown.innerHTML = '<option value="ALL">ALL</option>';
-            Array.from(uniqueDistricts).sort().forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d; opt.innerText = d; filterDropdown.appendChild(opt);
-            });
+            Array.from(uniqueDistricts).sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; filterDropdown.appendChild(opt); });
             if (currentStationData.some(st => st.district === "Unassigned")) filterDropdown.innerHTML += '<option value="Unassigned">Unassigned</option>';
             if(Array.from(uniqueDistricts).includes(currentSelection) || currentSelection === "Unassigned") filterDropdown.value = currentSelection; 
 
-            populateChartDropdowns();
-            renderTables();
+            populateChartDropdowns(); renderTables();
         }
 
         function triggerDailyChartSync(item, isAverage, year, daysInYear, div) {
-            const titleElement = document.getElementById('masterChartTitle');
-            titleElement.innerHTML = `<span style="color:#2980b9;">${item.name} ${isAverage ? 'District' : '('+item.district+')'}</span> Daily Trends`;
-
+            document.getElementById('masterChartTitle').innerHTML = `<span style="color:#2980b9;">${item.name} ${isAverage ? 'District' : '('+item.district+')'}</span> Daily Trends`;
             const labels = []; const data = [];
-            for(let i=0; i<daysInYear; i++) {
-                const date = new Date(year, 0, i + 1);
-                labels.push(date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }));
-                data.push(item.dailyArray[i] / div);
-            }
-
+            for(let i=0; i<daysInYear; i++) { labels.push(new Date(year, 0, i + 1).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })); data.push(item.dailyArray[i] / div); }
             masterChartInstance.data.labels = labels;
             masterChartInstance.data.datasets = [{ label: 'Rain (mm)', data: data, backgroundColor: '#3498db', hoverBackgroundColor: '#e74c3c', barPercentage: 1.0, categoryPercentage: 1.0 }];
             masterChartInstance.options.plugins.tooltip = { intersect: false, callbacks: { title: (ctx) => ctx[0].label + ' ' + year, label: (ctx) => ctx.parsed.y.toFixed(1) + ' mm' } };
@@ -983,7 +885,6 @@
                     if(e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
                     const type = this.closest('table').id === 'districtTable' ? 'district' : 'station';
                     const key = this.getAttribute('data-sort');
-                    
                     if (sortConfig[type].key === key) sortConfig[type].dir = sortConfig[type].dir === 'asc' ? 'desc' : 'asc';
                     else { sortConfig[type].key = key; sortConfig[type].dir = (key === 'name' || key === 'district') ? 'asc' : 'desc'; }
                     renderTables();
@@ -993,16 +894,10 @@
 
         function sortDataArray(dataArray, config, isAverageTable) {
             return [...dataArray].sort((a, b) => {
-                let valA, valB;
-                const divA = isAverageTable ? (a.count || 1) : 1; const divB = isAverageTable ? (b.count || 1) : 1;
-
-                if (config.key.startsWith('m')) {
-                    const idx = parseInt(config.key.substring(1)); valA = a.monthly[idx] / divA; valB = b.monthly[idx] / divB;
-                } else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) {
-                    const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key);
-                    valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB);
-                } else { valA = a[config.key] || ""; valB = b[config.key] || ""; }
-
+                let valA, valB; const divA = isAverageTable ? (a.count || 1) : 1; const divB = isAverageTable ? (b.count || 1) : 1;
+                if (config.key.startsWith('m')) { const idx = parseInt(config.key.substring(1)); valA = a.monthly[idx] / divA; valB = b.monthly[idx] / divB; } 
+                else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) { const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key); valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB); } 
+                else { valA = a[config.key] || ""; valB = b[config.key] || ""; }
                 if (typeof valA === 'string') return config.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 return config.dir === 'asc' ? valA - valB : valB - valA;
             });
@@ -1030,7 +925,7 @@
             document.getElementById('stationTableBody').innerHTML = statHTML;
         }
 
-        // --- NEW MODAL & EXPORT LOGIC ---
+        // --- EXPORT PREVIEW & DOWNLOAD LOGIC ---
         function openReportModal() {
             const modal = document.getElementById('reportModal');
             const chkContainer = document.getElementById('reportDistrictChecklist');
@@ -1039,24 +934,31 @@
             const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
             
-            Array.from(uniqueDistricts).sort().forEach(dist => {
-                chkContainer.innerHTML += `
-                    <label class="checklist-item">
-                        <input type="checkbox" value="${dist}" class="dist-chk"> ${dist}
+            chkContainer.innerHTML += `
+                <div class="select-all-wrapper">
+                    <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" onchange="toggleSelectAllDistricts(this)"> 
+                        Select All Districts
                     </label>
-                `;
+                </div>
+            `;
+
+            Array.from(uniqueDistricts).sort().forEach(dist => {
+                chkContainer.innerHTML += `<label class="checklist-item"><input type="checkbox" value="${dist}" class="dist-chk"> ${dist}</label>`;
             });
 
-            // Set default date to Jan 1 of active dataset year
             document.getElementById('reportDateInput').value = `${datasetActiveYear}-01-01`;
             modal.style.display = 'flex';
         }
 
-        function closeReportModal() {
-            document.getElementById('reportModal').style.display = 'none';
+        function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }
+        
+        function closePreviewModal() { 
+            document.getElementById('previewModal').style.display = 'none';
+            document.getElementById('reportModal').style.display = 'flex'; // Go back to settings
         }
 
-        function executeImageExport() {
+        function generateReportPreview() {
             const dateVal = document.getElementById('reportDateInput').value;
             if (!dateVal) { alert("Please select a date."); return; }
 
@@ -1065,31 +967,32 @@
 
             const targetDate = new Date(dateVal);
             if (targetDate.getFullYear() !== datasetActiveYear) {
-                alert(`Please select a date within ${datasetActiveYear} to match the current dataset.`);
-                return;
+                alert(`Please select a date within ${datasetActiveYear} to match the current dataset.`); return;
             }
 
+            const intensityThreshold = parseFloat(document.getElementById('intensityFilter').value);
             const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
             const prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
             const doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
 
-            // Compile Data grouping
+            finalImageFileName = `Rainfall_Report_${dateVal}.png`;
+
+            // Group Data
             const results = {};
             selectedDistricts.forEach(d => results[d] = []);
 
             currentStationData.forEach(st => {
                 if (selectedDistricts.includes(st.district)) {
                     const rainOnDay = st.dailyArray[doy - 1] || 0;
-                    if (rainOnDay > 0) {
+                    if (rainOnDay >= intensityThreshold && rainOnDay > 0) {
                         results[st.district].push({ name: st.name, rain: rainOnDay });
                     }
                 }
             });
 
-            // Populate hidden HTML DOM
+            // Build HTML
             document.getElementById('exportDateLabel').innerText = prettyDate;
-            let htmlStr = "";
-            let hasAnyData = false;
+            let htmlStr = ""; let hasAnyData = false;
 
             selectedDistricts.sort().forEach(dist => {
                 const stations = results[dist];
@@ -1099,7 +1002,8 @@
                     
                     let rowsHtml = "";
                     stations.forEach(s => {
-                        rowsHtml += `<div class="export-row"><span class="export-stn">${s.name}</span><span class="export-val">${s.rain.toFixed(1)} mm</span></div>`;
+                        const dynamicColor = getIMDColor(s.rain);
+                        rowsHtml += `<div class="export-row"><span class="export-stn">${s.name}</span><span class="export-val" style="color:${dynamicColor};">${s.rain.toFixed(1)} mm</span></div>`;
                     });
 
                     htmlStr += `
@@ -1112,24 +1016,34 @@
             });
 
             if (!hasAnyData) {
-                htmlStr = `<div style="text-align:center; font-size:36px; color:#bdc3c7; margin-top:50px;">No rainfall recorded in selected districts on this date.</div>`;
+                htmlStr = `<div style="text-align:center; font-size:36px; color:#bdc3c7; margin-top:50px;">No rainfall met the selected criteria in these districts.</div>`;
             }
 
             document.getElementById('exportBodyContent').innerHTML = htmlStr;
-            closeReportModal();
-
-            // Export to Image via html2canvas
-            const targetDiv = document.getElementById('exportCardWrapper');
             
-            html2canvas(targetDiv, {
-                scale: 2, // High resolution
-                backgroundColor: "#121212"
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Rainfall_Report_${dateVal}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
+            // Switch UI to loading state
+            document.getElementById('reportModal').style.display = 'none';
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>';
+            document.getElementById('previewModal').style.display = 'flex';
+
+            // Allow DOM to apply styles, then snapshot
+            setTimeout(() => {
+                const targetDiv = document.getElementById('exportCardWrapper');
+                html2canvas(targetDiv, { scale: 2, backgroundColor: "#121212" }).then(canvas => {
+                    finalImageBase64 = canvas.toDataURL('image/png');
+                    previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
+                });
+            }, 100);
+        }
+
+        function downloadPreviewImage() {
+            if (!finalImageBase64) return;
+            const link = document.createElement('a');
+            link.download = finalImageFileName;
+            link.href = finalImageBase64;
+            link.click();
+            document.getElementById('previewModal').style.display = 'none';
         }
     </script>
 </body>
