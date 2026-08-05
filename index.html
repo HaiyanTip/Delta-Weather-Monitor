@@ -323,7 +323,8 @@
         function quickSelectDistricts(mode) {
             const checkboxes = document.querySelectorAll('.dist-chk');
             const cdzCore = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
-            const cdzExt = [...cdzCore, 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukottai'];
+            // Added exactly matched spellings along with original fallbacks
+            const cdzExt = [...cdzCore, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
             
             checkboxes.forEach(cb => {
                 const val = cb.value.toLowerCase();
@@ -520,12 +521,12 @@
                 <div class="quick-select-bar">
                     <button class="btn-quick-select" onclick="quickSelectDistricts('ALL')">All TN</button>
                     <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_CORE')">CDZ Core</button>
-                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT')">CDZ Extended</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT')">CDZ</button>
                     <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR')">Clear</button>
                 </div>
                 <div class="quick-select-hint">
                     <b>CDZ Core:</b> Thanjavur, Tiruvarur, Nagapattinam, Mayiladuthurai.<br>
-                    <b>CDZ Extended adds:</b> Trichy, Karur, Ariyalur, Cuddalore, Pudukottai.
+                    <b>CDZ adds:</b> Thiruchirappalli, Karur, Ariyalur, Cuddalore, Pudukkottai.
                 </div>
                 <div class="checklist-container" id="reportDistrictChecklist">
                     <!-- Populated via JS -->
@@ -647,12 +648,12 @@
         }
 
         function getIMDColor(mm) {
-            if (mm <= 2.4) return '#ffffff'; // White (Very Light)
-            if (mm <= 15.5) return '#98fb98'; // Light Green (Light)
-            if (mm <= 64.4) return '#2ecc71'; // Green (Moderate)
-            if (mm <= 115.5) return '#f1c40f'; // Yellow (Heavy)
-            if (mm <= 204.4) return '#e67e22'; // Orange (Very Heavy)
-            return '#e74c3c'; // Red (Extremely Heavy)
+            if (mm <= 2.4) return '#ffffff'; 
+            if (mm <= 15.5) return '#98fb98'; 
+            if (mm <= 64.4) return '#2ecc71'; 
+            if (mm <= 115.5) return '#f1c40f'; 
+            if (mm <= 204.4) return '#e67e22'; 
+            return '#e74c3c'; 
         }
 
         function parseDateString(dateStr) {
@@ -965,7 +966,21 @@
                 chkContainer.innerHTML += `<label class="checklist-item"><input type="checkbox" value="${dist}" class="dist-chk"> ${dist}</label>`;
             });
 
-            document.getElementById('reportDateInput').value = `${datasetActiveYear}-01-01`;
+            // Find the latest available data date for the active year
+            let maxDOY = 1;
+            globalRainData.forEach(row => {
+                const d = parseDateString(row.Date);
+                if(d && d.year === datasetActiveYear) { 
+                    const doy = getDayOfYear(d.day, d.month, d.year); 
+                    if(doy > maxDOY) maxDOY = doy; 
+                }
+            });
+            const latestDate = new Date(datasetActiveYear, 0, maxDOY);
+            const yyyy = latestDate.getFullYear();
+            const mm = String(latestDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(latestDate.getDate()).padStart(2, '0');
+
+            document.getElementById('reportDateInput').value = `${yyyy}-${mm}-${dd}`;
             modal.style.display = 'flex';
         }
 
