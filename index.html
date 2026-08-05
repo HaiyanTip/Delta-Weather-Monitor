@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -384,7 +387,18 @@
                     <div class="toggle-row">
                         <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
                         <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
+                        <label><input type="radio" name="viewMode" value="heatmap"> 🔥 Heatmap</label>
                     </div>
+                    
+                    <select id="heatmapMetric" style="display: none; width: 100%; margin-top: 8px; padding: 6px; font-size: 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-main); cursor:pointer;">
+                        <option value="daily">Metric: Daily (Slider)</option>
+                        <option value="annual">Metric: Annual Total</option>
+                        <option value="winter">Metric: Winter Total</option>
+                        <option value="summer">Metric: Summer Total</option>
+                        <option value="swm">Metric: SWM Total</option>
+                        <option value="nem">Metric: NEM Total</option>
+                    </select>
+
                     <div class="toggle-divider"></div>
                     <div class="toggle-row">
                         <label><input type="radio" name="popupMode" value="stats" checked> 📝 Stats</label>
@@ -708,7 +722,17 @@
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        const layers = { station: L.layerGroup().addTo(map), district: L.layerGroup() };
+        // Add heatmap layer with custom thermal gradient
+        const layers = { 
+            station: L.layerGroup().addTo(map), 
+            district: L.layerGroup(),
+            heatmap: L.heatLayer([], { 
+                radius: 25, 
+                blur: 15, 
+                maxZoom: 10, 
+                gradient: { 0.1: 'blue', 0.3: 'cyan', 0.5: 'lime', 0.7: 'yellow', 1.0: 'red' } 
+            })
+        };
 
         let globalRainData = [];
         let globalStations = {};
@@ -857,12 +881,30 @@
             slider.addEventListener('input', (e) => { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); });
             slider.addEventListener('change', updateEngine);
 
+            // Layer Management System updated for Heatmap
             document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => { activeView = e.target.value; map.removeLayer(layers.station); map.removeLayer(layers.district); map.addLayer(layers[activeView]); updateEngine(); });
+                radio.addEventListener('change', (e) => { 
+                    activeView = e.target.value; 
+                    map.removeLayer(layers.station); 
+                    map.removeLayer(layers.district); 
+                    if(map.hasLayer(layers.heatmap)) map.removeLayer(layers.heatmap);
+                    
+                    if (activeView === 'heatmap') {
+                        map.addLayer(layers.heatmap);
+                        document.getElementById('heatmapMetric').style.display = 'block';
+                    } else {
+                        map.addLayer(layers[activeView]);
+                        document.getElementById('heatmapMetric').style.display = 'none';
+                    }
+                    updateEngine(); 
+                });
             });
+
             document.querySelectorAll('input[name="popupMode"]').forEach(radio => {
                 radio.addEventListener('change', (e) => { activePopupMode = e.target.value; map.closePopup(); updateEngine(); });
             });
+
+            document.getElementById('heatmapMetric').addEventListener('change', updateEngine);
 
             setupSortingListeners();
             setupChartDropdownListeners();
@@ -1023,6 +1065,29 @@
 
             if (activeView === 'station') draw(stationMap, layers.station, 7, false);
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
+            
+            // Heatmap Generator
+            if (activeView === 'heatmap') {
+                const hMetric = document.getElementById('heatmapMetric').value;
+                let maxVal = 0;
+                const heatPoints = [];
+                for (let key in stationMap) {
+                    const st = stationMap[key];
+                    if (st.lat === 0 || st.lon === 0 || isNaN(st.lat) || isNaN(st.lon)) continue;
+                    
+                    let val = 0;
+                    if (hMetric === 'daily') val = st.today;
+                    else if (hMetric === 'annual') val = st.total;
+                    else val = st[hMetric];
+
+                    if (val > maxVal) maxVal = val;
+                    if (val > 0) heatPoints.push([st.lat, st.lon, val]);
+                }
+                
+                // Dynamically scale the heat intensity max based on the selected metric/day
+                layers.heatmap.setOptions({ max: maxVal > 0 ? maxVal : 1 });
+                layers.heatmap.setLatLngs(heatPoints);
+            }
 
             populateChartDropdowns();
             updateDistrictFilterMenus();
