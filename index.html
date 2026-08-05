@@ -108,9 +108,12 @@
         .btn-report {
             background: #2980b9; color: white; border: none; padding: 10px; border-radius: 8px;
             font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;
-            text-align: center; width: 100%; box-sizing: border-box;
+            text-align: center; width: 100%; box-sizing: border-box; margin-bottom: 8px;
         }
         .btn-report:hover { background: #3498db; }
+        
+        .btn-annual-report { background: #27ae60; }
+        .btn-annual-report:hover { background: #2ecc71; }
 
         /* 2. CHART SECTION */
         .chart-section {
@@ -146,8 +149,18 @@
         .sort-icon { display: inline-block; width: 12px; font-size: 10px; margin-left: 2px; color: #f1c40f; }
         .master-table td { padding: 8px 5px; border-bottom: 1px solid var(--border-color); }
         .master-table td:nth-child(2), .master-table td:nth-child(3) { text-align: left; }
-        .filter-dropdown { background: #34495e; color: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 5px; margin-left: 5px; font-size: 11px; font-weight: bold; cursor: pointer; outline: none; }
         .row-hover:hover { background-color: var(--table-row-hover); }
+
+        /* CUSTOM MULTI-SELECT DROPDOWN */
+        .multi-select-wrapper { position: relative; display: inline-block; text-align: left; }
+        .multi-select-btn { background: #34495e; color: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; outline: none; }
+        .multi-select-menu { position: absolute; top: 100%; left: 0; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: none; z-index: 100; min-width: 180px; max-height: 250px; overflow-y: auto; box-shadow: 0 8px 20px rgba(0,0,0,0.3); margin-top: 5px; text-transform: none; text-align: left; }
+        .multi-select-menu.show { display: block; }
+        .multi-select-actions { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; position: sticky; top: -10px; background: var(--input-bg); z-index: 10; }
+        .multi-select-action-btn { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 10px; padding: 4px 2px; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: center;}
+        .multi-select-action-btn.apply { background: #3498db; color: white; border-color: #3498db; }
+        .multi-select-item { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; color: var(--text-main); font-weight: 500; cursor: pointer; }
+        .multi-select-item input { cursor: pointer; }
 
         /* POPUPS */
         .leaflet-popup-content-wrapper { background: var(--popup-bg); color: var(--text-main); border-radius: 8px; }
@@ -155,19 +168,15 @@
         .matrix-popup { min-width: 280px; }
         .popup-header { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
         .popup-sub { color: var(--text-muted); font-size: 12px; margin-bottom: 8px; }
-        
         .popup-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
         .popup-tab { flex: 1; text-align: center; font-size: 11.5px; font-weight: bold; padding: 6px; cursor: pointer; color: var(--text-muted); }
         .popup-tab.active { color: #2980b9; border-bottom: 2px solid #2980b9; }
-
         .stats-table-exact { width: 100%; font-size: 12.5px; border-collapse: collapse; margin-bottom: 5px; }
         .stats-table-exact td { padding: 5px 2px; border-bottom: 1px solid var(--border-color); }
         .stats-table-exact td:last-child { text-align: right; font-weight: 600; }
         .row-highlight { background-color: var(--hover-bg); }
         .row-highlight td { font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border-color); padding: 6px 2px;}
         .sec-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin: 12px 0 4px 0; font-weight: bold; }
-        
-        /* Updated Grid for 5 Items */
         .metrics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 10px; }
         .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; text-align: center; flex: 1 1 30%; min-width: 60px; box-sizing: border-box; }
         .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
@@ -187,13 +196,11 @@
         .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
         .modal-group { margin-bottom: 15px; }
         .modal-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted); }
-        
         .modal-group select, .modal-group input[type="date"] {
             width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);
             background: var(--input-bg); color: var(--text-main); font-family: inherit; box-sizing: border-box; outline: none;
         }
 
-        /* QUICK SELECT BUTTONS & HINT */
         .quick-select-bar { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
         .btn-quick-select {
             background: var(--hover-bg); border: 1px solid var(--border-color);
@@ -216,77 +223,56 @@
         .btn-download-final { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         /* PREVIEW MODAL SPECIFICS */
-        #previewModal .modal-content { max-width: 800px; text-align: center; } 
-        #previewContainer { max-height: 65vh; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        #previewModal .modal-content { max-width: 90vw; text-align: center; } 
+        #previewContainer { max-height: 70vh; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
         #previewImage { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
-        /* OFF-SCREEN CARD GENERATOR */
-        #exportCardWrapper {
+        /* OFF-SCREEN CARD GENERATORS */
+        .offscreen-wrapper {
             position: absolute; left: -9999px; top: 0;
-            background-color: #121212; 
-            color: #ffffff; font-family: Arial, sans-serif;
-            box-sizing: border-box; padding: 60px;
-            display: flex; flex-direction: column;
-            overflow: hidden; z-index: -1;
+            background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
+            box-sizing: border-box; overflow: hidden; z-index: -1;
         }
-        
-        /* DYNAMIC LAYOUT CLASSES */
-        .layout-vertical { width: 1080px; min-height: 1920px; }
-        .layout-landscape { width: 1920px; min-height: 1080px; }
 
+        /* Daily Report Export Styles */
+        .layout-vertical { width: 1080px; min-height: 1920px; padding: 60px; display: flex; flex-direction: column; }
+        .layout-landscape { width: 1920px; min-height: 1080px; padding: 60px; display: flex; flex-direction: column; }
         .export-watermark-bg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 240px; font-weight: 900; color: rgba(255, 255, 255, 0.02);
             white-space: nowrap; pointer-events: none; z-index: 0;
         }
-        
         .export-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
         .export-header { border-bottom: 4px solid #3498db; padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
         .export-title { font-size: 54px; font-weight: 900; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         .export-date { font-size: 32px; font-weight: 300; color: #bdc3c7; margin: 0; }
         
-        /* Layout: Vertical (<5 districts) */
         .layout-vertical .export-body { display: flex; flex-direction: column; gap: 40px; flex: 1; }
-        
-        /* Layout: Landscape (>=5 districts) - Smart Flex Grid */
-        .layout-landscape .export-body {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 40px;
-            align-content: flex-start;
-            justify-content: center;
-            flex: 1;
-        }
-
-        .export-district-block { 
-            background: rgba(255, 255, 255, 0.05); border-radius: 16px; 
-            padding: 30px; border: 1px solid rgba(255,255,255,0.08); 
-        }
-
-        .layout-landscape .export-district-block {
-            flex: 1 1 420px; 
-            max-width: 550px; 
-            box-sizing: border-box;
-        }
-
+        .layout-landscape .export-body { display: flex; flex-wrap: wrap; gap: 40px; align-content: flex-start; justify-content: center; flex: 1; }
+        .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); }
+        .layout-landscape .export-district-block { flex: 1 1 420px; max-width: 550px; box-sizing: border-box; }
         .export-district-name { font-size: 36px; font-weight: bold; color: #3498db; margin: 0 0 20px 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        
-        /* Flex row for values to prevent squishing */
-        .export-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            gap: 15px; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; 
-        }
+        .export-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; }
         .export-row:last-child { border-bottom: none; }
         .export-stn { font-weight: 500; flex: 1; word-wrap: break-word; line-height: 1.2; }
         .export-val { font-weight: 900; white-space: nowrap; text-align: right; } 
         
-        /* FOOTER & LEGEND */
         .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 25px; }
         .export-legend { display: flex; gap: 20px; font-size: 18px; font-weight: bold; flex-wrap: wrap; justify-content: center; }
         .export-legend span { display: flex; align-items: center; gap: 8px; }
         .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
         .export-source { font-size: 24px; color: #7f8c8d; font-weight: bold; align-self: flex-start; }
 
+        /* Annual Report Export Styles (Ultra-Wide Table) */
+        .layout-annual { width: 2600px; padding: 60px; display: flex; flex-direction: column; background-color: #1a1a2e; }
+        .annual-table-container { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .export-annual-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 22px; color: #e0e0e0; }
+        .export-annual-table th { background: #0f3460; color: #ffffff; padding: 20px 10px; font-size: 20px; text-transform: uppercase; border-bottom: 3px solid #e94560; }
+        .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .export-annual-table td:nth-child(2), .export-annual-table td:nth-child(3) { text-align: left; }
+        .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
+        
         @media (max-width: 1024px) {
             .top-row { flex-direction: column; height: auto; display: flex; }
             .control-panel { flex: none; width: 100%; box-sizing: border-box; }
@@ -320,10 +306,9 @@
             container.querySelector('#' + paneId).style.display = 'block';
         };
 
-        function quickSelectDistricts(mode) {
-            const checkboxes = document.querySelectorAll('.dist-chk');
+        function quickSelectDistricts(mode, checkboxClass) {
+            const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
             const cdzCore = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
-            // Added exactly matched spellings along with original fallbacks
             const cdzExt = [...cdzCore, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
             
             checkboxes.forEach(cb => {
@@ -333,6 +318,45 @@
                 else if (mode === 'CDZ_CORE') { cb.checked = cdzCore.some(d => val.includes(d)); }
                 else if (mode === 'CDZ_EXT') { cb.checked = cdzExt.some(d => val.includes(d)); }
             });
+        }
+        
+        // Multi-select dropdown functions
+        function toggleMultiSelect(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('stnDistFilterMenu');
+            menu.classList.toggle('show');
+        }
+
+        function checkAllStnFilters(checked) {
+            document.querySelectorAll('.stn-dist-chk').forEach(cb => cb.checked = checked);
+        }
+
+        function applyStnFilter() {
+            document.getElementById('stnDistFilterMenu').classList.remove('show');
+            const checkedBoxes = Array.from(document.querySelectorAll('.stn-dist-chk:checked')).map(cb => cb.value);
+            activeStationDistricts = checkedBoxes;
+            const btn = document.getElementById('stnDistFilterBtn');
+            const totalBoxes = document.querySelectorAll('.stn-dist-chk').length;
+            if (checkedBoxes.length === totalBoxes || checkedBoxes.length === 0) {
+                btn.innerText = "ALL ▼";
+                activeStationDistricts = []; // Empty means show all
+            } else if (checkedBoxes.length === 1) {
+                btn.innerText = "1 SEL ▼";
+            } else {
+                btn.innerText = checkedBoxes.length + " SEL ▼";
+            }
+            renderTables();
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.multi-select-btn') && !event.target.closest('.multi-select-menu')) {
+                const menus = document.getElementsByClassName("multi-select-menu");
+                for (let i = 0; i < menus.length; i++) {
+                    let openMenu = menus[i];
+                    if (openMenu.classList.contains('show')) { openMenu.classList.remove('show'); }
+                }
+            }
         }
     </script>
 
@@ -377,6 +401,7 @@
                 </div>
 
                 <button class="btn-report" onclick="openReportModal()">📄 Generate Daily Report</button>
+                <button class="btn-report btn-annual-report" onclick="openAnnualReportModal()">📊 Generate Annual Report</button>
             </div>
 
             <div class="map-wrapper">
@@ -455,11 +480,20 @@
                         <thead>
                             <tr>
                                 <th>S.No</th>
-                                <th data-sort="district">
-                                    District 
-                                    <select id="districtFilter" class="filter-dropdown">
-                                        <option value="ALL">ALL</option>
-                                    </select>
+                                <th data-sort="district" style="padding-bottom: 2px;">
+                                    <div class="multi-select-wrapper">
+                                        District <button class="multi-select-btn" id="stnDistFilterBtn" onclick="toggleMultiSelect(event)">ALL ▼</button>
+                                        <div class="multi-select-menu" id="stnDistFilterMenu" onclick="event.stopPropagation()">
+                                            <div class="multi-select-actions">
+                                                <button class="multi-select-action-btn" onclick="checkAllStnFilters(true)">All</button>
+                                                <button class="multi-select-action-btn" onclick="checkAllStnFilters(false)">Clear</button>
+                                                <button class="multi-select-action-btn apply" onclick="applyStnFilter()">Apply</button>
+                                            </div>
+                                            <div id="stnDistChecklist">
+                                                <!-- Populated via JS -->
+                                            </div>
+                                        </div>
+                                    </div>
                                     <span class="sort-icon"></span>
                                 </th>
                                 <th data-sort="name">Station <span class="sort-icon"></span></th>
@@ -494,10 +528,10 @@
         </div>
     </div>
 
-    <!-- UI MODAL: REPORT CONFIGURATION -->
+    <!-- UI MODAL: DAILY REPORT CONFIGURATION -->
     <div class="modal-overlay" id="reportModal">
         <div class="modal-content">
-            <div class="modal-title">Report Settings</div>
+            <div class="modal-title">Daily Report Settings</div>
             
             <div class="modal-group">
                 <label>Select Date:</label>
@@ -519,10 +553,10 @@
             <div class="modal-group">
                 <label>Select Districts:</label>
                 <div class="quick-select-bar">
-                    <button class="btn-quick-select" onclick="quickSelectDistricts('ALL')">All TN</button>
-                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_CORE')">CDZ Core</button>
-                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT')">CDZ</button>
-                    <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR')">Clear</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('ALL', 'dist-chk-daily')">All TN</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_CORE', 'dist-chk-daily')">CDZ Core</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT', 'dist-chk-daily')">CDZ</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR', 'dist-chk-daily')">Clear</button>
                 </div>
                 <div class="quick-select-hint">
                     <b>CDZ Core:</b> Thanjavur, Tiruvarur, Nagapattinam, Mayiladuthurai.<br>
@@ -534,8 +568,50 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeReportModal()">Cancel</button>
-                <button class="btn-generate" onclick="generateReportPreview()">Generate Preview</button>
+                <button class="btn-cancel" onclick="closeReportModal('reportModal')">Cancel</button>
+                <button class="btn-generate" onclick="generateDailyReportPreview()">Generate Preview</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: ANNUAL REPORT CONFIGURATION -->
+    <div class="modal-overlay" id="annualReportModal">
+        <div class="modal-content">
+            <div class="modal-title">Annual Report Settings</div>
+            
+            <div class="modal-group">
+                <label style="color: #27ae60;">Active Year: <span id="annualModalYearLabel">2026</span></label>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">This report will calculate totals based on all available data for the active year selected on the dashboard.</p>
+            </div>
+
+            <div class="modal-group">
+                <label>Sort Stations By (Highest to Lowest):</label>
+                <select id="annualSortFilter">
+                    <option value="annual">Annual Total</option>
+                    <option value="winter">Winter Total</option>
+                    <option value="summer">Summer Total</option>
+                    <option value="swm">SWM Total</option>
+                    <option value="nem">NEM Total</option>
+                    <option value="max">Max 24h Extreme</option>
+                </select>
+            </div>
+
+            <div class="modal-group">
+                <label>Select Districts:</label>
+                <div class="quick-select-bar">
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('ALL', 'dist-chk-annual')">All TN</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_CORE', 'dist-chk-annual')">CDZ Core</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT', 'dist-chk-annual')">CDZ</button>
+                    <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR', 'dist-chk-annual')">Clear</button>
+                </div>
+                <div class="checklist-container" id="annualReportDistrictChecklist">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeReportModal('annualReportModal')">Cancel</button>
+                <button class="btn-generate" style="background:#27ae60;" onclick="generateAnnualReportPreview()">Generate Preview</button>
             </div>
         </div>
     </div>
@@ -548,25 +624,21 @@
                 <span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>
             </div>
             <div class="modal-actions" style="justify-content: center;">
-                <button class="btn-cancel" onclick="closePreviewModal()">Back to Settings</button>
+                <button class="btn-cancel" onclick="closePreviewModal()">Discard</button>
                 <button class="btn-download-final" onclick="downloadPreviewImage()">Download PNG</button>
             </div>
         </div>
     </div>
 
-    <!-- HIDDEN DOM ELEMENT FOR HTML2CANVAS SNAPSHOT -->
-    <div id="exportCardWrapper" class="layout-vertical">
+    <!-- HIDDEN DOM ELEMENT FOR DAILY REPORT EXPORT -->
+    <div id="exportDailyWrapper" class="offscreen-wrapper layout-vertical">
         <div class="export-watermark-bg">HaiyanTip</div>
         <div class="export-content">
             <div class="export-header">
                 <h1 class="export-title">24-Hour Rainfall</h1>
-                <h2 class="export-date" id="exportDateLabel">August 4, 2026</h2>
+                <h2 class="export-date" id="exportDailyDateLabel">August 4, 2026</h2>
             </div>
-            
-            <!-- District Blocks Injected Here -->
-            <div class="export-body" id="exportBodyContent"></div>
-            
-            <!-- Legend and Footer -->
+            <div class="export-body" id="exportDailyBodyContent"></div>
             <div class="export-footer">
                 <div class="export-legend">
                     <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff;"></span>Very Light</span>
@@ -577,6 +649,44 @@
                     <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span>Extreme</span>
                 </div>
                 <div class="export-source">Data: TNSMART</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIDDEN DOM ELEMENT FOR ANNUAL REPORT EXPORT -->
+    <div id="exportAnnualWrapper" class="offscreen-wrapper layout-annual">
+        <div class="export-watermark-bg">HaiyanTip</div>
+        <div class="export-content">
+            <div class="export-header" style="border-bottom-color: #e94560;">
+                <h1 class="export-title" id="exportAnnualTitleLabel">2026 Annual Rainfall Summary</h1>
+                <h2 class="export-date" id="exportAnnualSubtitleLabel">Ranked by Annual Total</h2>
+            </div>
+            <div class="annual-table-container">
+                <table class="export-annual-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>District</th>
+                            <th>Station</th>
+                            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+                            <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+                            <th class="head-annual">Annual</th>
+                            <th class="head-winter">Winter</th>
+                            <th class="head-summer">Summer</th>
+                            <th class="head-swm">SWM</th>
+                            <th class="head-nem">NEM</th>
+                            <th class="head-max">Max 24h</th>
+                            <th>Max Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="exportAnnualTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="export-footer" style="border-top-color: rgba(255,255,255,0.1); flex-direction: row; justify-content: space-between;">
+                <div class="export-source" style="color: #e94560;">Data: TNSMART</div>
+                <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Generated via Rainfall Engine</div>
             </div>
         </div>
     </div>
@@ -600,12 +710,14 @@
         let currentSliderDateStr = "";
         let datasetActiveYear = 2026;
         let finalImageBase64 = null;
-        let finalImageFileName = "Rainfall_Report.png";
+        let finalImageFileName = "Report.png";
+        let activeModalSource = "";
 
         let currentDistrictData = [];
         let currentStationData = [];
         let rawStationMap = {};
         let rawDistrictMap = {};
+        let activeStationDistricts = []; // Empty means all
 
         let sortConfig = {
             district: { key: 'name', dir: 'asc' },
@@ -743,7 +855,6 @@
             });
 
             setupSortingListeners();
-            document.getElementById('districtFilter').addEventListener('change', function(e) { renderTables(); });
             setupChartDropdownListeners();
 
             initEmptyDailyChart(); updateEngine(); 
@@ -783,6 +894,23 @@
             Array.from(uniqueDistricts).sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; distSelect.appendChild(opt); });
             if (currentStationData.some(st => st.district === "Unassigned")) distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
             if (Array.from(uniqueDistricts).includes(currentDist) || currentDist === "Unassigned") distSelect.value = currentDist;
+        }
+        
+        function updateDistrictFilterMenus() {
+            const menu = document.getElementById('stnDistChecklist');
+            const uniqueDistricts = new Set(); 
+            currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
+            
+            let html = '';
+            Array.from(uniqueDistricts).sort().forEach(d => { 
+                const checked = (activeStationDistricts.length === 0 || activeStationDistricts.includes(d)) ? 'checked' : '';
+                html += `<label class="multi-select-item"><input type="checkbox" value="${d}" class="stn-dist-chk" ${checked}> ${d}</label>`; 
+            });
+            if (currentStationData.some(st => st.district === "Unassigned")) {
+                const checked = (activeStationDistricts.length === 0 || activeStationDistricts.includes('Unassigned')) ? 'checked' : '';
+                html += `<label class="multi-select-item"><input type="checkbox" value="Unassigned" class="stn-dist-chk" ${checked}> Unassigned</label>`;
+            }
+            menu.innerHTML = html;
         }
 
         function updateEngine() {
@@ -886,15 +1014,9 @@
             if (activeView === 'station') draw(stationMap, layers.station, 7, false);
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
 
-            const filterDropdown = document.getElementById('districtFilter');
-            const currentSelection = filterDropdown.value; const uniqueDistricts = new Set();
-            currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
-            filterDropdown.innerHTML = '<option value="ALL">ALL</option>';
-            Array.from(uniqueDistricts).sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; filterDropdown.appendChild(opt); });
-            if (currentStationData.some(st => st.district === "Unassigned")) filterDropdown.innerHTML += '<option value="Unassigned">Unassigned</option>';
-            if(Array.from(uniqueDistricts).includes(currentSelection) || currentSelection === "Unassigned") filterDropdown.value = currentSelection; 
-
-            populateChartDropdowns(); renderTables();
+            populateChartDropdowns();
+            updateDistrictFilterMenus();
+            renderTables();
         }
 
         function triggerDailyChartSync(item, isAverage, year, daysInYear, div) {
@@ -910,7 +1032,7 @@
         function setupSortingListeners() {
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', function(e) {
-                    if(e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+                    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('.multi-select-menu')) return;
                     const type = this.closest('table').id === 'districtTable' ? 'district' : 'station';
                     const key = this.getAttribute('data-sort');
                     if (sortConfig[type].key === key) sortConfig[type].dir = sortConfig[type].dir === 'asc' ? 'desc' : 'asc';
@@ -926,6 +1048,14 @@
                 if (config.key.startsWith('m')) { const idx = parseInt(config.key.substring(1)); valA = a.monthly[idx] / divA; valB = b.monthly[idx] / divB; } 
                 else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) { const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key); valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB); } 
                 else { valA = a[config.key] || ""; valB = b[config.key] || ""; }
+                
+                // Fixed numerical sorting for keys including 'max'
+                if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key) || config.key.startsWith('m')) {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                    return config.dir === 'asc' ? (valA - valB) : (valB - valA);
+                }
+
                 if (typeof valA === 'string') return config.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 return config.dir === 'asc' ? valA - valB : valB - valA;
             });
@@ -941,32 +1071,33 @@
             let distHTML = ''; let dSno = 1;
             sortDataArray(currentDistrictData, sortConfig.district, true).forEach(d => {
                 const div = d.count > 0 ? d.count : 1;
-                distHTML += `<tr class="row-hover"><td style="text-align:center; color:var(--text-muted);">${dSno++}</td><td style="font-weight:bold;">${d.name.toUpperCase()}</td><td style="color:#d35400; font-size:11px;">AVG (${d.count} Stn)</td><td>${(d.monthly[0]/div).toFixed(1)}</td><td>${(d.monthly[1]/div).toFixed(1)}</td><td>${(d.monthly[2]/div).toFixed(1)}</td><td>${(d.monthly[3]/div).toFixed(1)}</td><td>${(d.monthly[4]/div).toFixed(1)}</td><td>${(d.monthly[5]/div).toFixed(1)}</td><td>${(d.monthly[6]/div).toFixed(1)}</td><td>${(d.monthly[7]/div).toFixed(1)}</td><td>${(d.monthly[8]/div).toFixed(1)}</td><td>${(d.monthly[9]/div).toFixed(1)}</td><td>${(d.monthly[10]/div).toFixed(1)}</td><td>${(d.monthly[11]/div).toFixed(1)}</td><td class="col-annual">${(d.total/div).toFixed(1)}</td><td>${(d.winter/div).toFixed(1)}</td><td>${(d.summer/div).toFixed(1)}</td><td class="col-swm">${(d.swm/div).toFixed(1)}</td><td class="col-nem">${(d.nem/div).toFixed(1)}</td><td class="col-max">${d.maxRain.toFixed(1)}</td><td>Dist. Max</td></tr>`;
+                distHTML += `<tr class="row-hover"><td style="text-align:center; color:var(--text-muted);">${dSno++}</td><td style="font-weight:bold;">${d.name.toUpperCase()}</td><td style="color:#d35400; font-size:11px;">AVG (${d.count} Stn)</td><td>${(d.monthly[0]/div).toFixed(1)}</td><td>${(d.monthly[1]/div).toFixed(1)}</td><td>${(d.monthly[2]/div).toFixed(1)}</td><td>${(d.monthly[3]/div).toFixed(1)}</td><td>${(d.monthly[4]/div).toFixed(1)}</td><td>${(d.monthly[5]/div).toFixed(1)}</td><td>${(d.monthly[6]/div).toFixed(1)}</td><td>${(d.monthly[7]/div).toFixed(1)}</td><td>${(d.monthly[8]/div).toFixed(1)}</td><td>${(d.monthly[9]/div).toFixed(1)}</td><td>${(d.monthly[10]/div).toFixed(1)}</td><td>${(d.monthly[11]/div).toFixed(1)}</td><td style="font-weight:bold; color:#2980b9;">${(d.total/div).toFixed(1)}</td><td>${(d.winter/div).toFixed(1)}</td><td>${(d.summer/div).toFixed(1)}</td><td>${(d.swm/div).toFixed(1)}</td><td>${(d.nem/div).toFixed(1)}</td><td style="font-weight:bold; color:#e74c3c;">${d.maxRain.toFixed(1)}</td><td>Dist. Max</td></tr>`;
             });
             document.getElementById('districtTableBody').innerHTML = distHTML;
 
-            let statHTML = ''; let sSno = 1; const activeFilter = document.getElementById('districtFilter').value;
+            let statHTML = ''; let sSno = 1;
             sortDataArray(currentStationData, sortConfig.station, false).forEach(st => {
-                if (activeFilter !== 'ALL' && activeFilter !== st.district) return; 
-                statHTML += `<tr class="row-hover"><td style="text-align:center;">${sSno++}</td><td style="${st.district === 'Unassigned' ? 'color:#e74c3c; font-weight:bold;' : ''}">${st.district}</td><td style="font-weight:bold;">${st.name}</td><td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td><td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td><td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td><td>${st.monthly[9].toFixed(1)}</td><td>${st.monthly[10].toFixed(1)}</td><td>${st.monthly[11].toFixed(1)}</td><td class="col-annual">${st.total.toFixed(1)}</td><td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td><td class="col-swm">${st.swm.toFixed(1)}</td><td class="col-nem">${st.nem.toFixed(1)}</td><td class="col-max">${st.maxRain.toFixed(1)}</td><td>${st.maxDate}</td></tr>`;
+                if (activeStationDistricts.length > 0 && !activeStationDistricts.includes(st.district)) return; 
+                statHTML += `<tr class="row-hover"><td style="text-align:center;">${sSno++}</td><td style="${st.district === 'Unassigned' ? 'color:#e74c3c; font-weight:bold;' : ''}">${st.district}</td><td style="font-weight:bold;">${st.name}</td><td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td><td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td><td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td><td>${st.monthly[9].toFixed(1)}</td><td>${st.monthly[10].toFixed(1)}</td><td>${st.monthly[11].toFixed(1)}</td><td style="font-weight:bold; color:#2980b9;">${st.total.toFixed(1)}</td><td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td><td>${st.swm.toFixed(1)}</td><td>${st.nem.toFixed(1)}</td><td style="font-weight:bold; color:#e74c3c;">${st.maxRain.toFixed(1)}</td><td>${st.maxDate}</td></tr>`;
             });
             document.getElementById('stationTableBody').innerHTML = statHTML;
         }
 
-        // --- EXPORT PREVIEW & DOWNLOAD LOGIC ---
-        function openReportModal() {
-            const modal = document.getElementById('reportModal');
-            const chkContainer = document.getElementById('reportDistrictChecklist');
-            chkContainer.innerHTML = '';
+        // --- EXPORT MODALS & GENERATORS ---
 
+        function populateModalDistrictChecklist(containerId, checkboxClass) {
+            const chkContainer = document.getElementById(containerId);
+            chkContainer.innerHTML = '';
             const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
-            
             Array.from(uniqueDistricts).sort().forEach(dist => {
-                chkContainer.innerHTML += `<label class="checklist-item"><input type="checkbox" value="${dist}" class="dist-chk"> ${dist}</label>`;
+                chkContainer.innerHTML += `<label class="checklist-item"><input type="checkbox" value="${dist}" class="${checkboxClass}"> ${dist}</label>`;
             });
+        }
 
-            // Find the latest available data date for the active year
+        function openReportModal() {
+            populateModalDistrictChecklist('reportDistrictChecklist', 'dist-chk-daily');
+            
             let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
@@ -981,37 +1112,42 @@
             const dd = String(latestDate.getDate()).padStart(2, '0');
 
             document.getElementById('reportDateInput').value = `${yyyy}-${mm}-${dd}`;
-            modal.style.display = 'flex';
+            document.getElementById('reportModal').style.display = 'flex';
         }
 
-        function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }
+        function openAnnualReportModal() {
+            populateModalDistrictChecklist('annualReportDistrictChecklist', 'dist-chk-annual');
+            document.getElementById('annualModalYearLabel').innerText = datasetActiveYear;
+            document.getElementById('annualReportModal').style.display = 'flex';
+        }
+
+        function closeReportModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
         
         function closePreviewModal() { 
             document.getElementById('previewModal').style.display = 'none';
-            document.getElementById('reportModal').style.display = 'flex'; 
+            if(activeModalSource) document.getElementById(activeModalSource).style.display = 'flex'; 
         }
 
-        function generateReportPreview() {
+        // 1. GENERATE DAILY REPORT
+        function generateDailyReportPreview() {
             const dateVal = document.getElementById('reportDateInput').value;
             if (!dateVal) { alert("Please select a date."); return; }
 
-            const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk:checked')).map(cb => cb.value);
+            const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk-daily:checked')).map(cb => cb.value);
             if (selectedDistricts.length === 0) { alert("Please select at least one district."); return; }
 
             const targetDate = new Date(dateVal);
-            if (targetDate.getFullYear() !== datasetActiveYear) {
-                alert(`Please select a date within ${datasetActiveYear} to match the current dataset.`); return;
-            }
+            if (targetDate.getFullYear() !== datasetActiveYear) { alert(`Please select a date within ${datasetActiveYear}.`); return; }
 
             const intensityThreshold = parseFloat(document.getElementById('intensityFilter').value);
             const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
             const prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
             const doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
 
-            finalImageFileName = `Rainfall_Report_${dateVal}.png`;
+            finalImageFileName = `Rainfall_Daily_${dateVal}.png`;
+            activeModalSource = 'reportModal';
 
-            // Setup Layout Based on Selection Count
-            const targetDiv = document.getElementById('exportCardWrapper');
+            const targetDiv = document.getElementById('exportDailyWrapper');
             if (selectedDistricts.length >= 5) {
                 targetDiv.classList.remove('layout-vertical');
                 targetDiv.classList.add('layout-landscape');
@@ -1020,10 +1156,8 @@
                 targetDiv.classList.add('layout-vertical');
             }
 
-            // Group Data
             const results = {};
             selectedDistricts.forEach(d => results[d] = []);
-
             currentStationData.forEach(st => {
                 if (selectedDistricts.includes(st.district)) {
                     const rainOnDay = st.dailyArray[doy - 1] || 0;
@@ -1033,8 +1167,7 @@
                 }
             });
 
-            // Build HTML
-            document.getElementById('exportDateLabel').innerText = prettyDate;
+            document.getElementById('exportDailyDateLabel').innerText = prettyDate;
             let htmlStr = ""; let hasAnyData = false;
 
             selectedDistricts.sort().forEach(dist => {
@@ -1042,35 +1175,90 @@
                 if (stations.length > 0) {
                     hasAnyData = true;
                     stations.sort((a, b) => b.rain - a.rain);
-                    
                     let rowsHtml = "";
                     stations.forEach(s => {
                         const dynamicColor = getIMDColor(s.rain);
                         rowsHtml += `<div class="export-row"><span class="export-stn">${s.name}</span><span class="export-val" style="color:${dynamicColor};">${s.rain.toFixed(1)} mm</span></div>`;
                     });
-
-                    htmlStr += `
-                        <div class="export-district-block">
-                            <h3 class="export-district-name">${dist.toUpperCase()}</h3>
-                            ${rowsHtml}
-                        </div>
-                    `;
+                    htmlStr += `<div class="export-district-block"><h3 class="export-district-name">${dist.toUpperCase()}</h3>${rowsHtml}</div>`;
                 }
             });
 
             if (!hasAnyData) {
-                htmlStr = `<div style="text-align:center; width: 100%; font-size:36px; color:#bdc3c7; margin-top:50px; grid-column: 1 / -1;">No rainfall met the selected criteria in these districts.</div>`;
+                htmlStr = `<div style="text-align:center; width: 100%; font-size:36px; color:#bdc3c7; margin-top:50px; grid-column: 1 / -1;">No rainfall met the selected criteria.</div>`;
             }
 
-            document.getElementById('exportBodyContent').innerHTML = htmlStr;
+            document.getElementById('exportDailyBodyContent').innerHTML = htmlStr;
+            triggerExportRender(targetDiv, 'reportModal');
+        }
+
+        // 2. GENERATE ANNUAL REPORT
+        function generateAnnualReportPreview() {
+            const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk-annual:checked')).map(cb => cb.value);
+            if (selectedDistricts.length === 0) { alert("Please select at least one district."); return; }
             
-            // Switch UI to loading state
-            document.getElementById('reportModal').style.display = 'none';
+            const sortSelection = document.getElementById('annualSortFilter').value;
+            const sortLabelText = document.getElementById('annualSortFilter').options[document.getElementById('annualSortFilter').selectedIndex].text;
+            
+            finalImageFileName = `Rainfall_Annual_${datasetActiveYear}.png`;
+            activeModalSource = 'annualReportModal';
+
+            document.getElementById('exportAnnualTitleLabel').innerText = `${datasetActiveYear} Annual Rainfall Summary`;
+            document.getElementById('exportAnnualSubtitleLabel').innerText = `Ranked by ${sortLabelText}`;
+
+            // Reset headers highlighting
+            document.querySelectorAll('.export-annual-table th').forEach(th => th.classList.remove('col-highlight'));
+            const highlightHeaderMap = { 'annual': 'head-annual', 'winter': 'head-winter', 'summer': 'head-summer', 'swm': 'head-swm', 'nem': 'head-nem', 'max': 'head-max' };
+            const activeHeaderClass = highlightHeaderMap[sortSelection];
+            if(activeHeaderClass) document.querySelector(`.export-annual-table .${activeHeaderClass}`).classList.add('col-highlight');
+
+            // Gather and sort data
+            let exportData = currentStationData.filter(st => selectedDistricts.includes(st.district));
+            
+            exportData.sort((a, b) => {
+                let valA = 0, valB = 0;
+                if (sortSelection === 'annual') { valA = a.total; valB = b.total; }
+                else if (sortSelection === 'max') { valA = a.maxRain; valB = b.maxRain; }
+                else { valA = a[sortSelection]; valB = b[sortSelection]; }
+                return valB - valA; // Descending
+            });
+
+            let htmlStr = "";
+            let sNo = 1;
+            exportData.forEach(st => {
+                const hc = (col) => col === sortSelection ? 'col-highlight' : '';
+                htmlStr += `
+                    <tr>
+                        <td style="text-align: center; color: #7f8c8d;">${sNo++}</td>
+                        <td style="font-weight: bold;">${st.district}</td>
+                        <td style="font-weight: bold; color: #ffffff;">${st.name}</td>
+                        <td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td>
+                        <td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td>
+                        <td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td>
+                        <td>${st.monthly[9].toFixed(1)}</td><td>${st.monthly[10].toFixed(1)}</td><td>${st.monthly[11].toFixed(1)}</td>
+                        <td class="${hc('annual')}">${st.total.toFixed(1)}</td>
+                        <td class="${hc('winter')}">${st.winter.toFixed(1)}</td>
+                        <td class="${hc('summer')}">${st.summer.toFixed(1)}</td>
+                        <td class="${hc('swm')}">${st.swm.toFixed(1)}</td>
+                        <td class="${hc('nem')}">${st.nem.toFixed(1)}</td>
+                        <td class="${hc('max')}">${st.maxRain.toFixed(1)}</td>
+                        <td style="font-size: 16px; color: #bdc3c7;">${st.maxDate}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('exportAnnualTableBody').innerHTML = htmlStr;
+            const targetDiv = document.getElementById('exportAnnualWrapper');
+            triggerExportRender(targetDiv, 'annualReportModal');
+        }
+
+        // SHARED EXPORT RENDERER
+        function triggerExportRender(targetDiv, modalIdToClose) {
+            document.getElementById(modalIdToClose).style.display = 'none';
             const previewContainer = document.getElementById('previewContainer');
             previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>';
             document.getElementById('previewModal').style.display = 'flex';
 
-            // Allow DOM to apply styles, then snapshot
             setTimeout(() => {
                 html2canvas(targetDiv, { scale: 2, backgroundColor: "#121212" }).then(canvas => {
                     finalImageBase64 = canvas.toDataURL('image/png');
