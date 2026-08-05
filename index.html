@@ -234,14 +234,17 @@
             box-sizing: border-box; overflow: hidden; z-index: -1;
         }
 
+        /* Watermark Styles */
+        .export-watermark-bg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 240px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 0;
+        }
+        .watermark-daily { color: rgba(255, 255, 255, 0.005); }
+        .watermark-annual { color: rgba(255, 255, 255, 0.02); }
+
         /* Daily Report Export Styles */
         .layout-vertical { width: 1080px; min-height: 1920px; padding: 60px; display: flex; flex-direction: column; }
         .layout-landscape { width: 1920px; min-height: 1080px; padding: 60px; display: flex; flex-direction: column; }
-        .export-watermark-bg {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 240px; font-weight: 900; color: rgba(255, 255, 255, 0.02);
-            white-space: nowrap; pointer-events: none; z-index: 0;
-        }
         .export-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
         .export-header { border-bottom: 4px solid #3498db; padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
         .export-title { font-size: 54px; font-weight: 900; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
@@ -268,8 +271,12 @@
         .annual-table-container { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .export-annual-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 22px; color: #e0e0e0; }
         .export-annual-table th { background: #0f3460; color: #ffffff; padding: 20px 10px; font-size: 20px; text-transform: uppercase; border-bottom: 3px solid #e94560; }
+        
+        /* Fixed Alignment for District and Station headers/cells */
+        .export-annual-table th:nth-child(2), .export-annual-table th:nth-child(3) { text-align: left; padding-left: 15px; }
+        .export-annual-table td:nth-child(2), .export-annual-table td:nth-child(3) { text-align: left; padding-left: 15px; }
+        
         .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .export-annual-table td:nth-child(2), .export-annual-table td:nth-child(3) { text-align: left; }
         .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
         .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
         
@@ -632,7 +639,7 @@
 
     <!-- HIDDEN DOM ELEMENT FOR DAILY REPORT EXPORT -->
     <div id="exportDailyWrapper" class="offscreen-wrapper layout-vertical">
-        <div class="export-watermark-bg">HaiyanTip</div>
+        <div class="export-watermark-bg watermark-daily">HaiyanTip</div>
         <div class="export-content">
             <div class="export-header">
                 <h1 class="export-title">24-Hour Rainfall</h1>
@@ -648,14 +655,17 @@
                     <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span>Very Heavy</span>
                     <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span>Extreme</span>
                 </div>
-                <div class="export-source">Data: TNSMART</div>
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 15px;">
+                    <div class="export-source">Data: TNSMART</div>
+                    <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- HIDDEN DOM ELEMENT FOR ANNUAL REPORT EXPORT -->
     <div id="exportAnnualWrapper" class="offscreen-wrapper layout-annual">
-        <div class="export-watermark-bg">HaiyanTip</div>
+        <div class="export-watermark-bg watermark-annual">HaiyanTip</div>
         <div class="export-content">
             <div class="export-header" style="border-bottom-color: #e94560;">
                 <h1 class="export-title" id="exportAnnualTitleLabel">2026 Annual Rainfall Summary</h1>
@@ -686,7 +696,7 @@
             </div>
             <div class="export-footer" style="border-top-color: rgba(255,255,255,0.1); flex-direction: row; justify-content: space-between;">
                 <div class="export-source" style="color: #e94560;">Data: TNSMART</div>
-                <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Generated via Rainfall Engine</div>
+                <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
             </div>
         </div>
     </div>
@@ -1049,7 +1059,6 @@
                 else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) { const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key); valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB); } 
                 else { valA = a[config.key] || ""; valB = b[config.key] || ""; }
                 
-                // Fixed numerical sorting for keys including 'max'
                 if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key) || config.key.startsWith('m')) {
                     valA = parseFloat(valA) || 0;
                     valB = parseFloat(valB) || 0;
@@ -1206,13 +1215,11 @@
             document.getElementById('exportAnnualTitleLabel').innerText = `${datasetActiveYear} Annual Rainfall Summary`;
             document.getElementById('exportAnnualSubtitleLabel').innerText = `Ranked by ${sortLabelText}`;
 
-            // Reset headers highlighting
             document.querySelectorAll('.export-annual-table th').forEach(th => th.classList.remove('col-highlight'));
             const highlightHeaderMap = { 'annual': 'head-annual', 'winter': 'head-winter', 'summer': 'head-summer', 'swm': 'head-swm', 'nem': 'head-nem', 'max': 'head-max' };
             const activeHeaderClass = highlightHeaderMap[sortSelection];
             if(activeHeaderClass) document.querySelector(`.export-annual-table .${activeHeaderClass}`).classList.add('col-highlight');
 
-            // Gather and sort data
             let exportData = currentStationData.filter(st => selectedDistricts.includes(st.district));
             
             exportData.sort((a, b) => {
@@ -1220,7 +1227,7 @@
                 if (sortSelection === 'annual') { valA = a.total; valB = b.total; }
                 else if (sortSelection === 'max') { valA = a.maxRain; valB = b.maxRain; }
                 else { valA = a[sortSelection]; valB = b[sortSelection]; }
-                return valB - valA; // Descending
+                return valB - valA; 
             });
 
             let htmlStr = "";
