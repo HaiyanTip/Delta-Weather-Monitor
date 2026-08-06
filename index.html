@@ -238,9 +238,9 @@
         .btn-download-final { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         /* PREVIEW MODAL SPECIFICS */
-        #previewModal .modal-content { max-width: 90vw; text-align: center; } 
-        #previewContainer { max-height: 70vh; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
-        #previewImage { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #previewModal .modal-content { max-width: 90vw; max-height: 90vh; text-align: center; display: flex; flex-direction: column; } 
+        #previewContainer { flex: 1; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 15px; }
+        #previewImage { max-width: 100%; max-height: 70vh; width: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); object-fit: contain; }
 
         /* OFF-SCREEN CARD GENERATORS */
         .offscreen-wrapper {
@@ -291,6 +291,13 @@
         .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
         .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
         
+        /* IDW STORY EXPORT LAYOUT (9:16) */
+        .layout-vertical-story {
+            width: 1080px; height: 1920px; padding: 60px; 
+            display: flex; flex-direction: column; background-color: #1a1a2e;
+            position: relative; box-sizing: border-box;
+        }
+
         @media (max-width: 1024px) {
             .top-row { flex-direction: column; height: auto; display: flex; }
             .control-panel { flex: none; width: 100%; box-sizing: border-box; }
@@ -777,51 +784,54 @@
         </div>
     </div>
 
-    <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT -->
-    <div id="exportIdwWrapper" class="offscreen-wrapper layout-landscape" style="width: 1920px; height: 1080px; position:absolute; left:-9999px; top:0; background-color: #1a1a2e;">
-        <div class="export-watermark-bg watermark-annual">HaiyanTip</div>
+    <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT (9:16 STORY FORMAT) -->
+    <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
+        <div class="export-watermark-bg watermark-annual" style="font-size: 220px;">HaiyanTip</div>
         
-        <!-- Header Overlay -->
-        <div style="position: absolute; top: 40px; left: 60px; z-index: 1000; background: rgba(26,26,46,0.85); padding: 25px 40px; border-radius: 12px; border-left: 6px solid #8e44ad; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:48px; font-weight:900; color:#fff; text-transform:uppercase;">Spatial Distribution</h1>
-            <h2 id="idwExportSubtitle" style="margin:0; font-size:28px; color:#bdc3c7; font-weight:300;">August 4, 2026</h2>
+        <!-- Header -->
+        <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
+            <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:52px; font-weight:900; color:#fff; text-transform:uppercase;">Spatial Distribution</h1>
+            <h2 id="idwExportSubtitle" style="margin:0; font-size:32px; color:#bdc3c7; font-weight:300;">August 4, 2026</h2>
         </div>
 
         <!-- The Map Container -->
-        <div id="idwMapExportDiv" style="width: 100%; height: 100%; z-index: 1; background: transparent;"></div>
+        <div style="flex: 1; width: 100%; border-radius: 20px; overflow: hidden; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div id="idwMapExportDiv" style="width: 100%; height: 100%; background: transparent;"></div>
+        </div>
         
         <!-- Footer Overlay -->
-        <div style="position: absolute; bottom: 40px; left: 0; width: 100%; z-index: 1000; padding: 0 60px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-end;">
-            <div style="background: rgba(26,26,46,0.85); padding: 20px 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 600px;">
+        <div style="z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 35px;">
+            <div style="background: rgba(26,26,46,0.9); padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;">
+                
                 <!-- IMD Legend -->
-                <div id="idwLegendImd" style="display:none; flex-direction:column; gap:10px;">
-                    <div style="color:#fff; font-size:18px; font-weight:bold; margin-bottom:5px;">Rainfall Intensity (mm)</div>
-                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                <div id="idwLegendImd" style="display:none; flex-direction:column; gap:15px;">
+                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:5px; text-align: center;">Rainfall Intensity (mm)</div>
+                    <div style="display:flex; justify-content:space-around; font-size:22px; font-weight:bold;">
                         <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff;"></span> < 15.5</span>
                         <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span> 15.6 - 64.4</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                    <div style="display:flex; justify-content:space-around; font-size:22px; font-weight:bold;">
                         <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span> 64.5 - 115.4</span>
                         <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span> 115.5 - 204.4</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                    <div style="display:flex; justify-content:center; font-size:22px; font-weight:bold;">
                         <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span> > 204.4</span>
                     </div>
                 </div>
                 
                 <!-- Continuous Legend -->
                 <div id="idwLegendContinuous" style="display:block;">
-                    <div style="color:#fff; font-size:18px; font-weight:bold; margin-bottom:10px;">Rainfall Accumulation (mm)</div>
-                    <div class="color-scale-bar" style="height: 16px;"></div>
-                    <div class="color-scale-labels" style="font-size: 16px;">
+                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:15px; text-align: center;">Rainfall Accumulation (mm)</div>
+                    <div class="color-scale-bar" style="height: 22px;"></div>
+                    <div class="color-scale-labels" style="font-size: 20px; margin-top: 10px;">
                         <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
                     </div>
                 </div>
             </div>
             
-            <div style="text-align: right; background: rgba(26,26,46,0.85); padding: 15px 25px; border-radius: 12px;">
-                <div class="export-source" style="color: #8e44ad; margin-bottom:5px; font-weight:bold;">Data: TNSMART</div>
-                <div style="font-size: 20px; color: #bdc3c7; font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
+            <div style="text-align: center; background: rgba(26,26,46,0.9); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box;">
+                <div class="export-source" style="color: #8e44ad; margin-bottom:8px; font-weight:bold; font-size: 32px;">Data: TNSMART</div>
+                <div style="font-size: 24px; color: #bdc3c7; font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
             </div>
         </div>
     </div>
@@ -916,20 +926,14 @@
 
         // Ultimate District Matcher (Solves all spelling variations)
         function getMatchedDistrict(cName) {
-            // 1. Exact match
             if (rawDistrictMap[cName]) return rawDistrictMap[cName];
-            
-            // 2. Alias dictionary match
             if (districtAliases[cName] && rawDistrictMap[districtAliases[cName]]) {
                 return rawDistrictMap[districtAliases[cName]];
             }
-            
-            // 3. Fuzzy substring match fallback (e.g. "sivaganga" vs "sivagangai")
             for (let key in rawDistrictMap) {
                 if (key.includes(cName) || cName.includes(key)) return rawDistrictMap[key];
             }
-            
-            return null; // No match found
+            return null; 
         }
 
         function getColor(value) {
@@ -1258,7 +1262,7 @@
 
                         layer.bindTooltip(`<b>${displayName} District</b><br>Rainfall Avg: <b>${val.toFixed(1)} mm</b>`, { sticky: true });
 
-                        // NEW: Bind full stats popup to the GeoJSON polygon
+                        // Bind full stats popup to the GeoJSON polygon
                         if (matchedDist && matchedDist.count > 0) {
                             const div = matchedDist.count;
                             const total = matchedDist.total / div;
@@ -1408,7 +1412,6 @@
             document.getElementById('annualReportModal').style.display = 'flex';
         }
 
-        // NEW: OPEN IDW MODAL
         function toggleIdwDateInput() {
             const val = document.getElementById('idwMetricFilter').value;
             document.getElementById('idwDateGroup').style.display = (val === 'daily') ? 'block' : 'none';
@@ -1560,8 +1563,25 @@
             triggerExportRender(targetDiv, 'annualReportModal');
         }
 
-        // NEW: GENERATE IDW MAP
+        // --- IDW SPATIAL MAPPING ENGINE ---
         let exportIdwMapInstance = null;
+
+        // Generates an inverted polygon to instantly mask out the ocean/other states
+        function generateInvertedMask(geoJsonFeatureCollection) {
+            let outerRing = [ [90, -180], [90, 180], [-90, 180], [-90, -180] ];
+            let maskCoords = [outerRing];
+
+            geoJsonFeatureCollection.features.forEach(f => {
+                if (f.geometry.type === 'Polygon') {
+                    maskCoords.push(f.geometry.coordinates[0].map(pt => [pt[1], pt[0]]));
+                } else if (f.geometry.type === 'MultiPolygon') {
+                    f.geometry.coordinates.forEach(poly => {
+                        maskCoords.push(poly[0].map(pt => [pt[1], pt[0]]));
+                    });
+                }
+            });
+            return maskCoords;
+        }
 
         function generateIdwPreview() {
             if(!tnGeoJSONData) { alert("Boundary data not loaded yet. Please wait."); return; }
@@ -1586,7 +1606,6 @@
             document.getElementById('idwModal').style.display = 'none';
             document.getElementById('loadingModal').style.display = 'flex';
 
-            // Use setTimeout to allow the browser to paint the loading screen
             setTimeout(() => {
                 try {
                     runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal);
@@ -1607,32 +1626,26 @@
                 else if (metric === 'annual') val = st.total;
                 else val = st[metric];
                 
-                pts.push(turf.point([st.lon, st.lat], { rain: val }));
+                // Add micro-noise to prevent Turf.js math errors on perfectly overlapping stations
+                let lat = st.lat + (Math.random() - 0.5) * 0.0001;
+                let lon = st.lon + (Math.random() - 0.5) * 0.0001;
+                pts.push(turf.point([lon, lat], { rain: val }));
             });
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // 2.5km hex grid with distance weight 3 for a smooth, meteorological look
-            const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
+            // 1.2km high-res grid for smooth, contour-like blending
+            const grid = turf.interpolate(pointsCollection, 1.2, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
-            // Clip Grid to TN Polygons
+            // Filter zeros
             const filteredFeatures = [];
             turf.featureEach(grid, function (cell) {
-                const center = turf.center(cell);
-                let inside = false;
-                for (let i = 0; i < tnGeoJSONData.features.length; i++) {
-                    if (turf.booleanPointInPolygon(center, tnGeoJSONData.features[i])) {
-                        inside = true; break;
-                    }
-                }
-                if (inside && cell.properties.rain >= (isDaily ? 0.1 : 1)) {
+                if (cell.properties.rain >= (isDaily ? 0.1 : 1)) {
                     filteredFeatures.push(cell);
                 }
             });
-            
-            const clippedGrid = turf.featureCollection(filteredFeatures);
+            const finalGrid = turf.featureCollection(filteredFeatures);
 
-            // Init Map Container
             if(!exportIdwMapInstance) {
                 exportIdwMapInstance = L.map('idwMapExportDiv', {
                     zoomControl: false, attributionControl: false, preferCanvas: true
@@ -1640,27 +1653,30 @@
             }
             
             const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
-            exportIdwMapInstance.fitBounds(tnBounds);
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
             
-            // Draw IDW Data
-            L.geoJSON(clippedGrid, {
+            // 1. Draw High-Res Grid (Color matching stroke completely fixes anti-aliasing gaps)
+            L.geoJSON(finalGrid, {
                 style: function(feature) {
                     const val = feature.properties.rain;
                     const color = isDaily ? getIMDColor(val) : getColor(val);
-                    return { fillColor: color, fillOpacity: 0.85, weight: 0.1, color: color };
+                    return { fillColor: color, fillOpacity: 0.95, weight: 1.5, color: color }; 
                 }
             }).addTo(exportIdwMapInstance);
+
+            // 2. Draw Inverted Mask (Instantly clips the grid perfectly to the state boundary)
+            const maskCoords = generateInvertedMask(tnGeoJSONData);
+            L.polygon(maskCoords, { fillColor: '#1a1a2e', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
             
-            // Draw White District Outlines
+            // 3. Draw Subdued White State Borders
             L.geoJSON(tnGeoJSONData, {
-                style: { fillColor: 'transparent', color: '#ffffff', weight: 1.2, opacity: 0.6 }
+                style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.2 }
             }).addTo(exportIdwMapInstance);
 
-            // Plot tiny black dots for actual station locations
+            // 4. Draw Tiny Station Pointers (0.8px dustings)
             L.geoJSON(pointsCollection, {
                 pointToLayer: function (feature, latlng) {
-                    return L.circleMarker(latlng, { radius: 1, fillColor: "#000", color: "#000", weight: 1, opacity: 0.8, fillOpacity: 0.8 });
+                    return L.circleMarker(latlng, { radius: 0.8, fillColor: "#000000", color: "transparent", fillOpacity: 0.7 });
                 }
             }).addTo(exportIdwMapInstance);
 
@@ -1673,19 +1689,24 @@
             finalImageFileName = `IDW_Map_${isDaily ? dateVal : metric+'_'+datasetActiveYear}.png`;
             activeModalSource = '';
 
+            // Render container to physical screen bounds briefly for Leaflet to draw tiles, then capture
+            const targetDiv = document.getElementById('exportIdwWrapper');
+            targetDiv.style.display = 'flex';
+            exportIdwMapInstance.invalidateSize();
+            exportIdwMapInstance.fitBounds(tnBounds);
+
             setTimeout(() => {
-                const targetDiv = document.getElementById('exportIdwWrapper');
                 document.getElementById('loadingModal').style.display = 'none';
-                
                 const previewContainer = document.getElementById('previewContainer');
                 previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Capturing High-Res Map...</span>';
                 document.getElementById('previewModal').style.display = 'flex';
                 
                 html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: "#1a1a2e" }).then(canvas => {
+                    targetDiv.style.display = 'none';
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
                 });
-            }, 1000); // 1-second delay lets Leaflet physically render the canvas tiles
+            }, 1000); // 1-second delay lets Leaflet physically render the canvas tiles before snapshot
         }
 
         // SHARED EXPORT RENDERER
@@ -1695,8 +1716,11 @@
             previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>';
             document.getElementById('previewModal').style.display = 'flex';
 
+            targetDiv.style.display = 'flex';
+
             setTimeout(() => {
                 html2canvas(targetDiv, { scale: 2, backgroundColor: "#121212" }).then(canvas => {
+                    targetDiv.style.display = 'none';
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
                 });
