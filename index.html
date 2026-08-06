@@ -1621,7 +1621,9 @@
             let maxRain = 0;
             const pts = [];
             currentStationData.forEach(st => {
-                if(st.lat === 0 || st.lon === 0) return;
+                // STRICT COORD CHECK TO PREVENT TURF.JS CRASH
+                if (!st.lat || !st.lon || isNaN(st.lat) || isNaN(st.lon) || st.lat === 0 || st.lon === 0) return;
+                
                 let val = 0;
                 if (isDaily) val = st.dailyArray[doy - 1] || 0;
                 else if (metric === 'annual') val = st.total;
@@ -1629,7 +1631,7 @@
                 
                 if (val > maxRain) maxRain = val;
                 
-                // Add micro-noise to prevent Turf.js math errors on perfectly overlapping stations
+                // Add micro-noise to prevent exact overlap div-by-zero
                 let lat = st.lat + (Math.random() - 0.5) * 0.0001;
                 let lon = st.lon + (Math.random() - 0.5) * 0.0001;
                 pts.push(turf.point([lon, lat], { rain: val }));
@@ -1644,9 +1646,9 @@
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // CRITICAL FIX: Increased cell size from 1.2 to 3.5 km.
-            // 1.2 generates ~180,000 hexes and runs out of memory. 3.5 generates ~20,000 and is ultra-smooth and fast.
-            const grid = turf.interpolate(pointsCollection, 3.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
+            // THE FIX: gridType 'square' completely bypasses the Turf.js 'min/next' hex grid crash. 
+            // Square looks identical to Hex when borders are removed, but the math is 100% stable.
+            const grid = turf.interpolate(pointsCollection, 3.5, { gridType: 'square', property: 'rain', units: 'kilometers', weight: 3 });
             
             // Filter zeros out of the grid to save rendering memory
             const filteredFeatures = [];
