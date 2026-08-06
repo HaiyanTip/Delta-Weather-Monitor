@@ -18,6 +18,9 @@
     <!-- html2canvas for Image Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+    <!-- Turf.js for Spatial Analysis (IDW Interpolation) -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+
     <style>
         /* CSS VARIABLES FOR DARK MODE */
         :root {
@@ -58,9 +61,7 @@
         }
         
         /* Remove black focus box on clicked map shapes */
-        .leaflet-interactive:focus {
-            outline: none;
-        }
+        .leaflet-interactive:focus { outline: none; }
 
         .dashboard-container {
             max-width: 1400px; 
@@ -124,9 +125,10 @@
             text-align: center; width: 100%; box-sizing: border-box; margin-bottom: 8px;
         }
         .btn-report:hover { background: #3498db; }
-        
         .btn-annual-report { background: #27ae60; }
         .btn-annual-report:hover { background: #2ecc71; }
+        .btn-idw-report { background: #8e44ad; }
+        .btn-idw-report:hover { background: #9b59b6; }
 
         /* 2. CHART SECTION */
         .chart-section {
@@ -247,7 +249,6 @@
             box-sizing: border-box; overflow: hidden; z-index: -1;
         }
 
-        /* Watermark Styles */
         .export-watermark-bg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 240px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 0;
@@ -284,10 +285,8 @@
         .annual-table-container { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .export-annual-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 22px; color: #e0e0e0; }
         .export-annual-table th { background: #0f3460; color: #ffffff; padding: 20px 10px; font-size: 20px; text-transform: uppercase; border-bottom: 3px solid #e94560; }
-        
         .export-annual-table th:nth-child(2), .export-annual-table th:nth-child(3) { text-align: left; padding-left: 15px; }
         .export-annual-table td:nth-child(2), .export-annual-table td:nth-child(3) { text-align: left; padding-left: 15px; }
-        
         .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
         .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
@@ -448,6 +447,7 @@
 
                 <button class="btn-report" onclick="openReportModal()">📄 Generate Daily Report</button>
                 <button class="btn-report btn-annual-report" onclick="openAnnualReportModal()">📊 Generate Annual Report</button>
+                <button class="btn-report btn-idw-report" onclick="openIdwModal()">🗺️ Generate Spatial Map (IDW)</button>
             </div>
 
             <div class="map-wrapper">
@@ -662,6 +662,35 @@
         </div>
     </div>
 
+    <!-- UI MODAL: IDW SPATIAL MAP CONFIGURATION -->
+    <div class="modal-overlay" id="idwModal">
+        <div class="modal-content">
+            <div class="modal-title">Spatial Map (IDW) Settings</div>
+            
+            <div class="modal-group">
+                <label>Timeframe Type:</label>
+                <select id="idwMetricFilter" onchange="toggleIdwDateInput()">
+                    <option value="daily">Daily Rainfall</option>
+                    <option value="annual">Annual Total</option>
+                    <option value="winter">Winter Total</option>
+                    <option value="summer">Summer Total</option>
+                    <option value="swm">SWM Total</option>
+                    <option value="nem">NEM Total</option>
+                </select>
+            </div>
+
+            <div class="modal-group" id="idwDateGroup">
+                <label>Select Date:</label>
+                <input type="date" id="idwDateInput">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeReportModal('idwModal')">Cancel</button>
+                <button class="btn-generate" style="background:#8e44ad;" onclick="generateIdwPreview()">Generate IDW</button>
+            </div>
+        </div>
+    </div>
+
     <!-- UI MODAL: IMAGE PREVIEW & DOWNLOAD -->
     <div class="modal-overlay" id="previewModal">
         <div class="modal-content">
@@ -673,6 +702,14 @@
                 <button class="btn-cancel" onclick="closePreviewModal()">Discard</button>
                 <button class="btn-download-final" onclick="downloadPreviewImage()">Download PNG</button>
             </div>
+        </div>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div class="modal-overlay" id="loadingModal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="color:#3498db;">⚙️ Processing Spatial Data</h3>
+            <p style="color:var(--text-muted); font-size:14px;">Running Inverse Distance Weighting interpolation.<br>This will take a few seconds...</p>
         </div>
     </div>
 
@@ -740,6 +777,55 @@
         </div>
     </div>
 
+    <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT -->
+    <div id="exportIdwWrapper" class="offscreen-wrapper layout-landscape" style="width: 1920px; height: 1080px; position:absolute; left:-9999px; top:0; background-color: #1a1a2e;">
+        <div class="export-watermark-bg watermark-annual">HaiyanTip</div>
+        
+        <!-- Header Overlay -->
+        <div style="position: absolute; top: 40px; left: 60px; z-index: 1000; background: rgba(26,26,46,0.85); padding: 25px 40px; border-radius: 12px; border-left: 6px solid #8e44ad; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:48px; font-weight:900; color:#fff; text-transform:uppercase;">Spatial Distribution</h1>
+            <h2 id="idwExportSubtitle" style="margin:0; font-size:28px; color:#bdc3c7; font-weight:300;">August 4, 2026</h2>
+        </div>
+
+        <!-- The Map Container -->
+        <div id="idwMapExportDiv" style="width: 100%; height: 100%; z-index: 1; background: transparent;"></div>
+        
+        <!-- Footer Overlay -->
+        <div style="position: absolute; bottom: 40px; left: 0; width: 100%; z-index: 1000; padding: 0 60px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div style="background: rgba(26,26,46,0.85); padding: 20px 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 600px;">
+                <!-- IMD Legend -->
+                <div id="idwLegendImd" style="display:none; flex-direction:column; gap:10px;">
+                    <div style="color:#fff; font-size:18px; font-weight:bold; margin-bottom:5px;">Rainfall Intensity (mm)</div>
+                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                        <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff;"></span> < 15.5</span>
+                        <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span> 15.6 - 64.4</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                        <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span> 64.5 - 115.4</span>
+                        <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span> 115.5 - 204.4</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold;">
+                        <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span> > 204.4</span>
+                    </div>
+                </div>
+                
+                <!-- Continuous Legend -->
+                <div id="idwLegendContinuous" style="display:block;">
+                    <div style="color:#fff; font-size:18px; font-weight:bold; margin-bottom:10px;">Rainfall Accumulation (mm)</div>
+                    <div class="color-scale-bar" style="height: 16px;"></div>
+                    <div class="color-scale-labels" style="font-size: 16px;">
+                        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: right; background: rgba(26,26,46,0.85); padding: 15px 25px; border-radius: 12px;">
+                <div class="export-source" style="color: #8e44ad; margin-bottom:5px; font-weight:bold;">Data: TNSMART</div>
+                <div style="font-size: 20px; color: #bdc3c7; font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const map = L.map('map', { center: [10.80, 79.35], zoom: 8.5 });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -747,7 +833,7 @@
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Layer groups
+        // Layer groups (Consolidated)
         const layers = { 
             station: L.layerGroup().addTo(map), 
             heatmap: L.layerGroup() // Holds District GeoJSON Polygons
@@ -1299,7 +1385,6 @@
 
         function openReportModal() {
             populateModalDistrictChecklist('reportDistrictChecklist', 'dist-chk-daily');
-            
             let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
@@ -1323,6 +1408,31 @@
             document.getElementById('annualReportModal').style.display = 'flex';
         }
 
+        // NEW: OPEN IDW MODAL
+        function toggleIdwDateInput() {
+            const val = document.getElementById('idwMetricFilter').value;
+            document.getElementById('idwDateGroup').style.display = (val === 'daily') ? 'block' : 'none';
+        }
+
+        function openIdwModal() {
+            let maxDOY = 1;
+            globalRainData.forEach(row => {
+                const d = parseDateString(row.Date);
+                if(d && d.year === datasetActiveYear) { 
+                    const doy = getDayOfYear(d.day, d.month, d.year); 
+                    if(doy > maxDOY) maxDOY = doy; 
+                }
+            });
+            const latestDate = new Date(datasetActiveYear, 0, maxDOY);
+            const yyyy = latestDate.getFullYear();
+            const mm = String(latestDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(latestDate.getDate()).padStart(2, '0');
+
+            document.getElementById('idwDateInput').value = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('idwModal').style.display = 'flex';
+            toggleIdwDateInput();
+        }
+
         function closeReportModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
         
         function closePreviewModal() { 
@@ -1330,7 +1440,6 @@
             if(activeModalSource) document.getElementById(activeModalSource).style.display = 'flex'; 
         }
 
-        // 1. GENERATE DAILY REPORT
         function generateDailyReportPreview() {
             const dateVal = document.getElementById('reportDateInput').value;
             if (!dateVal) { alert("Please select a date."); return; }
@@ -1394,7 +1503,6 @@
             triggerExportRender(targetDiv, 'reportModal');
         }
 
-        // 2. GENERATE ANNUAL REPORT
         function generateAnnualReportPreview() {
             const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk-annual:checked')).map(cb => cb.value);
             if (selectedDistricts.length === 0) { alert("Please select at least one district."); return; }
@@ -1450,6 +1558,134 @@
             document.getElementById('exportAnnualTableBody').innerHTML = htmlStr;
             const targetDiv = document.getElementById('exportAnnualWrapper');
             triggerExportRender(targetDiv, 'annualReportModal');
+        }
+
+        // NEW: GENERATE IDW MAP
+        let exportIdwMapInstance = null;
+
+        function generateIdwPreview() {
+            if(!tnGeoJSONData) { alert("Boundary data not loaded yet. Please wait."); return; }
+
+            const metric = document.getElementById('idwMetricFilter').value;
+            const dateVal = document.getElementById('idwDateInput').value;
+            const isDaily = metric === 'daily';
+            
+            if (isDaily && !dateVal) { alert("Please select a date."); return; }
+            
+            let targetDate, doy, prettyDate;
+            if (isDaily) {
+                targetDate = new Date(dateVal);
+                if (targetDate.getFullYear() !== datasetActiveYear) { alert(`Please select a date within ${datasetActiveYear}.`); return; }
+                const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+                prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
+                doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
+            } else {
+                prettyDate = `${datasetActiveYear} - ${metric.toUpperCase()} Total`;
+            }
+
+            document.getElementById('idwModal').style.display = 'none';
+            document.getElementById('loadingModal').style.display = 'flex';
+
+            // Use setTimeout to allow the browser to paint the loading screen
+            setTimeout(() => {
+                try {
+                    runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal);
+                } catch(e) {
+                    console.error("IDW Generation Failed:", e);
+                    alert("Error generating spatial map.");
+                    document.getElementById('loadingModal').style.display = 'none';
+                }
+            }, 100);
+        }
+
+        function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal) {
+            const pts = [];
+            currentStationData.forEach(st => {
+                if(st.lat === 0 || st.lon === 0) return;
+                let val = 0;
+                if (isDaily) val = st.dailyArray[doy - 1] || 0;
+                else if (metric === 'annual') val = st.total;
+                else val = st[metric];
+                
+                pts.push(turf.point([st.lon, st.lat], { rain: val }));
+            });
+            
+            const pointsCollection = turf.featureCollection(pts);
+            
+            // 2.5km hex grid with distance weight 3 for a smooth, meteorological look
+            const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
+            
+            // Clip Grid to TN Polygons
+            const filteredFeatures = [];
+            turf.featureEach(grid, function (cell) {
+                const center = turf.center(cell);
+                let inside = false;
+                for (let i = 0; i < tnGeoJSONData.features.length; i++) {
+                    if (turf.booleanPointInPolygon(center, tnGeoJSONData.features[i])) {
+                        inside = true; break;
+                    }
+                }
+                if (inside && cell.properties.rain >= (isDaily ? 0.1 : 1)) {
+                    filteredFeatures.push(cell);
+                }
+            });
+            
+            const clippedGrid = turf.featureCollection(filteredFeatures);
+
+            // Init Map Container
+            if(!exportIdwMapInstance) {
+                exportIdwMapInstance = L.map('idwMapExportDiv', {
+                    zoomControl: false, attributionControl: false, preferCanvas: true
+                });
+            }
+            
+            const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
+            exportIdwMapInstance.fitBounds(tnBounds);
+            exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
+            
+            // Draw IDW Data
+            L.geoJSON(clippedGrid, {
+                style: function(feature) {
+                    const val = feature.properties.rain;
+                    const color = isDaily ? getIMDColor(val) : getColor(val);
+                    return { fillColor: color, fillOpacity: 0.85, weight: 0.1, color: color };
+                }
+            }).addTo(exportIdwMapInstance);
+            
+            // Draw White District Outlines
+            L.geoJSON(tnGeoJSONData, {
+                style: { fillColor: 'transparent', color: '#ffffff', weight: 1.2, opacity: 0.6 }
+            }).addTo(exportIdwMapInstance);
+
+            // Plot tiny black dots for actual station locations
+            L.geoJSON(pointsCollection, {
+                pointToLayer: function (feature, latlng) {
+                    return L.circleMarker(latlng, { radius: 1, fillColor: "#000", color: "#000", weight: 1, opacity: 0.8, fillOpacity: 0.8 });
+                }
+            }).addTo(exportIdwMapInstance);
+
+            document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : "Spatial Rainfall Distribution";
+            document.getElementById('idwExportSubtitle').innerText = prettyDate;
+            
+            document.getElementById('idwLegendImd').style.display = isDaily ? 'flex' : 'none';
+            document.getElementById('idwLegendContinuous').style.display = isDaily ? 'none' : 'block';
+
+            finalImageFileName = `IDW_Map_${isDaily ? dateVal : metric+'_'+datasetActiveYear}.png`;
+            activeModalSource = '';
+
+            setTimeout(() => {
+                const targetDiv = document.getElementById('exportIdwWrapper');
+                document.getElementById('loadingModal').style.display = 'none';
+                
+                const previewContainer = document.getElementById('previewContainer');
+                previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Capturing High-Res Map...</span>';
+                document.getElementById('previewModal').style.display = 'flex';
+                
+                html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: "#1a1a2e" }).then(canvas => {
+                    finalImageBase64 = canvas.toDataURL('image/png');
+                    previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
+                });
+            }, 1000); // 1-second delay lets Leaflet physically render the canvas tiles
         }
 
         // SHARED EXPORT RENDERER
