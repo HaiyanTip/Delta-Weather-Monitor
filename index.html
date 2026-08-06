@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Turf.js for Voronoi Spatial Polygons -->
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -109,7 +109,7 @@
         .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: bold; }
 
-        /* IMD DISCRETE LEGEND (Daily View) */
+        /* IMD DISCRETE LEGEND (Daily Heatmap) */
         .imd-legend-container { display: none; margin-top: 5px; margin-bottom: 15px; }
         .imd-legend-row { display: flex; gap: 2px; height: 12px; width: 100%; margin-top: 5px; margin-bottom: 6px; }
         .imd-legend-block { flex: 1; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
@@ -392,7 +392,7 @@
                     <div class="toggle-row">
                         <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
                         <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
-                        <label><input type="radio" name="viewMode" value="heatmap"> 🎨 Spatial Zones</label>
+                        <label><input type="radio" name="viewMode" value="heatmap"> 🔥 Heatmap</label>
                     </div>
                     
                     <select id="heatmapMetric" style="display: none; width: 100%; margin-top: 8px; padding: 6px; font-size: 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-main); cursor:pointer;">
@@ -746,11 +746,11 @@
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Layer groups
+        // Layer groups restore leafet.heat
         const layers = { 
             station: L.layerGroup().addTo(map), 
             district: L.layerGroup(),
-            heatmap: L.layerGroup() // Now holds Voronoi Spatial Polygon Polygons
+            heatmap: L.heatLayer([], { radius: 25, blur: 15, maxZoom: 10 })
         };
 
         let globalRainData = [];
@@ -989,7 +989,7 @@
             
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, datasetActiveYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
-            layers.station.clearLayers(); layers.district.clearLayers(); layers.heatmap.clearLayers();
+            layers.station.clearLayers(); layers.district.clearLayers();
             const stationMap = {}; const districtMap = {};
 
             globalRainData.forEach(row => {
@@ -1091,61 +1091,61 @@
             document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
             document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
 
-            // SPATIAL VORONOI ZONES (No Blending, Pure Solid Color Regions)
+            // Tuned Heatmap Generator
             if (activeView === 'heatmap') {
-                const points = [];
+                const heatPoints = [];
+                
                 for (let key in stationMap) {
                     const st = stationMap[key];
-                    if (!st.lat || !st.lon || isNaN(st.lat) || isNaN(st.lon)) continue;
+                    if (st.lat === 0 || st.lon === 0 || isNaN(st.lat) || isNaN(st.lon)) continue;
                     
                     let val = 0;
                     if (hMetric === 'daily') {
                         val = st.today;
-                        if (val < 0.1) continue; // Filter out zero rainfall
-                    } else if (hMetric === 'annual') {
-                        val = st.total;
-                    } else {
-                        val = st[hMetric];
+                        // Filter out trace rainfall strictly for Daily Maps to avoid noise
+                        if (val < 2.5) continue; 
                     }
+                    else if (hMetric === 'annual') val = st.total;
+                    else val = st[hMetric];
 
-                    if (val >= 0) {
-                        points.push(turf.point([st.lon, st.lat], { 
-                            name: st.name, 
-                            district: st.district, 
-                            val: val 
-                        }));
-                    }
+                    if (val > 0) heatPoints.push([st.lat, st.lon, val]);
                 }
-
-                if (points.length > 0) {
-                    const featureCollection = turf.featureCollection(points);
-                    const bbox = [76.0, 8.0, 80.5, 13.6]; // Bounding box encompassing Tamil Nadu
-                    const voronoiPolygons = turf.voronoi(featureCollection, { bbox: bbox });
-
-                    if (voronoiPolygons && voronoiPolygons.features) {
-                        voronoiPolygons.features.forEach((poly) => {
-                            if (!poly) return;
-                            // Match point inside Voronoi Polygon
-                            const matchingPt = featureCollection.features.find(pt => turf.booleanPointInPolygon(pt, poly));
-                            if (matchingPt) {
-                                const props = matchingPt.properties;
-                                const zoneColor = (hMetric === 'daily') ? getIMDColor(props.val) : getColor(props.val);
-                                
-                                const polyLayer = L.geoJSON(poly, {
-                                    style: {
-                                        fillColor: zoneColor,
-                                        fillOpacity: 0.75, // Thick, clear, solid color fill
-                                        weight: 0.8,
-                                        color: '#ffffff'
-                                    }
-                                });
-
-                                polyLayer.bindTooltip(`<b>${props.name} Zone</b> (${props.district})<br>Rainfall: <b>${props.val.toFixed(1)} mm</b>`, { sticky: true });
-                                layers.heatmap.addLayer(polyLayer);
-                            }
-                        });
-                    }
+                
+                if (hMetric === 'daily') {
+                    // Lock max to IMD Extreme threshold
+                    layers.heatmap.setOptions({ 
+                        max: 204.5, 
+                        radius: 25,
+                        blur: 15,
+                        minOpacity: 0.05, 
+                        gradient: { 
+                            0.05: '#98fb98', // Light Rain
+                            0.15: '#2ecc71', // Moderate Rain 
+                            0.35: '#f1c40f', // Heavy Rain 
+                            0.60: '#e67e22', // Very Heavy Rain 
+                            1.00: '#e74c3c'  // Extremely Heavy Rain 
+                        }
+                    });
+                } else {
+                    // Lock cumulative heatmap to 2000 matching the static station legend
+                    layers.heatmap.setOptions({ 
+                        max: 2000,
+                        radius: 30, // Slightly larger radius for thicker color spread
+                        blur: 18,   // Adjusted blur to keep it smooth but not washed out
+                        minOpacity: 0.05, // Dropped to fix the additive blob bug
+                        gradient: { 
+                            0.05: '#c62828', // Red (Low)
+                            0.16: '#f4511e', // Orange
+                            0.33: '#ffca28', // Yellow
+                            0.50: '#64dd17', // Green
+                            0.66: '#0288d1', // Light Blue
+                            0.83: '#283593', // Dark Blue
+                            1.00: '#6a1b9a'  // Purple (High)
+                        }
+                    });
                 }
+                
+                layers.heatmap.setLatLngs(heatPoints);
             }
 
             populateChartDropdowns();
