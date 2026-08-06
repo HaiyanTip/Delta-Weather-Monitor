@@ -104,9 +104,17 @@
         .slider-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; }
         input[type=range] { width: 100%; cursor: pointer; }
         
+        /* CONTINUOUS LEGEND (Annual/Seasonal) */
         .color-scale-container { margin-top: 5px; margin-bottom: 15px;}
         .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: bold; }
+
+        /* IMD DISCRETE LEGEND (Daily Heatmap) */
+        .imd-legend-container { display: none; margin-top: 5px; margin-bottom: 15px; }
+        .imd-legend-row { display: flex; gap: 2px; height: 12px; width: 100%; margin-top: 5px; margin-bottom: 6px; }
+        .imd-legend-block { flex: 1; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
+        .imd-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); font-weight: bold; text-align: center; }
+        .imd-legend-labels span { flex: 1; }
 
         .btn-report {
             background: #2980b9; color: white; border: none; padding: 10px; border-radius: 8px;
@@ -414,10 +422,29 @@
                     <input type="range" id="timeSlider" min="1" max="365" value="365">
                 </div>
                 
-                <div class="color-scale-container">
+                <!-- LEGEND A: Continuous Scale -->
+                <div class="color-scale-container" id="continuousLegend">
                     <div class="color-scale-bar"></div>
                     <div class="color-scale-labels">
                         <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
+                    </div>
+                </div>
+
+                <!-- LEGEND B: IMD Discrete Scale (for Daily Heatmap) -->
+                <div class="imd-legend-container" id="imdLegendContainer">
+                    <div class="imd-legend-row">
+                        <div class="imd-legend-block" style="background: #98fb98;"></div>
+                        <div class="imd-legend-block" style="background: #2ecc71;"></div>
+                        <div class="imd-legend-block" style="background: #f1c40f;"></div>
+                        <div class="imd-legend-block" style="background: #e67e22;"></div>
+                        <div class="imd-legend-block" style="background: #e74c3c;"></div>
+                    </div>
+                    <div class="imd-legend-labels">
+                        <span>2.5-15.5</span>
+                        <span>15.6-64.4</span>
+                        <span>64.5-115.4</span>
+                        <span>115.5-204.4</span>
+                        <span>> 204.4</span>
                     </div>
                 </div>
 
@@ -722,16 +749,11 @@
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Add heatmap layer with custom thermal gradient
+        // Add heatmap layer 
         const layers = { 
             station: L.layerGroup().addTo(map), 
             district: L.layerGroup(),
-            heatmap: L.heatLayer([], { 
-                radius: 25, 
-                blur: 15, 
-                maxZoom: 10, 
-                gradient: { 0.1: 'blue', 0.3: 'cyan', 0.5: 'lime', 0.7: 'yellow', 1.0: 'red' } 
-            })
+            heatmap: L.heatLayer([], { radius: 25, blur: 15, maxZoom: 10 }) // Gradients managed dynamically in updateEngine()
         };
 
         let globalRainData = [];
@@ -1066,17 +1088,28 @@
             if (activeView === 'station') draw(stationMap, layers.station, 7, false);
             if (activeView === 'district') draw(districtMap, layers.district, 22, true);
             
+            // Dual-Legend Display Logic
+            const hMetric = document.getElementById('heatmapMetric').value;
+            const isDailyHeatmap = (activeView === 'heatmap' && hMetric === 'daily');
+            
+            document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
+            document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
+
             // Heatmap Generator
             if (activeView === 'heatmap') {
-                const hMetric = document.getElementById('heatmapMetric').value;
                 let maxVal = 0;
                 const heatPoints = [];
+                
                 for (let key in stationMap) {
                     const st = stationMap[key];
                     if (st.lat === 0 || st.lon === 0 || isNaN(st.lat) || isNaN(st.lon)) continue;
                     
                     let val = 0;
-                    if (hMetric === 'daily') val = st.today;
+                    if (hMetric === 'daily') {
+                        val = st.today;
+                        // Filter out trace rainfall strictly for Daily Maps to avoid noise
+                        if (val < 2.5) continue; 
+                    }
                     else if (hMetric === 'annual') val = st.total;
                     else val = st[hMetric];
 
@@ -1084,8 +1117,26 @@
                     if (val > 0) heatPoints.push([st.lat, st.lon, val]);
                 }
                 
-                // Dynamically scale the heat intensity max based on the selected metric/day
-                layers.heatmap.setOptions({ max: maxVal > 0 ? maxVal : 1 });
+                if (hMetric === 'daily') {
+                    // Lock max to IMD Extreme threshold and use explicit percentage stops mimicking IMD colors
+                    layers.heatmap.setOptions({ 
+                        max: 204.5, 
+                        gradient: { 
+                            0.01: '#98fb98', // Light Rain (2.5mm is ~1.2% of 204.5mm)
+                            0.08: '#2ecc71', // Moderate Rain (15.6mm is ~7.6%)
+                            0.32: '#f1c40f', // Heavy Rain (64.5mm is ~31.5%)
+                            0.56: '#e67e22', // Very Heavy Rain (115.6mm is ~56.5%)
+                            1.00: '#e74c3c'  // Extremely Heavy Rain (204.5mm is 100%)
+                        }
+                    });
+                } else {
+                    // Restore continuous thermal scale & dynamic data-driven max for Annual/Seasonal Maps
+                    layers.heatmap.setOptions({ 
+                        max: maxVal > 0 ? maxVal : 1,
+                        gradient: { 0.1: 'blue', 0.3: 'cyan', 0.5: 'lime', 0.7: 'yellow', 1.0: 'red' }
+                    });
+                }
+                
                 layers.heatmap.setLatLngs(heatPoints);
             }
 
