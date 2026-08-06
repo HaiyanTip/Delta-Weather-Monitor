@@ -57,6 +57,11 @@
             transition: background-color 0.3s, color 0.3s;
         }
         
+        /* Remove black focus box on clicked map shapes */
+        .leaflet-interactive:focus {
+            outline: none;
+        }
+
         .dashboard-container {
             max-width: 1400px; 
             margin: 0 auto; padding: 20px;
@@ -808,6 +813,15 @@
 
         function cleanName(str) { return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; }
 
+        // ALIAS DICTIONARY: Maps GeoJSON names to CSV Data names
+        const districtAliases = {
+            "sivagangai": "sivaganga",
+            "tuticorin": "thoothukudi",
+            "tiruchirappalli": "thiruchirappalli",
+            "thiruvallur": "tiruvallur",
+            "kanchipuram": "kancheepuram"
+        };
+
         function getColor(value) {
             if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
             if (value < 300) return "#f4511e"; if (value < 400) return "#fb8c00";
@@ -1102,7 +1116,12 @@
                 const geoJsonLayer = L.geoJSON(tnGeoJSONData, {
                     style: function(feature) {
                         const rawName = feature.properties.dist || feature.properties.dtname || "";
-                        const cName = cleanName(rawName);
+                        let cName = cleanName(rawName);
+                        
+                        // Pass through Alias filter if needed
+                        if (districtAliases[cName]) {
+                            cName = districtAliases[cName];
+                        }
                         
                         // Find matching district in rawDistrictMap
                         let matchedDist = null;
@@ -1132,7 +1151,13 @@
                     },
                     onEachFeature: function(feature, layer) {
                         const rawName = feature.properties.dist || feature.properties.dtname || "District";
-                        const cName = cleanName(rawName);
+                        let cName = cleanName(rawName);
+                        
+                        // Pass through Alias filter if needed
+                        if (districtAliases[cName]) {
+                            cName = districtAliases[cName];
+                        }
+
                         let matchedDist = null;
                         for (let key in rawDistrictMap) {
                             if (cleanName(key) === cName) {
@@ -1142,14 +1167,16 @@
                         }
 
                         let val = 0;
+                        let displayName = rawName;
                         if (matchedDist && matchedDist.count > 0) {
+                            displayName = matchedDist.name; // Uses exact CSV data name
                             const div = matchedDist.count;
                             if (hMetric === 'daily') val = matchedDist.todaySum / div;
                             else if (hMetric === 'annual') val = matchedDist.total / div;
                             else val = (matchedDist[hMetric] || 0) / div;
                         }
 
-                        layer.bindTooltip(`<b>${rawName} District</b><br>Rainfall Avg: <b>${val.toFixed(1)} mm</b>`, { sticky: true });
+                        layer.bindTooltip(`<b>${displayName} District</b><br>Rainfall Avg: <b>${val.toFixed(1)} mm</b>`, { sticky: true });
                     }
                 });
 
