@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Leaflet Heatmap Plugin -->
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -109,7 +106,7 @@
         .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: bold; }
 
-        /* IMD DISCRETE LEGEND (Daily Heatmap) */
+        /* IMD DISCRETE LEGEND (Daily View) */
         .imd-legend-container { display: none; margin-top: 5px; margin-bottom: 15px; }
         .imd-legend-row { display: flex; gap: 2px; height: 12px; width: 100%; margin-top: 5px; margin-bottom: 6px; }
         .imd-legend-block { flex: 1; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
@@ -392,7 +389,7 @@
                     <div class="toggle-row">
                         <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
                         <label><input type="radio" name="viewMode" value="district"> 🟢 District Avg</label>
-                        <label><input type="radio" name="viewMode" value="heatmap"> 🔥 Heatmap</label>
+                        <label><input type="radio" name="viewMode" value="heatmap"> 🗺️ District Fill</label>
                     </div>
                     
                     <select id="heatmapMetric" style="display: none; width: 100%; margin-top: 8px; padding: 6px; font-size: 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-main); cursor:pointer;">
@@ -740,22 +737,24 @@
     </div>
 
     <script>
-        const map = L.map('map', { center: [10.80, 79.35], zoom: 9.5 });
+        const map = L.map('map', { center: [10.80, 79.35], zoom: 8.5 });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Layer groups restore leafet.heat
+        // Layer groups
         const layers = { 
             station: L.layerGroup().addTo(map), 
             district: L.layerGroup(),
-            heatmap: L.heatLayer([], { radius: 25, blur: 15, maxZoom: 10 })
+            heatmap: L.layerGroup() // Holds District GeoJSON Polygons
         };
 
         let globalRainData = [];
         let globalStations = {};
         let fallbackStations = {}; 
+        let tnGeoJSONData = null; // Stores loaded District Boundary Polygons
+
         let activeView = 'station';
         let activePopupMode = 'stats';
         let chartInstances = {}; 
@@ -779,6 +778,13 @@
 
         const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
         const STATIONS_DATA = 'Stations.csv';
+        const GEOJSON_DATA = 'tn_districts.geojson';
+
+        // Load CSVs and GeoJSON
+        fetch(GEOJSON_DATA)
+            .then(res => res.json())
+            .then(gData => { tnGeoJSONData = gData; })
+            .catch(err => console.warn("GeoJSON loading failed or file missing:", err));
 
         Papa.parse(RAINFALL_DATA, {
             download: true, header: true, skipEmptyLines: true,
@@ -989,7 +995,7 @@
             
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, datasetActiveYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
-            layers.station.clearLayers(); layers.district.clearLayers();
+            layers.station.clearLayers(); layers.district.clearLayers(); layers.heatmap.clearLayers();
             const stationMap = {}; const districtMap = {};
 
             globalRainData.forEach(row => {
@@ -1091,61 +1097,63 @@
             document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
             document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
 
-            // Tuned Heatmap Generator
-            if (activeView === 'heatmap') {
-                const heatPoints = [];
-                
-                for (let key in stationMap) {
-                    const st = stationMap[key];
-                    if (st.lat === 0 || st.lon === 0 || isNaN(st.lat) || isNaN(st.lon)) continue;
-                    
-                    let val = 0;
-                    if (hMetric === 'daily') {
-                        val = st.today;
-                        // Filter out trace rainfall strictly for Daily Maps to avoid noise
-                        if (val < 2.5) continue; 
-                    }
-                    else if (hMetric === 'annual') val = st.total;
-                    else val = st[hMetric];
+            // DISTRICT BOUNDARY CHOROPLETH FILL (Native GeoJSON Layer)
+            if (activeView === 'heatmap' && tnGeoJSONData) {
+                const geoJsonLayer = L.geoJSON(tnGeoJSONData, {
+                    style: function(feature) {
+                        const rawName = feature.properties.dist || feature.properties.dtname || "";
+                        const cName = cleanName(rawName);
+                        
+                        // Find matching district in rawDistrictMap
+                        let matchedDist = null;
+                        for (let key in rawDistrictMap) {
+                            if (cleanName(key) === cName) {
+                                matchedDist = rawDistrictMap[key];
+                                break;
+                            }
+                        }
 
-                    if (val > 0) heatPoints.push([st.lat, st.lon, val]);
-                }
-                
-                if (hMetric === 'daily') {
-                    // Lock max to IMD Extreme threshold
-                    layers.heatmap.setOptions({ 
-                        max: 204.5, 
-                        radius: 25,
-                        blur: 15,
-                        minOpacity: 0.05, 
-                        gradient: { 
-                            0.05: '#98fb98', // Light Rain
-                            0.15: '#2ecc71', // Moderate Rain 
-                            0.35: '#f1c40f', // Heavy Rain 
-                            0.60: '#e67e22', // Very Heavy Rain 
-                            1.00: '#e74c3c'  // Extremely Heavy Rain 
+                        let val = 0;
+                        if (matchedDist && matchedDist.count > 0) {
+                            const div = matchedDist.count;
+                            if (hMetric === 'daily') val = matchedDist.todaySum / div;
+                            else if (hMetric === 'annual') val = matchedDist.total / div;
+                            else val = (matchedDist[hMetric] || 0) / div;
                         }
-                    });
-                } else {
-                    // Lock cumulative heatmap to 2000 matching the static station legend
-                    layers.heatmap.setOptions({ 
-                        max: 2000,
-                        radius: 30, // Slightly larger radius for thicker color spread
-                        blur: 18,   // Adjusted blur to keep it smooth but not washed out
-                        minOpacity: 0.05, // Dropped to fix the additive blob bug
-                        gradient: { 
-                            0.05: '#c62828', // Red (Low)
-                            0.16: '#f4511e', // Orange
-                            0.33: '#ffca28', // Yellow
-                            0.50: '#64dd17', // Green
-                            0.66: '#0288d1', // Light Blue
-                            0.83: '#283593', // Dark Blue
-                            1.00: '#6a1b9a'  // Purple (High)
+
+                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val);
+
+                        return {
+                            fillColor: fillColor,
+                            fillOpacity: 0.82, // Solid, clean polygon fill
+                            weight: 1.5,       // Clean white district borders
+                            color: '#ffffff'
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const rawName = feature.properties.dist || feature.properties.dtname || "District";
+                        const cName = cleanName(rawName);
+                        let matchedDist = null;
+                        for (let key in rawDistrictMap) {
+                            if (cleanName(key) === cName) {
+                                matchedDist = rawDistrictMap[key];
+                                break;
+                            }
                         }
-                    });
-                }
-                
-                layers.heatmap.setLatLngs(heatPoints);
+
+                        let val = 0;
+                        if (matchedDist && matchedDist.count > 0) {
+                            const div = matchedDist.count;
+                            if (hMetric === 'daily') val = matchedDist.todaySum / div;
+                            else if (hMetric === 'annual') val = matchedDist.total / div;
+                            else val = (matchedDist[hMetric] || 0) / div;
+                        }
+
+                        layer.bindTooltip(`<b>${rawName} District</b><br>Rainfall Avg: <b>${val.toFixed(1)} mm</b>`, { sticky: true });
+                    }
+                });
+
+                layers.heatmap.addLayer(geoJsonLayer);
             }
 
             populateChartDropdowns();
