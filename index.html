@@ -1611,13 +1611,14 @@
                     runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal);
                 } catch(e) {
                     console.error("IDW Generation Failed:", e);
-                    alert("Error generating spatial map.");
+                    alert("Error generating spatial map: " + e.message);
                     document.getElementById('loadingModal').style.display = 'none';
                 }
             }, 100);
         }
 
         function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal) {
+            let maxRain = 0;
             const pts = [];
             currentStationData.forEach(st => {
                 if(st.lat === 0 || st.lon === 0) return;
@@ -1626,18 +1627,28 @@
                 else if (metric === 'annual') val = st.total;
                 else val = st[metric];
                 
+                if (val > maxRain) maxRain = val;
+                
                 // Add micro-noise to prevent Turf.js math errors on perfectly overlapping stations
                 let lat = st.lat + (Math.random() - 0.5) * 0.0001;
                 let lon = st.lon + (Math.random() - 0.5) * 0.0001;
                 pts.push(turf.point([lon, lat], { rain: val }));
             });
+
+            // CRITICAL FIX: If there is absolutely zero rain on this day, Turf will crash.
+            if (maxRain === 0) {
+                alert("No rainfall recorded for the selected timeframe. Map cannot be generated.");
+                document.getElementById('loadingModal').style.display = 'none';
+                return;
+            }
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // 1.2km high-res grid for smooth, contour-like blending
-            const grid = turf.interpolate(pointsCollection, 1.2, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
+            // CRITICAL FIX: Increased cell size from 1.2 to 3.5 km.
+            // 1.2 generates ~180,000 hexes and runs out of memory. 3.5 generates ~20,000 and is ultra-smooth and fast.
+            const grid = turf.interpolate(pointsCollection, 3.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
-            // Filter zeros
+            // Filter zeros out of the grid to save rendering memory
             const filteredFeatures = [];
             turf.featureEach(grid, function (cell) {
                 if (cell.properties.rain >= (isDaily ? 0.1 : 1)) {
@@ -1692,7 +1703,7 @@
             // Render container to physical screen bounds briefly for Leaflet to draw tiles, then capture
             const targetDiv = document.getElementById('exportIdwWrapper');
             targetDiv.style.display = 'flex';
-            exportIdwMapInstance.invalidateSize();
+            exportIdwMapInstance.invalidateSize(true);
             exportIdwMapInstance.fitBounds(tnBounds);
 
             setTimeout(() => {
