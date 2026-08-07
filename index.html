@@ -1581,7 +1581,6 @@
         // --- IDW SPATIAL MAPPING ENGINE ---
         let exportIdwMapInstance = null;
 
-        // Generates an inverted polygon to instantly mask out the ocean/other states
         function generateInvertedMask(geoJsonFeatureCollection) {
             let outerRing = [ [90, -180], [90, 180], [-90, 180], [-90, -180] ];
             let maskCoords = [outerRing];
@@ -1658,7 +1657,6 @@
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // Revert back to the working HEX grid. 
             const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
             const filteredFeatures = [];
@@ -1674,7 +1672,6 @@
                     zoomControl: false, attributionControl: false, preferCanvas: true
                 });
                 
-                // CRITICAL Z-INDEX FIX: Creating custom panes enforces rendering order regardless of processing time.
                 exportIdwMapInstance.createPane('gridPane');
                 exportIdwMapInstance.getPane('gridPane').style.zIndex = 400;
                 
@@ -1691,7 +1688,6 @@
             const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
             
-            // 1. Draw High-Res Grid (Pane 400)
             L.geoJSON(finalGrid, {
                 pane: 'gridPane',
                 style: function(feature) {
@@ -1701,17 +1697,14 @@
                 }
             }).addTo(exportIdwMapInstance);
 
-            // 2. Draw Inverted Mask (Pane 410)
             const maskCoords = generateInvertedMask(tnGeoJSONData);
             L.polygon(maskCoords, { pane: 'maskPane', fillColor: '#1a1a2e', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
             
-            // 3. Draw Subdued White State Borders (Pane 420)
             L.geoJSON(tnGeoJSONData, {
                 pane: 'boundsPane',
                 style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.5, opacity: 0.9 }
             }).addTo(exportIdwMapInstance);
 
-            // 4. Draw Tiny Station Pointers (Pane 430)
             L.geoJSON(pointsCollection, {
                 pane: 'pointsPane',
                 pointToLayer: function (feature, latlng) {
@@ -1722,9 +1715,8 @@
             document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : "Spatial Rainfall Distribution";
             document.getElementById('idwExportSubtitle').innerText = prettyDate;
             
-            // Legend Formatting
             const legendImd = document.getElementById('idwLegendImd');
-            const legendCont = document.getElementById('idwLegendContinuous');
+            const legendCont = document.getElementById('idwLegendSeasonal');
             
             if (isDaily) {
                 legendImd.style.display = 'flex';
@@ -1733,7 +1725,6 @@
                 legendImd.style.display = 'none';
                 legendCont.style.display = 'flex';
                 
-                // Inject Stepped Custom Legends
                 let seasonalLegendHTML = "";
                 if (metric === 'winter') {
                     const wColors = [ 
