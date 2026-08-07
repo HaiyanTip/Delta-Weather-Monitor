@@ -429,7 +429,7 @@
                 <!-- LEGEND A: Continuous Scale -->
                 <div class="color-scale-container" id="continuousLegend">
                     <div class="color-scale-bar"></div>
-                    <div class="color-scale-labels">
+                    <div class="color-scale-labels" id="webContinuousLabels">
                         <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000</span><span style="color:#9e9e9e;">>2k</span>
                     </div>
                 </div>
@@ -955,7 +955,7 @@
             else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
             else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
             else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 100; step = 10; }
+            else if (metric === 'winter') { maxRainNormal = 200; step = 20; } // Adjusted Winter Limit
 
             // 1000mm Gap Grey Overflow Logic
             if (value >= maxRainNormal) {
@@ -1216,7 +1216,8 @@
                 for (let key in stationMap) {
                     const item = stationMap[key];
                     if (item.lat === 0 || item.lon === 0 || isNaN(item.lat) || isNaN(item.lon)) continue;
-                    const marker = L.circleMarker([item.lat, item.lon], { radius: 7, fillColor: getColor(item.total), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(layers.station);
+                    // Note: Web map stations always colored by annual total currently
+                    const marker = L.circleMarker([item.lat, item.lon], { radius: 7, fillColor: getColor(item.total, 'annual'), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(layers.station);
 
                     const canvasId = `chart-${item.id}`;
                     let modeSpecificHTML = '';
@@ -1257,6 +1258,20 @@
             
             document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
             document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
+
+            // --- DYNAMIC WEB UI LEGEND FIX ---
+            if (!isDailyHeatmap) {
+                let activeLegendMetric = (activeView === 'heatmap') ? hMetric : 'annual';
+                let maxR = 2000;
+                if (activeLegendMetric === 'nem') maxR = 1200;
+                else if (activeLegendMetric === 'swm') maxR = 1000;
+                else if (activeLegendMetric === 'summer') maxR = 500;
+                else if (activeLegendMetric === 'winter') maxR = 200;
+
+                const lbls = document.getElementById('webContinuousLabels');
+                let mStr = maxR >= 1000 ? (maxR/1000 + 'k') : maxR;
+                lbls.innerHTML = `<span>0</span><span>${maxR*0.25}</span><span>${maxR*0.5}</span><span>${maxR*0.75}</span><span>${maxR}</span><span style="color:#9e9e9e;">>${mStr}</span>`;
+            }
 
             // DISTRICT BOUNDARY CHOROPLETH FILL (Native GeoJSON Layer)
             if (activeView === 'heatmap' && tnGeoJSONData) {
@@ -1684,11 +1699,11 @@
             else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
             else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
             else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 100; step = 10; }
+            else if (metric === 'winter') { maxRainNormal = 200; step = 20; } // Applied 200mm Winter Max Fix
             
             let numBins = maxRainNormal / step;
 
-            // Updated Master Palette: Red -> Orange -> Yellow -> Expanded Green -> Blue -> Deep Violet
+            // Master Palette: Red -> Orange -> Yellow -> Expanded Green -> Blue -> Deep Violet
             const masterPalette = [
                 "#d32f2f", "#f44336", // Reds
                 "#ff7043", "#ffa726", // Oranges
