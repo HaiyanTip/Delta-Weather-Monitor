@@ -1566,23 +1566,6 @@
         // --- IDW SPATIAL MAPPING ENGINE ---
         let exportIdwMapInstance = null;
 
-        // Generates an inverted polygon to instantly mask out the ocean/other states
-        function generateInvertedMask(geoJsonFeatureCollection) {
-            let outerRing = [ [90, -180], [90, 180], [-90, 180], [-90, -180] ];
-            let maskCoords = [outerRing];
-
-            geoJsonFeatureCollection.features.forEach(f => {
-                if (f.geometry.type === 'Polygon') {
-                    maskCoords.push(f.geometry.coordinates[0].map(pt => [pt[1], pt[0]]));
-                } else if (f.geometry.type === 'MultiPolygon') {
-                    f.geometry.coordinates.forEach(poly => {
-                        maskCoords.push(poly[0].map(pt => [pt[1], pt[0]]));
-                    });
-                }
-            });
-            return maskCoords;
-        }
-
         function generateIdwPreview() {
             if(!tnGeoJSONData) { alert("Boundary data not loaded yet. Please wait."); return; }
 
@@ -1618,45 +1601,40 @@
         }
 
         function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal) {
-            let maxRain = 0;
             const pts = [];
             currentStationData.forEach(st => {
-                // STRICT COORD CHECK TO PREVENT TURF.JS CRASH
-                if (!st.lat || !st.lon || isNaN(st.lat) || isNaN(st.lon) || st.lat === 0 || st.lon === 0) return;
-                
+                if(st.lat === 0 || st.lon === 0) return;
                 let val = 0;
                 if (isDaily) val = st.dailyArray[doy - 1] || 0;
                 else if (metric === 'annual') val = st.total;
                 else val = st[metric];
                 
-                if (val > maxRain) maxRain = val;
-                
-                // Add micro-noise to prevent exact overlap div-by-zero
-                let lat = st.lat + (Math.random() - 0.5) * 0.00001;
-                let lon = st.lon + (Math.random() - 0.5) * 0.00001;
-                pts.push(turf.point([lon, lat], { rain: val }));
+                pts.push(turf.point([st.lon, st.lat], { rain: val }));
             });
-
-            if (maxRain === 0) {
-                alert("No rainfall recorded for the selected timeframe. Map cannot be generated.");
-                document.getElementById('loadingModal').style.display = 'none';
-                return;
-            }
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // Revert back to the working HEX grid. 
+            // 2.5km hex grid with distance weight 3 for a smooth, meteorological look
             const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
-            // Filter zeros out of the grid to save rendering memory
+            // Clip Grid to TN Polygons
             const filteredFeatures = [];
             turf.featureEach(grid, function (cell) {
-                if (cell.properties.rain >= (isDaily ? 0.1 : 1)) {
+                const center = turf.center(cell);
+                let inside = false;
+                for (let i = 0; i < tnGeoJSONData.features.length; i++) {
+                    if (turf.booleanPointInPolygon(center, tnGeoJSONData.features[i])) {
+                        inside = true; break;
+                    }
+                }
+                if (inside && cell.properties.rain >= (isDaily ? 0.1 : 1)) {
                     filteredFeatures.push(cell);
                 }
             });
-            const finalGrid = turf.featureCollection(filteredFeatures);
+            
+            const clippedGrid = turf.featureCollection(filteredFeatures);
 
+            // Init Map Container
             if(!exportIdwMapInstance) {
                 exportIdwMapInstance = L.map('idwMapExportDiv', {
                     zoomControl: false, attributionControl: false, preferCanvas: true
@@ -1666,29 +1644,19 @@
             const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
             
-            // 1. Draw High-Res Grid
-            // THE FIX: Set weight to 2 and color to exactly match fillColor. This covers all anti-aliasing gaps.
-            L.geoJSON(finalGrid, {
+            // Draw IDW Data (Fix: increased weight and set stroke color to fill color to remove anti-aliasing gaps)
+            L.geoJSON(clippedGrid, {
                 style: function(feature) {
                     const val = feature.properties.rain;
                     const color = isDaily ? getIMDColor(val) : getColor(val);
-                    return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true }; 
+                    return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color };
                 }
             }).addTo(exportIdwMapInstance);
 
-            // 2. Draw Inverted Mask (Instantly clips the grid perfectly to the state boundary)
-            const maskCoords = generateInvertedMask(tnGeoJSONData);
-            L.polygon(maskCoords, { fillColor: '#1a1a2e', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
-            
-            // 3. Draw Subdued White State Borders
-            L.geoJSON(tnGeoJSONData, {
-                style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.2 }
-            }).addTo(exportIdwMapInstance);
-
-            // 4. Draw Tiny Station Pointers (0.8px dustings)
+            // Plot tiny black dots for actual station locations
             L.geoJSON(pointsCollection, {
                 pointToLayer: function (feature, latlng) {
-                    return L.circleMarker(latlng, { radius: 0.8, fillColor: "#000000", color: "transparent", fillOpacity: 0.7 });
+                    return L.circleMarker(latlng, { radius: 1, fillColor: "#000", color: "transparent", fillOpacity: 0.7 });
                 }
             }).addTo(exportIdwMapInstance);
 
@@ -1718,7 +1686,7 @@
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
                 });
-            }, 1000); // 1-second delay lets Leaflet physically render the canvas tiles before snapshot
+            }, 1000); // 1-second delay lets Leaflet physically render the canvas tiles
         }
 
         // SHARED EXPORT RENDERER
