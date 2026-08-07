@@ -437,6 +437,8 @@
                 <!-- LEGEND B: IMD Discrete Scale (for Daily View) -->
                 <div class="imd-legend-container" id="imdLegendContainer">
                     <div class="imd-legend-row">
+                        <div class="imd-legend-block" style="background: #ffffff; border: 1px solid #ccc;"></div>
+                        <div class="imd-legend-block" style="background: #e0e0e0;"></div>
                         <div class="imd-legend-block" style="background: #98fb98;"></div>
                         <div class="imd-legend-block" style="background: #2ecc71;"></div>
                         <div class="imd-legend-block" style="background: #f1c40f;"></div>
@@ -444,6 +446,8 @@
                         <div class="imd-legend-block" style="background: #e74c3c;"></div>
                     </div>
                     <div class="imd-legend-labels">
+                        <span>0</span>
+                        <span>0.1-2.4</span>
                         <span>2.5-15.5</span>
                         <span>15.6-64.4</span>
                         <span>64.5-115.4</span>
@@ -691,6 +695,11 @@
                 <input type="date" id="idwDateInput">
             </div>
 
+            <div class="modal-group" style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="idwShowStations" checked style="width:auto; cursor:pointer;">
+                <label for="idwShowStations" style="margin:0; cursor:pointer;">Show Station Markers</label>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal('idwModal')">Cancel</button>
                 <button class="btn-generate" style="background:#8e44ad;" onclick="generateIdwPreview()">Generate IDW</button>
@@ -786,7 +795,8 @@
 
     <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT (9:16 STORY FORMAT) -->
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
-        <div class="export-watermark-bg watermark-annual" style="font-size: 220px;">HaiyanTip</div>
+        <!-- Subdued Diagonal Watermark -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: rgba(255, 255, 255, 0.08);">HaiyanTip</div>
         
         <!-- Header -->
         <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
@@ -821,11 +831,11 @@
                     </div>
                 </div>
                 
-                <!-- Continuous/Seasonal Legend (Stepped) -->
+                <!-- Continuous/Seasonal Legend (Adaptive) -->
                 <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
-                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:5px; text-align: center;">Accumulation (mm)</div>
-                    <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:20px; font-size:20px; font-weight:bold;">
-                        <!-- Injected via JS -->
+                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
+                    <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:20px; font-size:18px; font-weight:bold;">
+                        <!-- Injected via JS dynamically -->
                     </div>
                 </div>
             </div>
@@ -937,27 +947,15 @@
             return null; 
         }
 
-        // Stepped Seasonal Colors (Dynamic based on winter vs others)
-        function getColor(value, metric = 'annual') {
-            if (metric === 'winter') {
-                if (value <= 10) return "#ffca28"; 
-                if (value <= 25) return "#64dd17"; 
-                if (value <= 50) return "#00c853"; 
-                if (value <= 100) return "#0288d1"; 
-                return "#283593"; 
-            } else {
-                if (value <= 200) return "#e53935"; 
-                if (value <= 400) return "#f4511e"; 
-                if (value <= 600) return "#fb8c00"; 
-                if (value <= 800) return "#ffca28"; 
-                if (value <= 1000) return "#64dd17"; 
-                if (value <= 1200) return "#00c853"; 
-                if (value <= 1400) return "#0288d1"; 
-                if (value <= 1600) return "#1565c0"; 
-                if (value <= 1800) return "#283593"; 
-                if (value <= 2000) return "#4527a0"; 
-                return "#6a1b9a"; 
-            }
+        // Web UI default seasonal color getter
+        function getColor(value) {
+            if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
+            if (value < 300) return "#f4511e"; if (value < 400) return "#fb8c00";
+            if (value < 500) return "#ffca28"; if (value < 600) return "#ffd54f";
+            if (value < 800) return "#64dd17"; if (value < 1000) return "#00c853";
+            if (value < 1200) return "#0288d1"; if (value < 1400) return "#1565c0"; 
+            if (value < 1600) return "#283593"; if (value < 1800) return "#4527a0"; 
+            return "#6a1b9a";  
         }
 
         function getIMDColor(mm) {
@@ -1251,7 +1249,7 @@
                             else val = (matchedDist[hMetric] || 0) / div;
                         }
 
-                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val, hMetric);
+                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val);
 
                         return {
                             fillColor: fillColor,
@@ -1655,8 +1653,38 @@
                 return;
             }
             
-            const pointsCollection = turf.featureCollection(pts);
+            // --- ADAPTIVE COLOR PALETTE LOGIC ---
+            let step = 100;
+            if (metric === 'winter') {
+                if (maxRain <= 50) step = 10;
+                else if (maxRain <= 150) step = 25;
+                else if (maxRain <= 300) step = 50;
+            } else {
+                if (maxRain > 1800) step = 200;
+            }
             
+            let numBins = Math.ceil(maxRain / step);
+            if (numBins < 3) numBins = 3; 
+
+            const adaptivePalette = [
+                "#ffeb3b", "#fdd835", "#fbc02d", "#f9a825", // yellows
+                "#ffb74d", "#ff8a65", "#ff5722", "#f4511e", // oranges
+                "#e53935", "#d32f2f", "#c62828", "#b71c1c", // reds
+                "#ccff90", "#b2ff59", "#76ff03", "#64dd17", // light greens
+                "#00e676", "#00c853", "#00b248", // greens
+                "#80d8ff", "#40c4ff", "#00b0ff", "#0091ea", // light blues
+                "#1976d2", "#1565c0", "#0d47a1", // blues
+                "#3f51b5", "#303f9f", "#283593", // indigos
+                "#7b1fa2", "#6a1b9a", "#4a148c"  // purples
+            ];
+
+            let binColors = [];
+            for(let i = 0; i < numBins; i++) {
+                let idx = Math.floor((i / Math.max(1, numBins - 1)) * (adaptivePalette.length - 1));
+                binColors.push(adaptivePalette[idx]);
+            }
+
+            const pointsCollection = turf.featureCollection(pts);
             const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
             const filteredFeatures = [];
@@ -1692,7 +1720,15 @@
                 pane: 'gridPane',
                 style: function(feature) {
                     const val = feature.properties.rain;
-                    const color = isDaily ? getIMDColor(val) : getColor(val, metric);
+                    let color;
+                    if (isDaily) {
+                        color = getIMDColor(val);
+                    } else {
+                        let idx = Math.floor((val - 0.001) / step);
+                        if (idx < 0) idx = 0;
+                        if (idx >= numBins) idx = numBins - 1;
+                        color = binColors[idx];
+                    }
                     return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true }; 
                 }
             }).addTo(exportIdwMapInstance);
@@ -1705,12 +1741,15 @@
                 style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.5, opacity: 0.9 }
             }).addTo(exportIdwMapInstance);
 
-            L.geoJSON(pointsCollection, {
-                pane: 'pointsPane',
-                pointToLayer: function (feature, latlng) {
-                    return L.circleMarker(latlng, { radius: 0.8, fillColor: "#000000", color: "transparent", fillOpacity: 0.7 });
-                }
-            }).addTo(exportIdwMapInstance);
+            const showStations = document.getElementById('idwShowStations').checked;
+            if (showStations) {
+                L.geoJSON(pointsCollection, {
+                    pane: 'pointsPane',
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, { radius: 0.8, fillColor: "#000000", color: "transparent", fillOpacity: 0.7 });
+                    }
+                }).addTo(exportIdwMapInstance);
+            }
 
             document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : "Spatial Rainfall Distribution";
             document.getElementById('idwExportSubtitle').innerText = prettyDate;
@@ -1726,25 +1765,11 @@
                 legendCont.style.display = 'flex';
                 
                 let seasonalLegendHTML = "";
-                if (metric === 'winter') {
-                    const wColors = [ 
-                        {c: '#ffca28', l: '< 10'}, {c: '#64dd17', l: '11 - 25'}, 
-                        {c: '#00c853', l: '26 - 50'}, {c: '#0288d1', l: '51 - 100'}, 
-                        {c: '#283593', l: '> 100'} 
-                    ];
-                    wColors.forEach(item => {
-                        seasonalLegendHTML += `<span style="color:${item.c};"><span class="legend-dot" style="background:${item.c};"></span> ${item.l}</span>`;
-                    });
-                } else {
-                    const sColors = [
-                        {c: '#e53935', l: '< 200'}, {c: '#f4511e', l: '200-400'}, {c: '#fb8c00', l: '400-600'},
-                        {c: '#ffca28', l: '600-800'}, {c: '#64dd17', l: '800-1k'}, {c: '#00c853', l: '1k-1.2k'},
-                        {c: '#0288d1', l: '1.2k-1.4k'}, {c: '#1565c0', l: '1.4k-1.6k'}, {c: '#283593', l: '1.6k-1.8k'},
-                        {c: '#4527a0', l: '1.8k-2k'}, {c: '#6a1b9a', l: '> 2k'}
-                    ];
-                    sColors.forEach(item => {
-                        seasonalLegendHTML += `<span style="color:${item.c};"><span class="legend-dot" style="background:${item.c};"></span> ${item.l}</span>`;
-                    });
+                for (let i = 0; i < numBins; i++) {
+                    let lower = i * step;
+                    let upper = (i + 1) * step;
+                    let label = (i === numBins - 1) ? `> ${lower}` : `${lower}-${upper}`;
+                    seasonalLegendHTML += `<span style="color:${binColors[i]}; white-space:nowrap;"><span class="legend-dot" style="background:${binColors[i]}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
                 }
                 document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
             }
