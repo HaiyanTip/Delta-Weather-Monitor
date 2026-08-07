@@ -1632,12 +1632,11 @@
                 if (val > maxRain) maxRain = val;
                 
                 // Add micro-noise to prevent exact overlap div-by-zero
-                let lat = st.lat + (Math.random() - 0.5) * 0.0001;
-                let lon = st.lon + (Math.random() - 0.5) * 0.0001;
+                let lat = st.lat + (Math.random() - 0.5) * 0.00001;
+                let lon = st.lon + (Math.random() - 0.5) * 0.00001;
                 pts.push(turf.point([lon, lat], { rain: val }));
             });
 
-            // CRITICAL FIX: If there is absolutely zero rain on this day, Turf will crash.
             if (maxRain === 0) {
                 alert("No rainfall recorded for the selected timeframe. Map cannot be generated.");
                 document.getElementById('loadingModal').style.display = 'none';
@@ -1646,9 +1645,8 @@
             
             const pointsCollection = turf.featureCollection(pts);
             
-            // THE FIX: gridType 'square' completely bypasses the Turf.js 'min/next' hex grid crash. 
-            // Square looks identical to Hex when borders are removed, but the math is 100% stable.
-            const grid = turf.interpolate(pointsCollection, 3.5, { gridType: 'square', property: 'rain', units: 'kilometers', weight: 3 });
+            // Revert back to the working HEX grid. 
+            const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
             
             // Filter zeros out of the grid to save rendering memory
             const filteredFeatures = [];
@@ -1668,12 +1666,13 @@
             const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
             
-            // 1. Draw High-Res Grid (Color matching stroke completely fixes anti-aliasing gaps)
+            // 1. Draw High-Res Grid
+            // THE FIX: Set weight to 2 and color to exactly match fillColor. This covers all anti-aliasing gaps.
             L.geoJSON(finalGrid, {
                 style: function(feature) {
                     const val = feature.properties.rain;
                     const color = isDaily ? getIMDColor(val) : getColor(val);
-                    return { fillColor: color, fillOpacity: 0.95, weight: 1.5, color: color }; 
+                    return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true }; 
                 }
             }).addTo(exportIdwMapInstance);
 
