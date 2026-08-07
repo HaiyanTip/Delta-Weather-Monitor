@@ -109,7 +109,7 @@
         
         /* CONTINUOUS LEGEND (Annual/Seasonal) */
         .color-scale-container { margin-top: 5px; margin-bottom: 15px;}
-        .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #c62828, #f4511e, #ffca28, #64dd17, #0288d1, #283593, #6a1b9a); }
+        .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #d32f2f, #ffeb3b, #43a047, #0288d1, #4a148c, #616161); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: bold; }
 
         /* IMD DISCRETE LEGEND (Daily View) */
@@ -430,7 +430,7 @@
                 <div class="color-scale-container" id="continuousLegend">
                     <div class="color-scale-bar"></div>
                     <div class="color-scale-labels">
-                        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000+</span>
+                        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000</span><span style="color:#9e9e9e;">>2k</span>
                     </div>
                 </div>
 
@@ -740,11 +740,12 @@
             <div class="export-body" id="exportDailyBodyContent"></div>
             <div class="export-footer">
                 <div class="export-legend">
-                    <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff;"></span>Very Light</span>
+                    <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff; border:1px solid #7f8c8d;"></span>0</span>
+                    <span style="color:#e0e0e0;"><span class="legend-dot" style="background:#e0e0e0;"></span>Trace</span>
                     <span style="color:#98fb98;"><span class="legend-dot" style="background:#98fb98;"></span>Light</span>
                     <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span>Moderate</span>
                     <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span>Heavy</span>
-                    <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span>Very Heavy</span>
+                    <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span>V. Heavy</span>
                     <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span>Extreme</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 15px;">
@@ -795,8 +796,8 @@
 
     <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT (9:16 STORY FORMAT) -->
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
-        <!-- Subdued Diagonal Watermark -->
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: rgba(255, 255, 255, 0.08);">HaiyanTip</div>
+        <!-- Subdued Diagonal Ghost Watermark (2% Opacity) -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: rgba(255, 255, 255, 0.02);">HaiyanTip</div>
         
         <!-- Header -->
         <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
@@ -831,7 +832,7 @@
                     </div>
                 </div>
                 
-                <!-- Continuous/Seasonal Legend (Adaptive) -->
+                <!-- Continuous/Seasonal Legend (Adaptive Red -> Violet) -->
                 <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
                     <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
                     <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:20px; font-size:18px; font-weight:bold;">
@@ -947,15 +948,39 @@
             return null; 
         }
 
-        // Web UI default seasonal color getter
-        function getColor(value) {
-            if (value < 100) return "#c62828"; if (value < 200) return "#e53935";
-            if (value < 300) return "#f4511e"; if (value < 400) return "#fb8c00";
-            if (value < 500) return "#ffca28"; if (value < 600) return "#ffd54f";
-            if (value < 800) return "#64dd17"; if (value < 1000) return "#00c853";
-            if (value < 1200) return "#0288d1"; if (value < 1400) return "#1565c0"; 
-            if (value < 1600) return "#283593"; if (value < 1800) return "#4527a0"; 
-            return "#6a1b9a";  
+        // Web UI default seasonal color getter (Unified with IDW Logic)
+        function getColor(value, metric = 'annual') {
+            let maxRainNormal = 2000, step = 100;
+            if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
+            else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
+            else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
+            else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
+            else if (metric === 'winter') { maxRainNormal = 100; step = 10; }
+
+            // 1000mm Gap Grey Overflow Logic
+            if (value >= maxRainNormal) {
+                let overflowVal = value - maxRainNormal;
+                let overflowIdx = Math.floor(overflowVal / 1000);
+                if (overflowIdx === 0) return '#9e9e9e'; // Gray 1
+                if (overflowIdx === 1) return '#616161'; // Gray 2
+                return '#212121';                        // Charcoal
+            }
+
+            // Red to Violet Palette (More shades after yellow)
+            const masterPalette = [
+                "#d32f2f", "#f44336", // Reds
+                "#ff7043", "#ffa726", // Oranges
+                "#ffca28", "#ffeb3b", // Yellows
+                "#d4e157", "#9ccc65", "#66bb6a", "#43a047", "#2e7d32", // Greens
+                "#26c6da", "#00acc1", "#29b6f6", "#0288d1", "#1565c0", // Blues
+                "#3f51b5", "#5e35b1", "#4a148c" // Violets
+            ];
+            
+            let numBins = maxRainNormal / step;
+            let binIdx = Math.floor(value / step);
+            if (binIdx < 0) binIdx = 0;
+            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
+            return masterPalette[colorIdx];
         }
 
         function getIMDColor(mm) {
@@ -1249,7 +1274,7 @@
                             else val = (matchedDist[hMetric] || 0) / div;
                         }
 
-                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val);
+                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val, hMetric);
 
                         return {
                             fillColor: fillColor,
@@ -1653,36 +1678,25 @@
                 return;
             }
             
-            // --- ADAPTIVE COLOR PALETTE LOGIC ---
-            let step = 100;
-            if (metric === 'winter') {
-                if (maxRain <= 50) step = 10;
-                else if (maxRain <= 150) step = 25;
-                else if (maxRain <= 300) step = 50;
-            } else {
-                if (maxRain > 1800) step = 200;
-            }
+            // --- CORE LOGIC: DEFINED CEILINGS & GREY OVERFLOWS ---
+            let maxRainNormal = 2000, step = 100;
+            if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
+            else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
+            else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
+            else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
+            else if (metric === 'winter') { maxRainNormal = 100; step = 10; }
             
-            let numBins = Math.ceil(maxRain / step);
-            if (numBins < 3) numBins = 3; 
+            let numBins = maxRainNormal / step;
 
-            const adaptivePalette = [
-                "#ffeb3b", "#fdd835", "#fbc02d", "#f9a825", // yellows
-                "#ffb74d", "#ff8a65", "#ff5722", "#f4511e", // oranges
-                "#e53935", "#d32f2f", "#c62828", "#b71c1c", // reds
-                "#ccff90", "#b2ff59", "#76ff03", "#64dd17", // light greens
-                "#00e676", "#00c853", "#00b248", // greens
-                "#80d8ff", "#40c4ff", "#00b0ff", "#0091ea", // light blues
-                "#1976d2", "#1565c0", "#0d47a1", // blues
-                "#3f51b5", "#303f9f", "#283593", // indigos
-                "#7b1fa2", "#6a1b9a", "#4a148c"  // purples
+            // Updated Master Palette: Red -> Orange -> Yellow -> Expanded Green -> Blue -> Deep Violet
+            const masterPalette = [
+                "#d32f2f", "#f44336", // Reds
+                "#ff7043", "#ffa726", // Oranges
+                "#ffca28", "#ffeb3b", // Yellows
+                "#d4e157", "#9ccc65", "#66bb6a", "#43a047", "#2e7d32", // Expanded Greens
+                "#26c6da", "#00acc1", "#29b6f6", "#0288d1", "#1565c0", // Blues
+                "#3f51b5", "#5e35b1", "#4a148c" // Violets
             ];
-
-            let binColors = [];
-            for(let i = 0; i < numBins; i++) {
-                let idx = Math.floor((i / Math.max(1, numBins - 1)) * (adaptivePalette.length - 1));
-                binColors.push(adaptivePalette[idx]);
-            }
 
             const pointsCollection = turf.featureCollection(pts);
             const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
@@ -1721,13 +1735,22 @@
                 style: function(feature) {
                     const val = feature.properties.rain;
                     let color;
+                    
                     if (isDaily) {
                         color = getIMDColor(val);
                     } else {
-                        let idx = Math.floor((val - 0.001) / step);
-                        if (idx < 0) idx = 0;
-                        if (idx >= numBins) idx = numBins - 1;
-                        color = binColors[idx];
+                        if (val >= maxRainNormal) {
+                            let overflowVal = val - maxRainNormal;
+                            let overflowIdx = Math.floor(overflowVal / 1000); // 1000mm gaps for extreme peaks
+                            if (overflowIdx === 0) color = '#9e9e9e';      // Light Gray
+                            else if (overflowIdx === 1) color = '#616161'; // Medium Gray
+                            else color = '#212121';                        // Deep Charcoal
+                        } else {
+                            let binIdx = Math.floor(val / step);
+                            if (binIdx < 0) binIdx = 0;
+                            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
+                            color = masterPalette[colorIdx];
+                        }
                     }
                     return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true }; 
                 }
@@ -1765,12 +1788,30 @@
                 legendCont.style.display = 'flex';
                 
                 let seasonalLegendHTML = "";
+                
+                // Build normal scale legend
                 for (let i = 0; i < numBins; i++) {
                     let lower = i * step;
                     let upper = (i + 1) * step;
-                    let label = (i === numBins - 1) ? `> ${lower}` : `${lower}-${upper}`;
-                    seasonalLegendHTML += `<span style="color:${binColors[i]}; white-space:nowrap;"><span class="legend-dot" style="background:${binColors[i]}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                    let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
+                    let color = masterPalette[colorIdx];
+                    let label = `${lower}-${upper}`;
+                    seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
                 }
+
+                // Add Overflow Greys to legend ONLY if data hit those extremes
+                if (maxRain > maxRainNormal) {
+                    seasonalLegendHTML += `<div style="width:100%; height:0; margin:2px 0;"></div>`; // Line break for greys
+                    seasonalLegendHTML += `<span style="color:#9e9e9e; white-space:nowrap;"><span class="legend-dot" style="background:#9e9e9e; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal}-${maxRainNormal + 1000}</span>`;
+                    
+                    if (maxRain > maxRainNormal + 1000) {
+                        seasonalLegendHTML += `<span style="color:#616161; white-space:nowrap;"><span class="legend-dot" style="background:#616161; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal + 1000}-${maxRainNormal + 2000}</span>`;
+                    }
+                    if (maxRain > maxRainNormal + 2000) {
+                        seasonalLegendHTML += `<span style="color:#212121; white-space:nowrap;"><span class="legend-dot" style="background:#212121; border:1px solid rgba(255,255,255,0.2);"></span> > ${maxRainNormal + 2000}</span>`;
+                    }
+                }
+
                 document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
             }
 
