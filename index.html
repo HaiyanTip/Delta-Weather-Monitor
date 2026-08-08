@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statewide Rainfall Dashboard</title>
-    
+    <title>TN Daily Rainfall Info</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232f6690' d='M12 2C8 8 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-4-8-8-14z'/%3E%3C/svg%3E">
+
     <!-- Leaflet for Mapping -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -22,51 +23,107 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 
     <style>
-        /* CSS VARIABLES FOR DARK MODE */
+        /* ============================================================
+           DESIGN TOKENS
+           A quiet, precise "instrument panel" chrome so the rainfall
+           color-coding (IMD bands, seasonal scale) stays the visual hero.
+           ============================================================ */
         :root {
-            --bg-color: #f0f2f5;
+            --ink-900: #0b1220;
+            --ink-700: #24344d;
+            --mist-50: #f5f7fa;
+            --mist-100: #eef1f6;
             --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-muted: #7f8c8d;
-            --border-color: #ced4da;
-            --hover-bg: #f8f9fa;
-            --table-row-hover: #f1f4f8;
-            --table-head-bg: #2c3e50;
-            --table-head-text: #ffffff;
+            --text-main: #1c2942;
+            --text-muted: #66748c;
+            --border-color: #e1e6ee;
+            --hover-bg: #f4f6fa;
+            --table-row-hover: #eaf1f8;
+            --table-row-alt: #fafbfd;
+            --table-head-bg: #16233a;
+            --table-head-text: #eef2f8;
             --input-bg: #ffffff;
             --popup-bg: #ffffff;
             --map-filter: none;
+
+            --accent-rain: #2f6690;
+            --accent-rain-dark: #24506f;
+            --accent-monsoon: #1c8f6b;
+            --accent-monsoon-dark: #15704f;
+            --accent-storm: #6d4bb8;
+            --accent-storm-dark: #57389a;
+            --accent-amber: #c47a1f;
+
+            --shadow-card: 0 1px 2px rgba(15,23,42,0.05), 0 10px 28px rgba(15,23,42,0.07);
+            --shadow-pop: 0 12px 32px rgba(15,23,42,0.16);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 7px;
+            --bg-color: var(--mist-50);
         }
 
         [data-theme="dark"] {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #e0e0e0;
-            --text-muted: #95a5a6;
-            --border-color: #333333;
-            --hover-bg: #2c2c2c;
-            --table-row-hover: #2a2a2a;
-            --table-head-bg: #111111;
-            --table-head-text: #e0e0e0;
-            --input-bg: #2c2c2c;
-            --popup-bg: #1e1e1e;
-            --map-filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); 
+            --bg-color: #0a0f1a;
+            --card-bg: #121a2b;
+            --text-main: #dde3ee;
+            --text-muted: #8595ad;
+            --border-color: #253048;
+            --hover-bg: #17213a;
+            --table-row-hover: #1c2846;
+            --table-row-alt: #131b2e;
+            --table-head-bg: #080d18;
+            --table-head-text: #dde3ee;
+            --input-bg: #17213a;
+            --popup-bg: #121a2b;
+            --map-filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+            --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.4);
         }
 
+        * { box-sizing: border-box; }
+
         html, body {
-            margin: 0; padding: 0; 
+            margin: 0; padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: var(--bg-color); color: var(--text-main);
             transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
         }
-        
+
+        button, select, input { font-family: inherit; }
+        :focus-visible { outline: 2px solid var(--accent-rain); outline-offset: 2px; }
+
         /* Remove black focus box on clicked map shapes */
         .leaflet-interactive:focus { outline: none; }
 
+        /* ============================================================
+           SITE HEADER
+           ============================================================ */
+        .site-header {
+            position: sticky; top: 0; z-index: 500;
+            background: rgba(11, 18, 32, 0.92);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: #eef2f8;
+        }
+        [data-theme="dark"] .site-header { background: rgba(6, 10, 18, 0.92); }
+        .site-header-inner {
+            max-width: 1400px; margin: 0 auto; padding: 14px 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+        }
+        .site-brand { display: flex; align-items: center; gap: 12px; }
+        .site-brand-mark {
+            width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
+            background: linear-gradient(155deg, var(--accent-rain), var(--accent-storm));
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .site-title { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; line-height: 1.2; }
+        .site-subtitle { font-size: 12px; color: #a8b4c8; font-weight: 500; margin-top: 1px; }
+        #headerMeta { font-size: 12px; color: #8fd6b8; font-weight: 600; white-space: nowrap; }
+
         .dashboard-container {
-            max-width: 1400px; 
-            margin: 0 auto; padding: 20px;
-            display: flex; flex-direction: column; gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto; padding: 24px 20px 40px;
+            display: flex; flex-direction: column; gap: 22px;
         }
 
         /* 1. TOP ROW */
@@ -74,173 +131,233 @@
 
         .control-panel {
             flex: 0 0 300px; height: fit-content;
-            background: var(--card-bg); border-radius: 12px; padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color);
-            display: flex; flex-direction: column; transition: background-color 0.3s;
+            background: var(--card-bg); border-radius: var(--radius-lg); padding: 20px;
+            box-shadow: var(--shadow-card); border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; transition: background-color 0.3s, border-color .3s;
         }
-        
+
         .map-wrapper {
-            flex: 1; height: 100%; border-radius: 12px; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color);
+            flex: 1; height: 100%; border-radius: var(--radius-lg); overflow: hidden;
+            box-shadow: var(--shadow-card); border: 1px solid var(--border-color);
             background: var(--card-bg); position: relative;
         }
         #map { height: 100%; width: 100%; background: var(--bg-color); }
         .leaflet-layer { filter: var(--map-filter); transition: filter 0.3s; }
 
-        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .legend-title { font-weight: bold; font-size: 16px; margin: 0; }
-        
+        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .legend-title { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin: 0; }
+
         .btn-theme-toggle {
-            background: none; border: 1px solid var(--border-color); color: var(--text-main);
-            border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 14px;
+            background: var(--hover-bg); border: 1px solid var(--border-color); color: var(--text-main);
+            border-radius: var(--radius-sm); padding: 5px 9px; cursor: pointer; font-size: 14px;
+            transition: transform .15s, background .15s;
+        }
+        .btn-theme-toggle:hover { transform: translateY(-1px); background: var(--table-row-hover); }
+
+        #yearSelect {
+            padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
+            background: var(--input-bg); color: var(--text-main); font-weight: 700; cursor: pointer; font-size: 13px;
+            appearance: none; -webkit-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+            background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+            background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+            padding-right: 26px;
         }
 
-        #yearSelect { padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); font-weight: bold; cursor: pointer; font-size: 14px;}
-        
-        .toggle-group { background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .toggle-row { display: flex; justify-content: space-around; }
-        .toggle-row label { cursor: pointer; font-weight: 500; display: flex; align-items: center; font-size: 13px; }
-        .toggle-row input { margin-right: 6px; cursor: pointer; }
-        .toggle-divider { height: 1px; background: var(--border-color); margin: 5px 0; }
-        
-        .slider-container { margin-bottom: 15px; margin-top: 5px; }
-        .slider-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; }
-        input[type=range] { width: 100%; cursor: pointer; }
-        
+        .panel-section-label {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px;
+            color: var(--text-muted); margin: 0 0 6px 2px;
+        }
+
+        .toggle-group { background: var(--mist-100); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+        [data-theme="dark"] .toggle-group { background: var(--hover-bg); }
+        .toggle-row { display: flex; justify-content: space-around; background: var(--card-bg); border-radius: 8px; padding: 3px; gap: 3px; border: 1px solid var(--border-color); }
+        .toggle-row label {
+            cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 12.5px; flex: 1; padding: 7px 6px; border-radius: 6px; color: var(--text-muted);
+            transition: background .15s, color .15s;
+        }
+        .toggle-row label:hover { color: var(--text-main); }
+        .toggle-row label:has(input:checked) { background: var(--accent-rain); color: #ffffff; }
+        .toggle-row input {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+            clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
+        .toggle-divider { height: 1px; background: var(--border-color); margin: 2px 0; }
+
+        #heatmapMetric {
+            display: none; width: 100%; margin-top: 8px; padding: 8px 10px; font-size: 12.5px; font-weight: 500;
+            border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--input-bg);
+            color: var(--text-main); cursor: pointer;
+        }
+
+        .slider-container { margin-bottom: 16px; margin-top: 5px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+        #sliderDateDisplay { color: var(--accent-amber) !important; }
+
+        input[type=range] {
+            width: 100%; cursor: pointer; -webkit-appearance: none; appearance: none;
+            height: 5px; border-radius: 4px; background: var(--border-color); outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%;
+            background: var(--accent-rain); border: 3px solid var(--card-bg);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 17px; height: 17px; border-radius: 50%; background: var(--accent-rain);
+            border: 3px solid var(--card-bg); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer;
+        }
+
         /* CONTINUOUS LEGEND (Annual/Seasonal) */
-        .color-scale-container { margin-top: 5px; margin-bottom: 15px;}
-        .color-scale-bar { height: 12px; width: 100%; border-radius: 4px; margin-top: 5px; margin-bottom: 6px; border: 1px solid #2c3e50; background: linear-gradient(to right, #d32f2f, #ffeb3b, #43a047, #0288d1, #4a148c, #616161); }
-        .color-scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: bold; }
+        .color-scale-container { margin-top: 5px; margin-bottom: 16px;}
+        .color-scale-bar { height: 12px; width: 100%; border-radius: var(--radius-sm); margin-top: 5px; margin-bottom: 6px; border: 1px solid var(--border-color); background: linear-gradient(to right, #d32f2f, #ffeb3b, #43a047, #0288d1, #4a148c, #616161); }
+        .color-scale-labels { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-weight: 700; }
 
         /* IMD DISCRETE LEGEND (Daily View) */
-        .imd-legend-container { display: none; margin-top: 5px; margin-bottom: 15px; }
-        .imd-legend-row { display: flex; gap: 2px; height: 12px; width: 100%; margin-top: 5px; margin-bottom: 6px; }
-        .imd-legend-block { flex: 1; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
-        .imd-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); font-weight: bold; text-align: center; }
+        .imd-legend-container { display: none; margin-top: 5px; margin-bottom: 16px; }
+        .imd-legend-row { display: flex; gap: 2px; height: 12px; width: 100%; margin-top: 5px; margin-bottom: 6px; border-radius: var(--radius-sm); overflow: hidden; }
+        .imd-legend-block { flex: 1; border: 1px solid rgba(0,0,0,0.08); }
+        .imd-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); font-weight: 700; text-align: center; }
         .imd-legend-labels span { flex: 1; }
 
         .btn-report {
-            background: #2980b9; color: white; border: none; padding: 10px; border-radius: 8px;
-            font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;
-            text-align: center; width: 100%; box-sizing: border-box; margin-bottom: 8px;
+            background: var(--accent-rain); color: white; border: none; padding: 11px; border-radius: var(--radius-md);
+            font-weight: 700; cursor: pointer; font-size: 13.5px; transition: background 0.2s, transform .15s, box-shadow .2s;
+            text-align: center; width: 100%; box-sizing: border-box; margin-bottom: 9px;
+            box-shadow: 0 2px 6px rgba(47,102,144,0.25);
         }
-        .btn-report:hover { background: #3498db; }
-        .btn-annual-report { background: #27ae60; }
-        .btn-annual-report:hover { background: #2ecc71; }
-        .btn-idw-report { background: #8e44ad; }
-        .btn-idw-report:hover { background: #9b59b6; }
+        .btn-report:hover { background: var(--accent-rain-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(47,102,144,0.35); }
+        .btn-report:active { transform: translateY(0); }
+        .btn-annual-report { background: var(--accent-monsoon); box-shadow: 0 2px 6px rgba(28,143,107,0.25); }
+        .btn-annual-report:hover { background: var(--accent-monsoon-dark); box-shadow: 0 4px 12px rgba(28,143,107,0.35); }
+        .btn-idw-report { background: var(--accent-storm); box-shadow: 0 2px 6px rgba(109,75,184,0.25); margin-bottom: 0; }
+        .btn-idw-report:hover { background: var(--accent-storm-dark); box-shadow: 0 4px 12px rgba(109,75,184,0.35); }
 
         /* 2. CHART SECTION */
         .chart-section {
             height: 45vh; min-height: 400px; width: 100%; box-sizing: border-box;
-            background: var(--card-bg); border-radius: 12px; padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color);
-            display: flex; flex-direction: column; transition: background-color 0.3s;
+            background: var(--card-bg); border-radius: var(--radius-lg); padding: 22px;
+            box-shadow: var(--shadow-card); border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; transition: background-color 0.3s, border-color .3s;
         }
-        .daily-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .daily-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
         .chart-title-wrapper { display: flex; flex-direction: column; }
-        #masterChartTitle { font-size: 18px; font-weight: bold; }
-        .chart-instruction { font-size: 12px; color: var(--text-muted); font-weight: normal; margin-top: 2px; }
-        
+        #masterChartTitle { font-size: 17px; font-weight: 700; letter-spacing: 0.1px; }
+        .chart-instruction { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-top: 3px; }
+
         .chart-dropdown-group { display: flex; gap: 10px; }
         .chart-dropdown-group select {
-            padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);
-            font-size: 13px; font-weight: 500; background: var(--input-bg); color: var(--text-main);
+            padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
+            font-size: 12.5px; font-weight: 600; background: var(--input-bg); color: var(--text-main);
             cursor: pointer; outline: none; min-width: 180px;
         }
+        .chart-dropdown-group select:disabled { opacity: 0.55; cursor: not-allowed; }
 
         .chart-wrapper { flex: 1; position: relative; width: 100%; overflow-x: auto; overflow-y: hidden; }
         .chart-area { min-width: 1000px; height: 100%; }
 
         /* 3. TABLES SECTION */
         .tables-section { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-        .data-grid-card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-color); }
-        .data-grid-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; display: inline-block;}
-        .table-container { max-height: 700px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; }
-        .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; color: var(--text-main); }
-        .master-table th { background: var(--table-head-bg); color: var(--table-head-text); padding: 10px 5px; text-align: center; position: sticky; top: 0; font-size: 11px; text-transform: uppercase; z-index: 10; }
+        .data-grid-card { background: var(--card-bg); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-card); border: 1px solid var(--border-color); }
+        .data-grid-header { font-size: 16.5px; font-weight: 700; margin-bottom: 16px; border-bottom: 2px solid var(--accent-rain); padding-bottom: 6px; display: inline-block;}
+        .table-container { max-height: 700px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .master-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; min-width: 1200px; color: var(--text-main); font-variant-numeric: tabular-nums; }
+        .master-table th { background: var(--table-head-bg); color: var(--table-head-text); padding: 11px 5px; text-align: center; position: sticky; top: 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; z-index: 10; }
         th[data-sort] { cursor: pointer; user-select: none; }
-        th[data-sort]:hover { color: #f1c40f; }
-        .sort-icon { display: inline-block; width: 12px; font-size: 10px; margin-left: 2px; color: #f1c40f; }
+        th[data-sort]:hover { color: #ffd166; }
+        .sort-icon { display: inline-block; width: 12px; font-size: 10px; margin-left: 2px; color: #ffd166; }
         .master-table td { padding: 8px 5px; border-bottom: 1px solid var(--border-color); }
         .master-table td:nth-child(2), .master-table td:nth-child(3) { text-align: left; }
-        .row-hover:hover { background-color: var(--table-row-hover); }
+        .master-table tbody tr:nth-child(even) { background: var(--table-row-alt); }
+        .row-hover:hover { background-color: var(--table-row-hover) !important; }
 
         /* CUSTOM MULTI-SELECT DROPDOWN */
         .multi-select-wrapper { position: relative; display: inline-block; text-align: left; }
-        .multi-select-btn { background: #34495e; color: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; outline: none; }
-        .multi-select-menu { position: absolute; top: 100%; left: 0; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: none; z-index: 100; min-width: 180px; max-height: 250px; overflow-y: auto; box-shadow: 0 8px 20px rgba(0,0,0,0.3); margin-top: 5px; text-transform: none; text-align: left; }
+        .multi-select-btn { background: var(--accent-rain); color: white; border: 1px solid transparent; border-radius: 5px; padding: 3px 9px; font-size: 11px; font-weight: 700; cursor: pointer; margin-left: 5px; outline: none; transition: background .15s; }
+        .multi-select-btn:hover { background: var(--accent-rain-dark); }
+        .multi-select-menu { position: absolute; top: 100%; left: 0; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px; display: none; z-index: 100; min-width: 180px; max-height: 250px; overflow-y: auto; box-shadow: var(--shadow-pop); margin-top: 5px; text-transform: none; text-align: left; }
         .multi-select-menu.show { display: block; }
         .multi-select-actions { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; position: sticky; top: -10px; background: var(--input-bg); z-index: 10; }
-        .multi-select-action-btn { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 10px; padding: 4px 2px; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: center;}
-        .multi-select-action-btn.apply { background: #3498db; color: white; border-color: #3498db; }
+        .multi-select-action-btn { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 10px; padding: 4px 2px; cursor: pointer; border-radius: 5px; font-weight: 700; text-align: center;}
+        .multi-select-action-btn.apply { background: var(--accent-rain); color: white; border-color: var(--accent-rain); }
         .multi-select-item { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; color: var(--text-main); font-weight: 500; cursor: pointer; }
         .multi-select-item input { cursor: pointer; }
 
         /* POPUPS */
-        .leaflet-popup-content-wrapper { background: var(--popup-bg); color: var(--text-main); border-radius: 8px; }
+        .leaflet-popup-content-wrapper { background: var(--popup-bg); color: var(--text-main); border-radius: var(--radius-md); }
         .leaflet-popup-tip { background: var(--popup-bg); }
         .matrix-popup { min-width: 280px; }
-        .popup-header { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
+        .popup-header { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
         .popup-sub { color: var(--text-muted); font-size: 12px; margin-bottom: 8px; }
         .popup-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
-        .popup-tab { flex: 1; text-align: center; font-size: 11.5px; font-weight: bold; padding: 6px; cursor: pointer; color: var(--text-muted); }
-        .popup-tab.active { color: #2980b9; border-bottom: 2px solid #2980b9; }
+        .popup-tab { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; padding: 6px; cursor: pointer; color: var(--text-muted); }
+        .popup-tab.active { color: var(--accent-rain); border-bottom: 2px solid var(--accent-rain); }
         .stats-table-exact { width: 100%; font-size: 12.5px; border-collapse: collapse; margin-bottom: 5px; }
         .stats-table-exact td { padding: 5px 2px; border-bottom: 1px solid var(--border-color); }
         .stats-table-exact td:last-child { text-align: right; font-weight: 600; }
         .row-highlight { background-color: var(--hover-bg); }
         .row-highlight td { font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border-color); padding: 6px 2px;}
-        .sec-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin: 12px 0 4px 0; font-weight: bold; }
+        .sec-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin: 12px 0 4px 0; font-weight: 700; letter-spacing: 0.4px; }
         .metrics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 10px; }
-        .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; text-align: center; flex: 1 1 30%; min-width: 60px; box-sizing: border-box; }
-        .metric-val { font-weight: bold; font-size: 12px; color: #2980b9; }
+        .metric-box { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 4px; border-radius: 6px; text-align: center; flex: 1 1 30%; min-width: 60px; box-sizing: border-box; }
+        .metric-val { font-weight: 700; font-size: 12px; color: var(--accent-rain); }
         .metric-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
 
         /* MODAL OVERLAYS */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 9999; display: none;
-            justify-content: center; align-items: center; backdrop-filter: blur(3px);
+            background: rgba(8,12,20,0.68); z-index: 9999; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(4px);
         }
         .modal-content {
-            background: var(--card-bg); padding: 25px; border-radius: 12px;
+            background: var(--card-bg); padding: 26px; border-radius: var(--radius-lg);
             width: 90%; max-width: 450px; color: var(--text-main);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-pop); border: 1px solid var(--border-color);
         }
-        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
-        .modal-group { margin-bottom: 15px; }
-        .modal-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted); }
+        .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 2px solid var(--accent-rain); padding-bottom: 6px; }
+        .modal-group { margin-bottom: 16px; }
+        .modal-group label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
         .modal-group select, .modal-group input[type="date"] {
-            width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);
+            width: 100%; padding: 9px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
             background: var(--input-bg); color: var(--text-main); font-family: inherit; box-sizing: border-box; outline: none;
         }
 
         .quick-select-bar { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
         .btn-quick-select {
             background: var(--hover-bg); border: 1px solid var(--border-color);
-            color: var(--text-main); border-radius: 4px; padding: 5px 10px;
-            font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            color: var(--text-main); border-radius: 5px; padding: 5px 10px;
+            font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;
         }
-        .btn-quick-select:hover { background: #3498db; color: white; border-color: #3498db;}
-        .quick-select-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+        .btn-quick-select:hover { background: var(--accent-rain); color: white; border-color: var(--accent-rain);}
+        .quick-select-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
 
         .checklist-container {
             max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
-            border-radius: 6px; padding: 10px; background: var(--input-bg);
+            border-radius: var(--radius-sm); padding: 10px; background: var(--input-bg);
         }
         .checklist-item { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; cursor: pointer;}
-        
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
-        .btn-generate { background: #3498db; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s;}
-        .btn-generate:hover { background: #2980b9; }
-        .btn-download-final { background: #27ae60; border: none; color: white; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 9px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; transition: background .15s;}
+        .btn-cancel:hover { background: var(--hover-bg); }
+        .btn-generate { background: var(--accent-rain); border: none; color: white; padding: 9px 16px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: background 0.2s;}
+        .btn-generate:hover { background: var(--accent-rain-dark); }
+        .btn-download-final { background: var(--accent-monsoon); border: none; color: white; padding: 9px 16px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: background .15s; }
+        .btn-download-final:hover { background: var(--accent-monsoon-dark); }
+
+        /* NOTICE MODAL (replaces native alert boxes) */
+        .notice-icon {
+            width: 42px; height: 42px; border-radius: 50%; background: rgba(196,122,31,0.15);
+            color: var(--accent-amber); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 800; margin-bottom: 14px;
+        }
+        #noticeModalMessage { font-size: 14px; line-height: 1.5; color: var(--text-main); margin: 0 0 4px; }
 
         /* PREVIEW MODAL SPECIFICS */
-        #previewModal .modal-content { max-width: 90vw; max-height: 90vh; text-align: center; display: flex; flex-direction: column; } 
-        #previewContainer { flex: 1; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 15px; }
-        #previewImage { max-width: 100%; max-height: 70vh; width: auto; border-radius: 4px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); object-fit: contain; }
+        #previewModal .modal-content { max-width: 90vw; max-height: 90vh; text-align: center; display: flex; flex-direction: column; }
+        #previewContainer { flex: 1; overflow-y: auto; overflow-x: auto; text-align: center; background: #000; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 15px; }
+        #previewImage { max-width: 100%; max-height: 70vh; width: auto; border-radius: 6px; display: block; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); object-fit: contain; }
 
         /* OFF-SCREEN CARD GENERATORS */
         .offscreen-wrapper {
@@ -263,7 +380,7 @@
         .export-header { border-bottom: 4px solid #3498db; padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
         .export-title { font-size: 54px; font-weight: 900; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         .export-date { font-size: 32px; font-weight: 300; color: #bdc3c7; margin: 0; }
-        
+
         .layout-vertical .export-body { display: flex; flex-direction: column; gap: 40px; flex: 1; }
         .layout-landscape .export-body { display: flex; flex-wrap: wrap; gap: 40px; align-content: flex-start; justify-content: center; flex: 1; }
         .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); }
@@ -272,8 +389,8 @@
         .export-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; }
         .export-row:last-child { border-bottom: none; }
         .export-stn { font-weight: 500; flex: 1; word-wrap: break-word; line-height: 1.2; }
-        .export-val { font-weight: 900; white-space: nowrap; text-align: right; } 
-        
+        .export-val { font-weight: 900; white-space: nowrap; text-align: right; }
+
         .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 25px; }
         .export-legend { display: flex; gap: 20px; font-size: 18px; font-weight: bold; flex-wrap: wrap; justify-content: center; }
         .export-legend span { display: flex; align-items: center; gap: 8px; }
@@ -290,19 +407,30 @@
         .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
         .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
-        
+
         /* IDW STORY EXPORT LAYOUT (9:16) */
         .layout-vertical-story {
-            width: 1080px; height: 1920px; padding: 60px; 
+            width: 1080px; height: 1920px; padding: 60px;
             display: flex; flex-direction: column; background-color: #1a1a2e;
             position: relative; box-sizing: border-box;
         }
+
+        /* SITE FOOTER */
+        .site-footer {
+            max-width: 1400px; margin: 4px auto 0; padding: 18px 20px 0;
+            border-top: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            font-size: 12px; color: var(--text-muted); font-weight: 500;
+        }
+        .site-footer strong { color: var(--text-main); }
 
         @media (max-width: 1024px) {
             .top-row { flex-direction: column; height: auto; display: flex; }
             .control-panel { flex: none; width: 100%; box-sizing: border-box; }
             .map-wrapper { height: 60vh; min-height: 450px; width: 100%; flex: none; display: block; }
             .chart-dropdown-group { width: 100%; flex-direction: column; }
+            .site-header-inner { padding: 12px 16px; }
+            #headerMeta { display: none; }
         }
     </style>
 </head>
@@ -312,7 +440,7 @@
         function toggleDarkMode() {
             const body = document.body;
             const currentTheme = body.getAttribute('data-theme');
-            if (currentTheme === 'dark') { body.removeAttribute('data-theme'); } 
+            if (currentTheme === 'dark') { body.removeAttribute('data-theme'); }
             else { body.setAttribute('data-theme', 'dark'); }
             if(masterChartInstance) {
                 const isDark = body.getAttribute('data-theme') === 'dark';
@@ -335,7 +463,7 @@
             const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
             const cdzCore = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
             const cdzExt = [...cdzCore, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
-            
+
             checkboxes.forEach(cb => {
                 const val = cb.value.toLowerCase();
                 if (mode === 'ALL') { cb.checked = true; }
@@ -344,7 +472,7 @@
                 else if (mode === 'CDZ_EXT') { cb.checked = cdzExt.some(d => val.includes(d)); }
             });
         }
-        
+
         function toggleMultiSelect(e) {
             e.stopPropagation();
             const menu = document.getElementById('stnDistFilterMenu');
@@ -381,28 +509,50 @@
                 }
             }
         }
+
+        // Lightweight replacement for window.alert() so validation messages
+        // match the rest of the UI instead of a native browser popup.
+        function showNotice(message) {
+            document.getElementById('noticeModalMessage').innerText = message;
+            document.getElementById('noticeModal').style.display = 'flex';
+        }
+        function closeNoticeModal() { document.getElementById('noticeModal').style.display = 'none'; }
     </script>
 
+    <header class="site-header">
+        <div class="site-header-inner">
+            <div class="site-brand">
+                <div class="site-brand-mark">🌧️</div>
+                <div>
+                    <div class="site-title">TN Daily Rainfall Info</div>
+                    <div class="site-subtitle">Daily station rainfall across Tamil Nadu · Source: TNSMART</div>
+                </div>
+            </div>
+            <div id="headerMeta"></div>
+        </div>
+    </header>
+
     <div class="dashboard-container">
-        
+
         <!-- 1. TOP ROW -->
         <div class="top-row">
             <div class="control-panel">
                 <div class="header-controls">
-                    <div class="legend-title">Rainfall Engine</div>
+                    <div class="legend-title">Controls</div>
                     <div>
                         <button class="btn-theme-toggle" onclick="toggleDarkMode()">🌙 / ☀️</button>
                         <select id="yearSelect" style="margin-left: 5px;"></select>
                     </div>
                 </div>
-                
+
                 <div class="toggle-group">
+                    <div class="panel-section-label">Map view</div>
                     <div class="toggle-row">
                         <label><input type="radio" name="viewMode" value="station" checked> 📍 Stations</label>
                         <label><input type="radio" name="viewMode" value="heatmap"> 🗺️ District Wise</label>
                     </div>
-                    
-                    <select id="heatmapMetric" style="display: none; width: 100%; margin-top: 8px; padding: 6px; font-size: 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-main); cursor:pointer;">
+
+                    <select id="heatmapMetric">
                         <option value="daily">Metric: Daily (Slider)</option>
                         <option value="annual">Metric: Annual Total</option>
                         <option value="winter">Metric: Winter Total</option>
@@ -412,6 +562,7 @@
                     </select>
 
                     <div class="toggle-divider"></div>
+                    <div class="panel-section-label">Popup detail</div>
                     <div class="toggle-row">
                         <label><input type="radio" name="popupMode" value="stats" checked> 📝 Stats</label>
                         <label><input type="radio" name="popupMode" value="chart"> 📊 Chart</label>
@@ -421,11 +572,11 @@
                 <div class="slider-container">
                     <div class="slider-label">
                         <span>Jan 1</span>
-                        <span id="sliderDateDisplay" style="color:#d35400;">Loading...</span>
+                        <span id="sliderDateDisplay">Loading...</span>
                     </div>
                     <input type="range" id="timeSlider" min="1" max="365" value="365">
                 </div>
-                
+
                 <!-- LEGEND A: Continuous Scale -->
                 <div class="color-scale-container" id="continuousLegend">
                     <div class="color-scale-bar"></div>
@@ -473,7 +624,7 @@
                     <span id="masterChartTitle">Daily Rainfall Trends</span>
                     <span class="chart-instruction">Use the dropdowns below to explore historical daily data. (Swipe to scroll)</span>
                 </div>
-                
+
                 <div class="chart-dropdown-group">
                     <select id="chartDistSelect">
                         <option value="">Select District...</option>
@@ -492,7 +643,7 @@
 
         <!-- 3. TABLES SECTION -->
         <div class="tables-section">
-            
+
             <div class="data-grid-card">
                 <div class="data-grid-header">District Averages</div>
                 <div class="table-container">
@@ -583,13 +734,18 @@
             </div>
 
         </div>
+
+        <footer class="site-footer">
+            <span>Data: <strong>TNSMART</strong> · Tamil Nadu daily station rainfall</span>
+            <span>Spot an error? Contact <strong>X @HaiyanTip</strong> · <strong>IG @haiyan_clicks</strong></span>
+        </footer>
     </div>
 
     <!-- UI MODAL: DAILY REPORT CONFIGURATION -->
     <div class="modal-overlay" id="reportModal">
         <div class="modal-content">
             <div class="modal-title">Daily Report Settings</div>
-            
+
             <div class="modal-group">
                 <label>Select Date:</label>
                 <input type="date" id="reportDateInput">
@@ -635,9 +791,9 @@
     <div class="modal-overlay" id="annualReportModal">
         <div class="modal-content">
             <div class="modal-title">Annual Report Settings</div>
-            
+
             <div class="modal-group">
-                <label style="color: #27ae60;">Active Year: <span id="annualModalYearLabel">2026</span></label>
+                <label style="color: var(--accent-monsoon);">Active Year: <span id="annualModalYearLabel">2026</span></label>
                 <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">This report will calculate totals based on all available data for the active year selected on the dashboard.</p>
             </div>
 
@@ -661,6 +817,10 @@
                     <button class="btn-quick-select" onclick="quickSelectDistricts('CDZ_EXT', 'dist-chk-annual')">CDZ</button>
                     <button class="btn-quick-select" onclick="quickSelectDistricts('CLEAR', 'dist-chk-annual')">Clear</button>
                 </div>
+                <div class="quick-select-hint">
+                    <b>CDZ Core:</b> Thanjavur, Tiruvarur, Nagapattinam, Mayiladuthurai.<br>
+                    <b>CDZ adds:</b> Thiruchirappalli, Karur, Ariyalur, Cuddalore, Pudukkottai.
+                </div>
                 <div class="checklist-container" id="annualReportDistrictChecklist">
                     <!-- Populated via JS -->
                 </div>
@@ -668,7 +828,7 @@
 
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal('annualReportModal')">Cancel</button>
-                <button class="btn-generate" style="background:#27ae60;" onclick="generateAnnualReportPreview()">Generate Preview</button>
+                <button class="btn-generate" style="background:var(--accent-monsoon);" onclick="generateAnnualReportPreview()">Generate Preview</button>
             </div>
         </div>
     </div>
@@ -677,7 +837,7 @@
     <div class="modal-overlay" id="idwModal">
         <div class="modal-content">
             <div class="modal-title">Spatial Map (IDW) Settings</div>
-            
+
             <div class="modal-group">
                 <label>Timeframe Type:</label>
                 <select id="idwMetricFilter" onchange="toggleIdwDateInput()">
@@ -695,14 +855,25 @@
                 <input type="date" id="idwDateInput">
             </div>
 
-            <div class="modal-group" style="display:flex; align-items:center; gap:8px;">
+            <div class="modal-group" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px;">
                 <input type="checkbox" id="idwShowStations" checked style="width:auto; cursor:pointer;">
                 <label for="idwShowStations" style="margin:0; cursor:pointer;">Show Station Markers</label>
             </div>
 
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal('idwModal')">Cancel</button>
-                <button class="btn-generate" style="background:#8e44ad;" onclick="generateIdwPreview()">Generate IDW</button>
+                <button class="btn-generate" style="background:var(--accent-storm);" onclick="generateIdwPreview()">Generate IDW</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: NOTICE / VALIDATION MESSAGE -->
+    <div class="modal-overlay" id="noticeModal">
+        <div class="modal-content" style="max-width: 380px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <div class="notice-icon">!</div>
+            <p id="noticeModalMessage">Message</p>
+            <div class="modal-actions" style="justify-content: center; width: 100%;">
+                <button class="btn-generate" onclick="closeNoticeModal()">OK</button>
             </div>
         </div>
     </div>
@@ -724,7 +895,7 @@
     <!-- LOADING OVERLAY -->
     <div class="modal-overlay" id="loadingModal">
         <div class="modal-content" style="text-align: center;">
-            <h3 style="color:#3498db;">⚙️ Processing Spatial Data</h3>
+            <h3 style="color:var(--accent-rain);">⚙️ Processing Spatial Data</h3>
             <p style="color:var(--text-muted); font-size:14px;">Running Inverse Distance Weighting interpolation.<br>This will take a few seconds...</p>
         </div>
     </div>
@@ -798,7 +969,7 @@
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
         <!-- Subdued Diagonal Ghost Watermark (2% Opacity) -->
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: rgba(255, 255, 255, 0.02);">HaiyanTip</div>
-        
+
         <!-- Header -->
         <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
             <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:52px; font-weight:900; color:#fff; text-transform:uppercase;">Spatial Distribution</h1>
@@ -809,11 +980,11 @@
         <div style="flex: 1; width: 100%; border-radius: 20px; overflow: hidden; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
             <div id="idwMapExportDiv" style="width: 100%; height: 100%; background: transparent;"></div>
         </div>
-        
+
         <!-- Footer Overlay -->
         <div style="z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 35px;">
             <div style="background: rgba(26,26,46,0.9); padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;">
-                
+
                 <!-- IMD Legend -->
                 <div id="idwLegendImd" style="display:none; flex-direction:column; gap:15px;">
                     <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Rainfall Intensity (mm)</div>
@@ -831,7 +1002,7 @@
                         <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span> > 204.4</span>
                     </div>
                 </div>
-                
+
                 <!-- Continuous/Seasonal Legend (Adaptive Red -> Violet) -->
                 <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
                     <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
@@ -840,7 +1011,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div style="text-align: center; background: rgba(26,26,46,0.9); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box;">
                 <div class="export-source" style="color: #8e44ad; margin-bottom:8px; font-weight:bold; font-size: 32px;">Data: TNSMART</div>
                 <div style="font-size: 24px; color: #bdc3c7; font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
@@ -856,20 +1027,20 @@
         setTimeout(() => { map.invalidateSize(); }, 500);
 
         // Layer groups (Consolidated)
-        const layers = { 
-            station: L.layerGroup().addTo(map), 
+        const layers = {
+            station: L.layerGroup().addTo(map),
             heatmap: L.layerGroup() // Holds District GeoJSON Polygons
         };
 
         let globalRainData = [];
         let globalStations = {};
-        let fallbackStations = {}; 
-        let tnGeoJSONData = null; 
+        let fallbackStations = {};
+        let tnGeoJSONData = null;
 
         let activeView = 'station';
         let activePopupMode = 'stats';
-        let chartInstances = {}; 
-        let masterChartInstance = null; 
+        let chartInstances = {};
+        let masterChartInstance = null;
         let currentSliderDateStr = "";
         let datasetActiveYear = 2026;
         let finalImageBase64 = null;
@@ -880,7 +1051,7 @@
         let currentStationData = [];
         let rawStationMap = {};
         let rawDistrictMap = {};
-        let activeStationDistricts = []; 
+        let activeStationDistricts = [];
 
         let sortConfig = {
             district: { key: 'name', dir: 'asc' },
@@ -902,7 +1073,7 @@
             complete: function(rainResults) {
                 if (!rainResults.data || rainResults.data.length === 0) return;
                 globalRainData = rainResults.data;
-                
+
                 Papa.parse(STATIONS_DATA, {
                     download: true, header: true, skipEmptyLines: true,
                     complete: function(stationResults) {
@@ -910,7 +1081,7 @@
                         initializeDashboard();
                     },
                     error: function() {
-                        buildStationLookup([]); 
+                        buildStationLookup([]);
                         initializeDashboard();
                     }
                 });
@@ -945,7 +1116,7 @@
             for (let key in rawDistrictMap) {
                 if (key.includes(cName) || cName.includes(key)) return rawDistrictMap[key];
             }
-            return null; 
+            return null;
         }
 
         // Web UI default seasonal color getter (Unified with IDW Logic)
@@ -975,7 +1146,7 @@
                 "#26c6da", "#00acc1", "#29b6f6", "#0288d1", "#1565c0", // Blues
                 "#3f51b5", "#5e35b1", "#4a148c" // Violets
             ];
-            
+
             let numBins = maxRainNormal / step;
             let binIdx = Math.floor(value / step);
             if (binIdx < 0) binIdx = 0;
@@ -984,13 +1155,13 @@
         }
 
         function getIMDColor(mm) {
-            if (mm === 0) return '#ffffff'; 
-            if (mm <= 2.4) return '#e0e0e0'; 
-            if (mm <= 15.5) return '#98fb98'; 
-            if (mm <= 64.4) return '#2ecc71'; 
-            if (mm <= 115.5) return '#f1c40f'; 
-            if (mm <= 204.4) return '#e67e22'; 
-            return '#e74c3c'; 
+            if (mm === 0) return '#ffffff';
+            if (mm <= 2.4) return '#e0e0e0';
+            if (mm <= 15.5) return '#98fb98';
+            if (mm <= 64.4) return '#2ecc71';
+            if (mm <= 115.5) return '#f1c40f';
+            if (mm <= 204.4) return '#e67e22';
+            return '#e74c3c';
         }
 
         function parseDateString(dateStr) {
@@ -1018,7 +1189,7 @@
                 const cleanedDist = cleanName(dist);
                 const lat = parseFloat(st.Latitude) || 0;
                 const lon = parseFloat(st.Longitude) || 0;
-                
+
                 if (cleanedName) {
                     const compositeKey = cleanedDist + "_" + cleanedName;
                     const stObj = { district: dist.trim(), lat: lat, lon: lon };
@@ -1066,18 +1237,18 @@
             datasetActiveYear = years.length > 0 ? years[0] : new Date().getFullYear();
 
             yearSelect.addEventListener('change', (e) => { datasetActiveYear = parseInt(e.target.value); updateEngine(); });
-            
+
             const slider = document.getElementById('timeSlider');
             slider.max = maxDOY; slider.value = maxDOY;
             slider.addEventListener('input', (e) => { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); });
             slider.addEventListener('change', updateEngine);
 
             document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => { 
-                    activeView = e.target.value; 
-                    map.removeLayer(layers.station); 
+                radio.addEventListener('change', (e) => {
+                    activeView = e.target.value;
+                    map.removeLayer(layers.station);
                     if(map.hasLayer(layers.heatmap)) map.removeLayer(layers.heatmap);
-                    
+
                     if (activeView === 'heatmap') {
                         map.addLayer(layers.heatmap);
                         document.getElementById('heatmapMetric').style.display = 'block';
@@ -1085,7 +1256,7 @@
                         map.addLayer(layers[activeView]);
                         document.getElementById('heatmapMetric').style.display = 'none';
                     }
-                    updateEngine(); 
+                    updateEngine();
                 });
             });
 
@@ -1098,7 +1269,7 @@
             setupSortingListeners();
             setupChartDropdownListeners();
 
-            initEmptyDailyChart(); updateEngine(); 
+            initEmptyDailyChart(); updateEngine();
         }
 
         function initEmptyDailyChart() {
@@ -1123,7 +1294,7 @@
                 const val = e.target.value; const dist = distSelect.value;
                 const daysInYear = ((datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0)) ? 366 : 365;
                 if (!val) return;
-                if (val === "DISTRICT_AVG") { const dData = rawDistrictMap[cleanName(dist)]; if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1); } 
+                if (val === "DISTRICT_AVG") { const dData = rawDistrictMap[cleanName(dist)]; if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1); }
                 else { const sData = currentStationData.find(s => s.id === val); if (sData) triggerDailyChartSync(sData, false, datasetActiveYear, daysInYear, 1); }
             });
         }
@@ -1136,16 +1307,16 @@
             if (currentStationData.some(st => st.district === "Unassigned")) distSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
             if (Array.from(uniqueDistricts).includes(currentDist) || currentDist === "Unassigned") distSelect.value = currentDist;
         }
-        
+
         function updateDistrictFilterMenus() {
             const menu = document.getElementById('stnDistChecklist');
-            const uniqueDistricts = new Set(); 
+            const uniqueDistricts = new Set();
             currentStationData.forEach(st => { if (st.district !== "Unknown" && st.district !== "Unassigned") uniqueDistricts.add(st.district); });
-            
+
             let html = '';
-            Array.from(uniqueDistricts).sort().forEach(d => { 
+            Array.from(uniqueDistricts).sort().forEach(d => {
                 const checked = (activeStationDistricts.length === 0 || activeStationDistricts.includes(d)) ? 'checked' : '';
-                html += `<label class="multi-select-item"><input type="checkbox" value="${d}" class="stn-dist-chk" ${checked}> ${d}</label>`; 
+                html += `<label class="multi-select-item"><input type="checkbox" value="${d}" class="stn-dist-chk" ${checked}> ${d}</label>`;
             });
             if (currentStationData.some(st => st.district === "Unassigned")) {
                 const checked = (activeStationDistricts.length === 0 || activeStationDistricts.includes('Unassigned')) ? 'checked' : '';
@@ -1157,7 +1328,7 @@
         function updateEngine() {
             const sliderValue = parseInt(document.getElementById('timeSlider').value);
             const daysInYear = ((datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0)) ? 366 : 365;
-            
+
             currentSliderDateStr = getFormattedDateFromDOY(sliderValue, datasetActiveYear);
             document.getElementById('sliderDateDisplay').innerText = currentSliderDateStr;
             layers.station.clearLayers(); layers.heatmap.clearLayers();
@@ -1166,7 +1337,7 @@
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
                 if (!d || d.year !== datasetActiveYear) return;
-                const doy = getDayOfYear(d.day, d.month, d.year); if (doy > sliderValue) return; 
+                const doy = getDayOfYear(d.day, d.month, d.year); if (doy > sliderValue) return;
 
                 const resolved = resolveStationMeta(row.Station_Name || row['Name of the station'], row.District || "", parseFloat(row.Latitude) || 0, parseFloat(row.Longitude) || 0);
                 let mm = parseFloat(row.Rainfall_mm); if (isNaN(mm)) mm = 0.0;
@@ -1175,7 +1346,7 @@
                     stationMap[resolved.uniqueKey] = {
                         id: resolved.uniqueKey, name: resolved.name, lat: resolved.lat, lon: resolved.lon, district: resolved.district,
                         total: 0, today: 0, winter: 0, summer: 0, swm: 0, nem: 0, vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0,
-                        maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
+                        maxRain: 0, maxDate: "-", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0)
                     };
                 }
                 const st = stationMap[resolved.uniqueKey];
@@ -1183,7 +1354,7 @@
                 if (doy === sliderValue) st.today += mm;
 
                 if (d.month <= 2) st.winter += mm; else if (d.month <= 5) st.summer += mm; else if (d.month <= 9) st.swm += mm; else st.nem += mm;
-                
+
                 if (mm > 0) {
                     if (mm <= 2.4) st.vl++; else if (mm <= 15.5) st.light++; else if (mm <= 64.4) st.mod++;
                     else if (mm <= 115.5) st.heavy++; else if (mm <= 204.4) st.vheavy++; else st.extreme++;
@@ -1195,13 +1366,13 @@
                 const safeDistrict = st.district === "Unknown" ? "Unassigned" : st.district;
                 const distKey = cleanName(safeDistrict);
                 if (!districtMap[distKey]) {
-                    districtMap[distKey] = { 
+                    districtMap[distKey] = {
                         id: distKey, name: safeDistrict, count: 0, latSum: 0, lonSum: 0, total: 0, todaySum: 0, winter: 0, summer: 0, swm: 0, nem: 0,
-                        vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0) 
+                        vl: 0, light: 0, mod: 0, heavy: 0, vheavy: 0, extreme: 0, maxRain: 0, maxDate: "Varies", monthly: [0,0,0,0,0,0,0,0,0,0,0,0], dailyArray: new Array(daysInYear).fill(0)
                     };
                 }
                 let d = districtMap[distKey];
-                d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.total += st.total; d.todaySum += st.today; 
+                d.count++; d.latSum += st.lat; d.lonSum += st.lon; d.total += st.total; d.todaySum += st.today;
                 d.winter += st.winter; d.summer += st.summer; d.swm += st.swm; d.nem += st.nem;
                 d.vl += st.vl; d.light += st.light; d.mod += st.mod; d.heavy += st.heavy; d.vheavy += st.vheavy; d.extreme += st.extreme;
                 if (st.maxRain > d.maxRain) { d.maxRain = st.maxRain; }
@@ -1239,7 +1410,7 @@
                     marker.bindTooltip(`<b>${item.name}</b> (${item.district})<br>${item.total.toFixed(1)} mm`, { sticky: true });
                     marker.on('click', function() {
                         const distSelect = document.getElementById('chartDistSelect'); const stnSelect = document.getElementById('chartStnSelect');
-                        distSelect.value = item.district; distSelect.dispatchEvent(new Event('change')); 
+                        distSelect.value = item.district; distSelect.dispatchEvent(new Event('change'));
                         setTimeout(() => { stnSelect.value = item.id; stnSelect.dispatchEvent(new Event('change')); }, 50);
                     });
                     marker.on('popupopen', function() {
@@ -1251,11 +1422,11 @@
                     });
                 }
             }
-            
+
             // Dual-Legend Display Logic
             const hMetric = document.getElementById('heatmapMetric').value;
             const isDailyHeatmap = (activeView === 'heatmap' && hMetric === 'daily');
-            
+
             document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
             document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
 
@@ -1293,8 +1464,8 @@
 
                         return {
                             fillColor: fillColor,
-                            fillOpacity: 0.82, 
-                            weight: 1.5,       
+                            fillOpacity: 0.82,
+                            weight: 1.5,
                             color: '#ffffff'
                         };
                     },
@@ -1321,7 +1492,7 @@
                             const total = matchedDist.total / div;
                             const canvasId = `chart-dist-${matchedDist.id}`;
                             let modeSpecificHTML = '';
-                            
+
                             if (activePopupMode === 'stats') {
                                 modeSpecificHTML = `<div class="popup-tabs"><div class="popup-tab active" onclick="switchPopupTab(this, 'pane-overview-${matchedDist.id}')">Overview</div><div class="popup-tab" onclick="switchPopupTab(this, 'pane-imd-${matchedDist.id}')">IMD Days</div></div>
                                     <div class="popup-pane" id="pane-overview-${matchedDist.id}"><table class="stats-table-exact"><tr><td>🌧️ Today (${currentSliderDateStr})</td><td>${(matchedDist.todaySum/div).toFixed(1)} mm</td></tr><tr class="row-highlight"><td>Annual Total</td><td>${total.toFixed(1)} mm</td></tr><tr><td>❄️ Winter</td><td>${(matchedDist.winter/div).toFixed(1)} mm</td></tr><tr><td>☀️ Summer</td><td>${(matchedDist.summer/div).toFixed(1)} mm</td></tr><tr><td>☁️ SWM (so far)</td><td>${(matchedDist.swm/div).toFixed(1)} mm</td></tr><tr><td>☔ NEM</td><td>${(matchedDist.nem/div).toFixed(1)} mm</td></tr></table><div class="sec-title">🏆 ANNUAL EXTREME</div><table class="stats-table-exact"><tr><td>Highest Single Day</td><td class="text-red">${matchedDist.maxRain.toFixed(1)} mm</td></tr><tr><td>Date of Extreme</td><td>District Max</td></tr></table></div>
@@ -1337,12 +1508,12 @@
                             }
 
                             layer.bindPopup(`<div class="matrix-popup"><div class="popup-header">${displayName}</div><div class="popup-sub">Average across ${matchedDist.count} stations</div>${modeSpecificHTML}</div>`, { maxWidth: 320 });
-                            
+
                             layer.on('click', function() {
-                                const distSelect = document.getElementById('chartDistSelect'); 
+                                const distSelect = document.getElementById('chartDistSelect');
                                 const stnSelect = document.getElementById('chartStnSelect');
-                                distSelect.value = matchedDist.name; 
-                                distSelect.dispatchEvent(new Event('change')); 
+                                distSelect.value = matchedDist.name;
+                                distSelect.dispatchEvent(new Event('change'));
                                 setTimeout(() => { stnSelect.value = "DISTRICT_AVG"; stnSelect.dispatchEvent(new Event('change')); }, 50);
                             });
 
@@ -1363,6 +1534,13 @@
             populateChartDropdowns();
             updateDistrictFilterMenus();
             renderTables();
+
+            // Small live readout in the header - purely informational, derived
+            // from data already loaded; does not affect any control's behavior.
+            const metaEl = document.getElementById('headerMeta');
+            if (metaEl) {
+                metaEl.textContent = `${datasetActiveYear} · ${currentStationData.length} stations · data through ${currentSliderDateStr}`;
+            }
         }
 
         function triggerDailyChartSync(item, isAverage, year, daysInYear, div) {
@@ -1391,10 +1569,10 @@
         function sortDataArray(dataArray, config, isAverageTable) {
             return [...dataArray].sort((a, b) => {
                 let valA, valB; const divA = isAverageTable ? (a.count || 1) : 1; const divB = isAverageTable ? (b.count || 1) : 1;
-                if (config.key.startsWith('m')) { const idx = parseInt(config.key.substring(1)); valA = a.monthly[idx] / divA; valB = b.monthly[idx] / divB; } 
-                else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) { const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key); valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB); } 
+                if (config.key.startsWith('m')) { const idx = parseInt(config.key.substring(1)); valA = a.monthly[idx] / divA; valB = b.monthly[idx] / divB; }
+                else if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key)) { const mapKey = config.key === 'annual' ? 'total' : (config.key === 'max' ? 'maxRain' : config.key); valA = a[mapKey] / (config.key === 'max' ? 1 : divA); valB = b[mapKey] / (config.key === 'max' ? 1 : divB); }
                 else { valA = a[config.key] || ""; valB = b[config.key] || ""; }
-                
+
                 if (['annual', 'winter', 'summer', 'swm', 'nem', 'max'].includes(config.key) || config.key.startsWith('m')) {
                     valA = parseFloat(valA) || 0;
                     valB = parseFloat(valB) || 0;
@@ -1412,7 +1590,7 @@
             if(distHeader) distHeader.innerHTML = sortConfig.district.dir === 'asc' ? '↑' : '↓';
             const statHeader = document.querySelector(`#stationTable th[data-sort="${sortConfig.station.key}"] .sort-icon`);
             if(statHeader) statHeader.innerHTML = sortConfig.station.dir === 'asc' ? '↑' : '↓';
-            
+
             let distHTML = ''; let dSno = 1;
             sortDataArray(currentDistrictData, sortConfig.district, true).forEach(d => {
                 const div = d.count > 0 ? d.count : 1;
@@ -1422,7 +1600,7 @@
 
             let statHTML = ''; let sSno = 1;
             sortDataArray(currentStationData, sortConfig.station, false).forEach(st => {
-                if (activeStationDistricts.length > 0 && !activeStationDistricts.includes(st.district)) return; 
+                if (activeStationDistricts.length > 0 && !activeStationDistricts.includes(st.district)) return;
                 statHTML += `<tr class="row-hover"><td style="text-align:center;">${sSno++}</td><td style="${st.district === 'Unassigned' ? 'color:#e74c3c; font-weight:bold;' : ''}">${st.district}</td><td style="font-weight:bold;">${st.name}</td><td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td><td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td><td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td><td>${st.monthly[9].toFixed(1)}</td><td>${st.monthly[10].toFixed(1)}</td><td>${st.monthly[11].toFixed(1)}</td><td style="font-weight:bold; color:#2980b9;">${st.total.toFixed(1)}</td><td>${st.winter.toFixed(1)}</td><td>${st.summer.toFixed(1)}</td><td>${st.swm.toFixed(1)}</td><td>${st.nem.toFixed(1)}</td><td style="font-weight:bold; color:#e74c3c;">${st.maxRain.toFixed(1)}</td><td>${st.maxDate}</td></tr>`;
             });
             document.getElementById('stationTableBody').innerHTML = statHTML;
@@ -1445,9 +1623,9 @@
             let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
-                if(d && d.year === datasetActiveYear) { 
-                    const doy = getDayOfYear(d.day, d.month, d.year); 
-                    if(doy > maxDOY) maxDOY = doy; 
+                if(d && d.year === datasetActiveYear) {
+                    const doy = getDayOfYear(d.day, d.month, d.year);
+                    if(doy > maxDOY) maxDOY = doy;
                 }
             });
             const latestDate = new Date(datasetActiveYear, 0, maxDOY);
@@ -1474,9 +1652,9 @@
             let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
-                if(d && d.year === datasetActiveYear) { 
-                    const doy = getDayOfYear(d.day, d.month, d.year); 
-                    if(doy > maxDOY) maxDOY = doy; 
+                if(d && d.year === datasetActiveYear) {
+                    const doy = getDayOfYear(d.day, d.month, d.year);
+                    if(doy > maxDOY) maxDOY = doy;
                 }
             });
             const latestDate = new Date(datasetActiveYear, 0, maxDOY);
@@ -1490,21 +1668,21 @@
         }
 
         function closeReportModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-        
-        function closePreviewModal() { 
+
+        function closePreviewModal() {
             document.getElementById('previewModal').style.display = 'none';
-            if(activeModalSource) document.getElementById(activeModalSource).style.display = 'flex'; 
+            if(activeModalSource) document.getElementById(activeModalSource).style.display = 'flex';
         }
 
         function generateDailyReportPreview() {
             const dateVal = document.getElementById('reportDateInput').value;
-            if (!dateVal) { alert("Please select a date."); return; }
+            if (!dateVal) { showNotice("Please select a date."); return; }
 
             const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk-daily:checked')).map(cb => cb.value);
-            if (selectedDistricts.length === 0) { alert("Please select at least one district."); return; }
+            if (selectedDistricts.length === 0) { showNotice("Please select at least one district."); return; }
 
             const targetDate = new Date(dateVal);
-            if (targetDate.getFullYear() !== datasetActiveYear) { alert(`Please select a date within ${datasetActiveYear}.`); return; }
+            if (targetDate.getFullYear() !== datasetActiveYear) { showNotice(`Please select a date within ${datasetActiveYear}.`); return; }
 
             const intensityThreshold = parseFloat(document.getElementById('intensityFilter').value);
             const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -1561,11 +1739,11 @@
 
         function generateAnnualReportPreview() {
             const selectedDistricts = Array.from(document.querySelectorAll('.dist-chk-annual:checked')).map(cb => cb.value);
-            if (selectedDistricts.length === 0) { alert("Please select at least one district."); return; }
-            
+            if (selectedDistricts.length === 0) { showNotice("Please select at least one district."); return; }
+
             const sortSelection = document.getElementById('annualSortFilter').value;
             const sortLabelText = document.getElementById('annualSortFilter').options[document.getElementById('annualSortFilter').selectedIndex].text;
-            
+
             finalImageFileName = `Rainfall_Annual_${datasetActiveYear}.png`;
             activeModalSource = 'annualReportModal';
 
@@ -1578,13 +1756,13 @@
             if(activeHeaderClass) document.querySelector(`.export-annual-table .${activeHeaderClass}`).classList.add('col-highlight');
 
             let exportData = currentStationData.filter(st => selectedDistricts.includes(st.district));
-            
+
             exportData.sort((a, b) => {
                 let valA = 0, valB = 0;
                 if (sortSelection === 'annual') { valA = a.total; valB = b.total; }
                 else if (sortSelection === 'max') { valA = a.maxRain; valB = b.maxRain; }
                 else { valA = a[sortSelection]; valB = b[sortSelection]; }
-                return valB - valA; 
+                return valB - valA;
             });
 
             let htmlStr = "";
@@ -1610,7 +1788,7 @@
                     </tr>
                 `;
             });
-            
+
             document.getElementById('exportAnnualTableBody').innerHTML = htmlStr;
             const targetDiv = document.getElementById('exportAnnualWrapper');
             triggerExportRender(targetDiv, 'annualReportModal');
@@ -1636,18 +1814,18 @@
         }
 
         function generateIdwPreview() {
-            if(!tnGeoJSONData) { alert("Boundary data not loaded yet. Please wait."); return; }
+            if(!tnGeoJSONData) { showNotice("Boundary data not loaded yet. Please wait."); return; }
 
             const metric = document.getElementById('idwMetricFilter').value;
             const dateVal = document.getElementById('idwDateInput').value;
             const isDaily = metric === 'daily';
-            
-            if (isDaily && !dateVal) { alert("Please select a date."); return; }
-            
+
+            if (isDaily && !dateVal) { showNotice("Please select a date."); return; }
+
             let targetDate, doy, prettyDate;
             if (isDaily) {
                 targetDate = new Date(dateVal);
-                if (targetDate.getFullYear() !== datasetActiveYear) { alert(`Please select a date within ${datasetActiveYear}.`); return; }
+                if (targetDate.getFullYear() !== datasetActiveYear) { showNotice(`Please select a date within ${datasetActiveYear}.`); return; }
                 const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
                 prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
                 doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
@@ -1663,7 +1841,7 @@
                     runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal);
                 } catch(e) {
                     console.error("IDW Generation Failed:", e);
-                    alert("Error generating spatial map: " + e.message);
+                    showNotice("Error generating spatial map: " + e.message);
                     document.getElementById('loadingModal').style.display = 'none';
                 }
             }, 100);
@@ -1674,25 +1852,25 @@
             const pts = [];
             currentStationData.forEach(st => {
                 if (!st.lat || !st.lon || isNaN(st.lat) || isNaN(st.lon) || st.lat === 0 || st.lon === 0) return;
-                
+
                 let val = 0;
                 if (isDaily) val = st.dailyArray[doy - 1] || 0;
                 else if (metric === 'annual') val = st.total;
                 else val = st[metric];
-                
+
                 if (val > maxRain) maxRain = val;
-                
+
                 let lat = st.lat + (Math.random() - 0.5) * 0.00001;
                 let lon = st.lon + (Math.random() - 0.5) * 0.00001;
                 pts.push(turf.point([lon, lat], { rain: val }));
             });
 
             if (maxRain === 0) {
-                alert("No rainfall recorded for the selected timeframe. Map cannot be generated.");
+                showNotice("No rainfall recorded for the selected timeframe. Map cannot be generated.");
                 document.getElementById('loadingModal').style.display = 'none';
                 return;
             }
-            
+
             // --- CORE LOGIC: DEFINED CEILINGS & GREY OVERFLOWS ---
             let maxRainNormal = 2000, step = 100;
             if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
@@ -1700,7 +1878,7 @@
             else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
             else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
             else if (metric === 'winter') { maxRainNormal = 200; step = 20; } // Applied 200mm Winter Max Fix
-            
+
             let numBins = maxRainNormal / step;
 
             // Master Palette: Red -> Orange -> Yellow -> Expanded Green -> Blue -> Deep Violet
@@ -1715,7 +1893,7 @@
 
             const pointsCollection = turf.featureCollection(pts);
             const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
-            
+
             const filteredFeatures = [];
             turf.featureEach(grid, function (cell) {
                 if (cell.properties.rain >= (isDaily ? 0.1 : 1)) {
@@ -1728,29 +1906,29 @@
                 exportIdwMapInstance = L.map('idwMapExportDiv', {
                     zoomControl: false, attributionControl: false, preferCanvas: true
                 });
-                
+
                 exportIdwMapInstance.createPane('gridPane');
                 exportIdwMapInstance.getPane('gridPane').style.zIndex = 400;
-                
+
                 exportIdwMapInstance.createPane('maskPane');
                 exportIdwMapInstance.getPane('maskPane').style.zIndex = 410;
-                
+
                 exportIdwMapInstance.createPane('boundsPane');
                 exportIdwMapInstance.getPane('boundsPane').style.zIndex = 420;
-                
+
                 exportIdwMapInstance.createPane('pointsPane');
                 exportIdwMapInstance.getPane('pointsPane').style.zIndex = 430;
             }
-            
+
             const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
-            
+
             L.geoJSON(finalGrid, {
                 pane: 'gridPane',
                 style: function(feature) {
                     const val = feature.properties.rain;
                     let color;
-                    
+
                     if (isDaily) {
                         color = getIMDColor(val);
                     } else {
@@ -1767,13 +1945,13 @@
                             color = masterPalette[colorIdx];
                         }
                     }
-                    return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true }; 
+                    return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true };
                 }
             }).addTo(exportIdwMapInstance);
 
             const maskCoords = generateInvertedMask(tnGeoJSONData);
             L.polygon(maskCoords, { pane: 'maskPane', fillColor: '#1a1a2e', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
-            
+
             L.geoJSON(tnGeoJSONData, {
                 pane: 'boundsPane',
                 style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.5, opacity: 0.9 }
@@ -1791,19 +1969,19 @@
 
             document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : "Spatial Rainfall Distribution";
             document.getElementById('idwExportSubtitle').innerText = prettyDate;
-            
+
             const legendImd = document.getElementById('idwLegendImd');
             const legendCont = document.getElementById('idwLegendSeasonal');
-            
+
             if (isDaily) {
                 legendImd.style.display = 'flex';
                 legendCont.style.display = 'none';
             } else {
                 legendImd.style.display = 'none';
                 legendCont.style.display = 'flex';
-                
+
                 let seasonalLegendHTML = "";
-                
+
                 // Build normal scale legend
                 for (let i = 0; i < numBins; i++) {
                     let lower = i * step;
@@ -1818,7 +1996,7 @@
                 if (maxRain > maxRainNormal) {
                     seasonalLegendHTML += `<div style="width:100%; height:0; margin:2px 0;"></div>`; // Line break for greys
                     seasonalLegendHTML += `<span style="color:#9e9e9e; white-space:nowrap;"><span class="legend-dot" style="background:#9e9e9e; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal}-${maxRainNormal + 1000}</span>`;
-                    
+
                     if (maxRain > maxRainNormal + 1000) {
                         seasonalLegendHTML += `<span style="color:#616161; white-space:nowrap;"><span class="legend-dot" style="background:#616161; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal + 1000}-${maxRainNormal + 2000}</span>`;
                     }
@@ -1843,13 +2021,13 @@
                 const previewContainer = document.getElementById('previewContainer');
                 previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Capturing High-Res Map...</span>';
                 document.getElementById('previewModal').style.display = 'flex';
-                
+
                 html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: "#1a1a2e" }).then(canvas => {
                     targetDiv.style.display = 'none';
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
                 });
-            }, 1000); 
+            }, 1000);
         }
 
         // SHARED EXPORT RENDERER
