@@ -362,16 +362,40 @@
         /* OFF-SCREEN CARD GENERATORS */
         .offscreen-wrapper {
             position: absolute; left: -9999px; top: 0;
-            background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
+            font-family: Arial, sans-serif;
             box-sizing: border-box; overflow: hidden; z-index: -1;
+            /* Export card theme \u2014 dark is the default (matches original look) */
+            --exp-bg: #121212; --exp-bg-annual: #1a1a2e; --exp-text: #ffffff;
+            --exp-text-dim: #bdc3c7; --exp-text-dim2: #7f8c8d; --exp-text-table: #e0e0e0;
+            --exp-panel-bg: rgba(255,255,255,0.05); --exp-panel-border: rgba(255,255,255,0.08);
+            --exp-row-border: rgba(255,255,255,0.1); --exp-footer-border: rgba(255,255,255,0.2);
+            --exp-table-panel-bg: rgba(255,255,255,0.03); --exp-table-panel-border: rgba(255,255,255,0.1);
+            --exp-table-row-alt: rgba(255,255,255,0.02); --exp-table-cell-border: rgba(255,255,255,0.05);
+            --exp-zero-dot: #ffffff; --exp-zero-border: #7f8c8d; --exp-trace: #e0e0e0;
+            --exp-light-green: #98fb98; --exp-footer-panel-bg: rgba(26,26,46,0.9);
+            --exp-watermark-daily: rgba(255,255,255,0.005); --exp-watermark-annual: rgba(255,255,255,0.02);
+            --exp-watermark-idw: rgba(255,255,255,0.02);
+            background-color: var(--exp-bg); color: var(--exp-text);
+        }
+        .offscreen-wrapper[data-export-theme="light"] {
+            --exp-bg: #ffffff; --exp-bg-annual: #f4f6fb; --exp-text: #1a1a2e;
+            --exp-text-dim: #5b6472; --exp-text-dim2: #7f8c8d; --exp-text-table: #2c3140;
+            --exp-panel-bg: rgba(15,20,30,0.04); --exp-panel-border: rgba(15,20,30,0.10);
+            --exp-row-border: rgba(15,20,30,0.12); --exp-footer-border: rgba(15,20,30,0.15);
+            --exp-table-panel-bg: rgba(15,20,30,0.02); --exp-table-panel-border: rgba(15,20,30,0.12);
+            --exp-table-row-alt: rgba(15,20,30,0.03); --exp-table-cell-border: rgba(15,20,30,0.08);
+            --exp-zero-dot: #ffffff; --exp-zero-border: #94a3b8; --exp-trace: #64748b;
+            --exp-light-green: #22c55e; --exp-footer-panel-bg: rgba(240,242,248,0.95);
+            --exp-watermark-daily: rgba(15,20,30,0.012); --exp-watermark-annual: rgba(15,20,30,0.018);
+            --exp-watermark-idw: rgba(15,20,30,0.018);
         }
 
         .export-watermark-bg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 240px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 0;
         }
-        .watermark-daily { color: rgba(255, 255, 255, 0.005); }
-        .watermark-annual { color: rgba(255, 255, 255, 0.02); }
+        .watermark-daily { color: var(--exp-watermark-daily); }
+        .watermark-annual { color: var(--exp-watermark-annual); }
 
         /* Daily Report Export Styles */
         .layout-vertical { width: 1080px; min-height: 1920px; padding: 60px; display: flex; flex-direction: column; }
@@ -379,39 +403,39 @@
         .export-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
         .export-header { border-bottom: 4px solid #3498db; padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
         .export-title { font-size: 54px; font-weight: 900; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
-        .export-date { font-size: 32px; font-weight: 300; color: #bdc3c7; margin: 0; }
+        .export-date { font-size: 32px; font-weight: 300; color: var(--exp-text-dim); margin: 0; }
 
         .layout-vertical .export-body { display: flex; flex-direction: column; gap: 40px; flex: 1; }
         .layout-landscape .export-body { display: flex; flex-wrap: wrap; gap: 40px; align-content: flex-start; justify-content: center; flex: 1; }
-        .export-district-block { background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.08); }
+        .export-district-block { background: var(--exp-panel-bg); border-radius: 16px; padding: 30px; border: 1px solid var(--exp-panel-border); }
         .layout-landscape .export-district-block { flex: 1 1 420px; max-width: 550px; box-sizing: border-box; }
-        .export-district-name { font-size: 36px; font-weight: bold; color: #3498db; margin: 0 0 20px 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        .export-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; font-size: 28px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 12px 0; }
+        .export-district-name { font-size: 36px; font-weight: bold; color: #3498db; margin: 0 0 20px 0; border-bottom: 2px solid var(--exp-panel-border); padding-bottom: 10px; }
+        .export-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; font-size: 28px; border-bottom: 1px dashed var(--exp-row-border); padding: 12px 0; }
         .export-row:last-child { border-bottom: none; }
         .export-stn { font-weight: 500; flex: 1; word-wrap: break-word; line-height: 1.2; }
         .export-val { font-weight: 900; white-space: nowrap; text-align: right; }
 
-        .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 25px; }
+        .export-footer { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 60px; border-top: 2px solid var(--exp-footer-border); padding-top: 25px; }
         .export-legend { display: flex; gap: 20px; font-size: 18px; font-weight: bold; flex-wrap: wrap; justify-content: center; }
         .export-legend span { display: flex; align-items: center; gap: 8px; }
         .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-        .export-source { font-size: 24px; color: #7f8c8d; font-weight: bold; align-self: flex-start; }
+        .export-source { font-size: 24px; color: var(--exp-text-dim2); font-weight: bold; align-self: flex-start; }
 
         /* Annual Report Export Styles */
-        .layout-annual { width: 2600px; padding: 60px; display: flex; flex-direction: column; background-color: #1a1a2e; }
-        .annual-table-container { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .export-annual-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 22px; color: #e0e0e0; }
+        .layout-annual { width: 2600px; padding: 60px; display: flex; flex-direction: column; background-color: var(--exp-bg-annual); }
+        .annual-table-container { background: var(--exp-table-panel-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--exp-table-panel-border); }
+        .export-annual-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 22px; color: var(--exp-text-table); }
         .export-annual-table th { background: #0f3460; color: #ffffff; padding: 20px 10px; font-size: 20px; text-transform: uppercase; border-bottom: 3px solid #e94560; }
         .export-annual-table th:nth-child(2), .export-annual-table th:nth-child(3) { text-align: left; padding-left: 15px; }
         .export-annual-table td:nth-child(2), .export-annual-table td:nth-child(3) { text-align: left; padding-left: 15px; }
-        .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .export-annual-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .export-annual-table td { padding: 16px 10px; border-bottom: 1px solid var(--exp-table-cell-border); }
+        .export-annual-table tr:nth-child(even) { background: var(--exp-table-row-alt); }
         .col-highlight { font-weight: 900 !important; color: #f1c40f !important; font-size: 24px; }
 
         /* IDW STORY EXPORT LAYOUT (9:16) */
         .layout-vertical-story {
             width: 1080px; height: 1920px; padding: 60px;
-            display: flex; flex-direction: column; background-color: #1a1a2e;
+            display: flex; flex-direction: column; background-color: var(--exp-bg-annual);
             position: relative; box-sizing: border-box;
         }
 
@@ -780,6 +804,14 @@
                 </div>
             </div>
 
+            <div class="modal-group">
+                <label>Card Background:</label>
+                <select id="dailyExportTheme">
+                    <option value="dark" selected>Dark</option>
+                    <option value="light">White</option>
+                </select>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal('reportModal')">Cancel</button>
                 <button class="btn-generate" onclick="generateDailyReportPreview()">Generate Preview</button>
@@ -826,6 +858,14 @@
                 </div>
             </div>
 
+            <div class="modal-group">
+                <label>Card Background:</label>
+                <select id="annualExportTheme">
+                    <option value="dark" selected>Dark</option>
+                    <option value="light">White</option>
+                </select>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeReportModal('annualReportModal')">Cancel</button>
                 <button class="btn-generate" style="background:var(--accent-monsoon);" onclick="generateAnnualReportPreview()">Generate Preview</button>
@@ -858,6 +898,14 @@
             <div class="modal-group" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px;">
                 <input type="checkbox" id="idwShowStations" checked style="width:auto; cursor:pointer;">
                 <label for="idwShowStations" style="margin:0; cursor:pointer;">Show Station Markers</label>
+            </div>
+
+            <div class="modal-group">
+                <label>Card Background:</label>
+                <select id="idwExportTheme">
+                    <option value="dark" selected>Dark</option>
+                    <option value="light">White</option>
+                </select>
             </div>
 
             <div class="modal-actions">
@@ -911,9 +959,9 @@
             <div class="export-body" id="exportDailyBodyContent"></div>
             <div class="export-footer">
                 <div class="export-legend">
-                    <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff; border:1px solid #7f8c8d;"></span>0</span>
-                    <span style="color:#e0e0e0;"><span class="legend-dot" style="background:#e0e0e0;"></span>Trace</span>
-                    <span style="color:#98fb98;"><span class="legend-dot" style="background:#98fb98;"></span>Light</span>
+                    <span style="color:var(--exp-zero-dot);"><span class="legend-dot" style="background:var(--exp-zero-dot); border:1px solid var(--exp-zero-border);"></span>0</span>
+                    <span style="color:var(--exp-trace);"><span class="legend-dot" style="background:var(--exp-trace);"></span>Trace</span>
+                    <span style="color:var(--exp-light-green);"><span class="legend-dot" style="background:var(--exp-light-green);"></span>Light</span>
                     <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span>Moderate</span>
                     <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span>Heavy</span>
                     <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span>V. Heavy</span>
@@ -921,7 +969,7 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 15px;">
                     <div class="export-source">Data: TNSMART</div>
-                    <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
+                    <div style="font-size: 20px; color: var(--exp-text-dim2); font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
                 </div>
             </div>
         </div>
@@ -958,7 +1006,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="export-footer" style="border-top-color: rgba(255,255,255,0.1); flex-direction: row; justify-content: space-between;">
+            <div class="export-footer" style="border-top-color: var(--exp-footer-border); flex-direction: row; justify-content: space-between;">
                 <div class="export-source" style="color: #e94560;">Data: TNSMART</div>
                 <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
             </div>
@@ -968,30 +1016,30 @@
     <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT (9:16 STORY FORMAT) -->
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
         <!-- Subdued Diagonal Ghost Watermark (2% Opacity) -->
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: rgba(255, 255, 255, 0.02);">HaiyanTip</div>
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: var(--exp-watermark-idw);">HaiyanTip</div>
 
         <!-- Header -->
         <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
-            <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:52px; font-weight:900; color:#fff; text-transform:uppercase;">Spatial Distribution</h1>
-            <h2 id="idwExportSubtitle" style="margin:0; font-size:32px; color:#bdc3c7; font-weight:300;">August 4, 2026</h2>
+            <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:52px; font-weight:900; color:var(--exp-text); text-transform:uppercase;">Spatial Distribution</h1>
+            <h2 id="idwExportSubtitle" style="margin:0; font-size:32px; color:var(--exp-text-dim); font-weight:300;">August 4, 2026</h2>
         </div>
 
         <!-- The Map Container -->
-        <div style="flex: 1; width: 100%; border-radius: 20px; overflow: hidden; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <div style="flex: 1; width: 100%; border-radius: 20px; overflow: hidden; position: relative; z-index: 1; border: 2px solid var(--exp-panel-border); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
             <div id="idwMapExportDiv" style="width: 100%; height: 100%; background: transparent;"></div>
         </div>
 
         <!-- Footer Overlay -->
         <div style="z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 35px;">
-            <div style="background: rgba(26,26,46,0.9); padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;">
+            <div style="background: var(--exp-footer-panel-bg); padding: 30px; border-radius: 12px; border: 1px solid var(--exp-panel-border); width: 100%; box-sizing: border-box;">
 
                 <!-- IMD Legend -->
                 <div id="idwLegendImd" style="display:none; flex-direction:column; gap:15px;">
-                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Rainfall Intensity (mm)</div>
+                    <div style="color:var(--exp-text); font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Rainfall Intensity (mm)</div>
                     <div style="display:flex; justify-content:space-around; font-size:20px; font-weight:bold; margin-bottom: 10px;">
-                        <span style="color:#ffffff;"><span class="legend-dot" style="background:#ffffff; border: 1px solid #7f8c8d;"></span> 0</span>
-                        <span style="color:#e0e0e0;"><span class="legend-dot" style="background:#e0e0e0;"></span> 0.1 - 2.4</span>
-                        <span style="color:#98fb98;"><span class="legend-dot" style="background:#98fb98;"></span> 2.5 - 15.5</span>
+                        <span style="color:var(--exp-zero-dot);"><span class="legend-dot" style="background:var(--exp-zero-dot); border: 1px solid var(--exp-zero-border);"></span> 0</span>
+                        <span style="color:var(--exp-trace);"><span class="legend-dot" style="background:var(--exp-trace);"></span> 0.1 - 2.4</span>
+                        <span style="color:var(--exp-light-green);"><span class="legend-dot" style="background:var(--exp-light-green);"></span> 2.5 - 15.5</span>
                     </div>
                     <div style="display:flex; justify-content:space-around; font-size:20px; font-weight:bold; margin-bottom: 10px;">
                         <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span> 15.6 - 64.4</span>
@@ -1005,16 +1053,16 @@
 
                 <!-- Continuous/Seasonal Legend (Adaptive Red -> Violet) -->
                 <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
-                    <div style="color:#fff; font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
+                    <div style="color:var(--exp-text); font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
                     <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:20px; font-size:18px; font-weight:bold;">
                         <!-- Injected via JS dynamically -->
                     </div>
                 </div>
             </div>
 
-            <div style="text-align: center; background: rgba(26,26,46,0.9); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box;">
+            <div style="text-align: center; background: var(--exp-footer-panel-bg); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box;">
                 <div class="export-source" style="color: #8e44ad; margin-bottom:8px; font-weight:bold; font-size: 32px;">Data: TNSMART</div>
-                <div style="font-size: 24px; color: #bdc3c7; font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
+                <div style="font-size: 24px; color: var(--exp-text-dim); font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
             </div>
         </div>
     </div>
@@ -1730,10 +1778,11 @@
             });
 
             if (!hasAnyData) {
-                htmlStr = `<div style="text-align:center; width: 100%; font-size:36px; color:#bdc3c7; margin-top:50px; grid-column: 1 / -1;">No rainfall met the selected criteria.</div>`;
+                htmlStr = `<div style="text-align:center; width: 100%; font-size:36px; color:var(--exp-text-dim); margin-top:50px; grid-column: 1 / -1;">No rainfall met the selected criteria.</div>`;
             }
 
             document.getElementById('exportDailyBodyContent').innerHTML = htmlStr;
+            targetDiv.dataset.exportTheme = document.getElementById('dailyExportTheme').value;
             triggerExportRender(targetDiv, 'reportModal');
         }
 
@@ -1771,9 +1820,9 @@
                 const hc = (col) => col === sortSelection ? 'col-highlight' : '';
                 htmlStr += `
                     <tr>
-                        <td style="text-align: center; color: #7f8c8d;">${sNo++}</td>
+                        <td style="text-align: center; color: var(--exp-text-dim2);">${sNo++}</td>
                         <td style="font-weight: bold;">${st.district}</td>
-                        <td style="font-weight: bold; color: #ffffff;">${st.name}</td>
+                        <td style="font-weight: bold; color: var(--exp-text);">${st.name}</td>
                         <td>${st.monthly[0].toFixed(1)}</td><td>${st.monthly[1].toFixed(1)}</td><td>${st.monthly[2].toFixed(1)}</td>
                         <td>${st.monthly[3].toFixed(1)}</td><td>${st.monthly[4].toFixed(1)}</td><td>${st.monthly[5].toFixed(1)}</td>
                         <td>${st.monthly[6].toFixed(1)}</td><td>${st.monthly[7].toFixed(1)}</td><td>${st.monthly[8].toFixed(1)}</td>
@@ -1784,13 +1833,14 @@
                         <td class="${hc('swm')}">${st.swm.toFixed(1)}</td>
                         <td class="${hc('nem')}">${st.nem.toFixed(1)}</td>
                         <td class="${hc('max')}">${st.maxRain.toFixed(1)}</td>
-                        <td style="font-size: 16px; color: #bdc3c7;">${st.maxDate}</td>
+                        <td style="font-size: 16px; color: var(--exp-text-dim);">${st.maxDate}</td>
                     </tr>
                 `;
             });
 
             document.getElementById('exportAnnualTableBody').innerHTML = htmlStr;
             const targetDiv = document.getElementById('exportAnnualWrapper');
+            targetDiv.dataset.exportTheme = document.getElementById('annualExportTheme').value;
             triggerExportRender(targetDiv, 'annualReportModal');
         }
 
@@ -2012,6 +2062,7 @@
             activeModalSource = '';
 
             const targetDiv = document.getElementById('exportIdwWrapper');
+            targetDiv.dataset.exportTheme = document.getElementById('idwExportTheme').value;
             targetDiv.style.display = 'flex';
             exportIdwMapInstance.invalidateSize(true);
             exportIdwMapInstance.fitBounds(tnBounds);
@@ -2022,7 +2073,8 @@
                 previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Capturing High-Res Map...</span>';
                 document.getElementById('previewModal').style.display = 'flex';
 
-                html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: "#1a1a2e" }).then(canvas => {
+                const bgColor = getComputedStyle(targetDiv).backgroundColor;
+                html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: bgColor }).then(canvas => {
                     targetDiv.style.display = 'none';
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
@@ -2038,9 +2090,10 @@
             document.getElementById('previewModal').style.display = 'flex';
 
             targetDiv.style.display = 'flex';
+            const bgColor = getComputedStyle(targetDiv).backgroundColor;
 
             setTimeout(() => {
-                html2canvas(targetDiv, { scale: 2, backgroundColor: "#121212" }).then(canvas => {
+                html2canvas(targetDiv, { scale: 2, backgroundColor: bgColor }).then(canvas => {
                     targetDiv.style.display = 'none';
                     finalImageBase64 = canvas.toDataURL('image/png');
                     previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
