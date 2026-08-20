@@ -211,7 +211,7 @@
 
         /* CONTINUOUS LEGEND (Annual/Seasonal) */
         .color-scale-container { margin-top: 5px; margin-bottom: 16px;}
-        .color-scale-bar { height: 12px; width: 100%; border-radius: var(--radius-sm); margin-top: 5px; margin-bottom: 6px; border: 1px solid var(--border-color); background: linear-gradient(to right, #d32f2f, #ffeb3b, #43a047, #0288d1, #4a148c, #616161); }
+        .color-scale-bar { height: 12px; width: 100%; border-radius: var(--radius-sm); margin-top: 5px; margin-bottom: 6px; border: 1px solid var(--border-color); background: linear-gradient(to right, #d32f2f, #ffeb3b, #4caf50, #0288d1, #311b92, #ff00ff); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-weight: 700; }
 
         /* IMD DISCRETE LEGEND (Daily View) */
@@ -364,7 +364,7 @@
             position: absolute; left: -9999px; top: 0;
             font-family: Arial, sans-serif;
             box-sizing: border-box; overflow: hidden; z-index: -1;
-            /* Export card theme \u2014 dark is the default (matches original look) */
+            /* Export card theme \u2014 dark is the default */
             --exp-bg: #121212; --exp-bg-annual: #1a1a2e; --exp-text: #ffffff;
             --exp-text-dim: #bdc3c7; --exp-text-dim2: #7f8c8d; --exp-text-table: #e0e0e0;
             --exp-panel-bg: rgba(255,255,255,0.05); --exp-panel-border: rgba(255,255,255,0.08);
@@ -387,7 +387,7 @@
             --exp-zero-dot: #ffffff; --exp-zero-border: #94a3b8; --exp-trace: #64748b;
             --exp-light-green: #22c55e; --exp-footer-panel-bg: rgba(240,242,248,0.95);
             --exp-watermark-daily: rgba(15,20,30,0.012); --exp-watermark-annual: rgba(15,20,30,0.018);
-            --exp-watermark-idw: rgba(15,20,30,0.018);
+            --exp-watermark-idw: rgba(15,20,30,0.02);
         }
 
         .export-watermark-bg {
@@ -534,8 +534,6 @@
             }
         }
 
-        // Lightweight replacement for window.alert() so validation messages
-        // match the rest of the UI instead of a native browser popup.
         function showNotice(message) {
             document.getElementById('noticeModalMessage').innerText = message;
             document.getElementById('noticeModal').style.display = 'flex';
@@ -603,9 +601,9 @@
 
                 <!-- LEGEND A: Continuous Scale -->
                 <div class="color-scale-container" id="continuousLegend">
-                    <div class="color-scale-bar"></div>
+                    <div class="color-scale-bar" id="webContinuousBar" style="background: linear-gradient(to right, #d32f2f, #f57c00, #ffeb3b, #4caf50, #0288d1, #4a148c);"></div>
                     <div class="color-scale-labels" id="webContinuousLabels">
-                        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000</span><span style="color:#9e9e9e;">>2k</span>
+                        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000</span><span style="color:#ff00ff;">>2k</span>
                     </div>
                 </div>
 
@@ -1015,7 +1013,7 @@
 
     <!-- HIDDEN DOM ELEMENT FOR IDW MAP EXPORT (9:16 STORY FORMAT) -->
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
-        <!-- Subdued Diagonal Ghost Watermark (2% Opacity) -->
+        <!-- Ultra-Subdued Diagonal Ghost Watermark (2% Opacity) -->
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: var(--exp-watermark-idw);">HaiyanTip</div>
 
         <!-- Header -->
@@ -1054,7 +1052,7 @@
                 <!-- Continuous/Seasonal Legend (Adaptive Red -> Violet) -->
                 <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
                     <div style="color:var(--exp-text); font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
-                    <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:20px; font-size:18px; font-weight:bold;">
+                    <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:12px; font-size:14px; font-weight:bold;">
                         <!-- Injected via JS dynamically -->
                     </div>
                 </div>
@@ -1074,10 +1072,10 @@
         }).addTo(map);
         setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Layer groups (Consolidated)
+        // Layer groups
         const layers = {
             station: L.layerGroup().addTo(map),
-            heatmap: L.layerGroup() // Holds District GeoJSON Polygons
+            heatmap: L.layerGroup() 
         };
 
         let globalRainData = [];
@@ -1138,7 +1136,6 @@
 
         function cleanName(str) { return str ? str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : ""; }
 
-        // ALIAS DICTIONARY: Static known mappings
         const districtAliases = {
             "sivagangai": "sivaganga",
             "sivaganga": "sivagangai",
@@ -1155,7 +1152,6 @@
             "kanniyakumari": "kanyakumari"
         };
 
-        // Ultimate District Matcher (Solves all spelling variations)
         function getMatchedDistrict(cName) {
             if (rawDistrictMap[cName]) return rawDistrictMap[cName];
             if (districtAliases[cName] && rawDistrictMap[districtAliases[cName]]) {
@@ -1167,37 +1163,33 @@
             return null;
         }
 
-        // Web UI default seasonal color getter (Unified with IDW Logic)
-        function getColor(value, metric = 'annual') {
+        // --- NEW 1955-STYLE COLOR ENGINE FOR ANNUAL/SEASONAL ---
+        function getSeasonalColor(value, metric = 'annual') {
+            if (value === 0) return '#ffffff';
+
             let maxRainNormal = 2000, step = 100;
             if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
             else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
             else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
             else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 200; step = 20; } // Adjusted Winter Limit
+            else if (metric === 'winter') { maxRainNormal = 200; step = 20; }
 
-            // 1000mm Gap Grey Overflow Logic
-            if (value >= maxRainNormal) {
-                let overflowVal = value - maxRainNormal;
-                let overflowIdx = Math.floor(overflowVal / 1000);
-                if (overflowIdx === 0) return '#9e9e9e'; // Gray 1
-                if (overflowIdx === 1) return '#616161'; // Gray 2
-                return '#212121';                        // Charcoal
-            }
+            // Overflow peaks use Magenta
+            if (value > maxRainNormal) return '#ff00ff'; 
 
-            // Red to Violet Palette (More shades after yellow)
+            let numBins = Math.round(maxRainNormal / step);
+            let binIdx = Math.floor((value - 0.0001) / step);
+            if (binIdx < 0) binIdx = 0;
+            if (binIdx >= numBins) binIdx = numBins - 1;
+
+            // 20-step Master Palette: Red -> Orange -> Yellow -> Green -> Blue -> Violet
             const masterPalette = [
-                "#d32f2f", "#f44336", // Reds
-                "#ff7043", "#ffa726", // Oranges
-                "#ffca28", "#ffeb3b", // Yellows
-                "#d4e157", "#9ccc65", "#66bb6a", "#43a047", "#2e7d32", // Greens
-                "#26c6da", "#00acc1", "#29b6f6", "#0288d1", "#1565c0", // Blues
-                "#3f51b5", "#5e35b1", "#4a148c" // Violets
+                "#d32f2f", "#e53935", "#f57c00", "#fb8c00", "#ffb300",
+                "#fbc02d", "#ffeb3b", "#cddc39", "#8bc34a", "#4caf50",
+                "#2e7d32", "#00acc1", "#00838f", "#039be5", "#0277bd",
+                "#1565c0", "#0d47a1", "#5e35b1", "#4527a0", "#311b92"
             ];
 
-            let numBins = maxRainNormal / step;
-            let binIdx = Math.floor(value / step);
-            if (binIdx < 0) binIdx = 0;
             let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
             return masterPalette[colorIdx];
         }
@@ -1435,8 +1427,7 @@
                 for (let key in stationMap) {
                     const item = stationMap[key];
                     if (item.lat === 0 || item.lon === 0 || isNaN(item.lat) || isNaN(item.lon)) continue;
-                    // Note: Web map stations always colored by annual total currently
-                    const marker = L.circleMarker([item.lat, item.lon], { radius: 7, fillColor: getColor(item.total, 'annual'), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(layers.station);
+                    const marker = L.circleMarker([item.lat, item.lon], { radius: 7, fillColor: getSeasonalColor(item.total, 'annual'), color: "white", weight: 1.5, opacity: 1, fillOpacity: 0.85 }).addTo(layers.station);
 
                     const canvasId = `chart-${item.id}`;
                     let modeSpecificHTML = '';
@@ -1489,7 +1480,7 @@
 
                 const lbls = document.getElementById('webContinuousLabels');
                 let mStr = maxR >= 1000 ? (maxR/1000 + 'k') : maxR;
-                lbls.innerHTML = `<span>0</span><span>${maxR*0.25}</span><span>${maxR*0.5}</span><span>${maxR*0.75}</span><span>${maxR}</span><span style="color:#9e9e9e;">>${mStr}</span>`;
+                lbls.innerHTML = `<span>0</span><span>${maxR*0.25}</span><span>${maxR*0.5}</span><span>${maxR*0.75}</span><span>${maxR}</span><span style="color:#ff00ff;">>${mStr}</span>`;
             }
 
             // DISTRICT BOUNDARY CHOROPLETH FILL (Native GeoJSON Layer)
@@ -1508,7 +1499,7 @@
                             else val = (matchedDist[hMetric] || 0) / div;
                         }
 
-                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getColor(val, hMetric);
+                        const fillColor = (hMetric === 'daily') ? getIMDColor(val) : getSeasonalColor(val, hMetric);
 
                         return {
                             fillColor: fillColor,
@@ -1583,8 +1574,6 @@
             updateDistrictFilterMenus();
             renderTables();
 
-            // Small live readout in the header - purely informational, derived
-            // from data already loaded; does not affect any control's behavior.
             const metaEl = document.getElementById('headerMeta');
             if (metaEl) {
                 metaEl.textContent = `${datasetActiveYear} · ${currentStationData.length} stations · data through ${currentSliderDateStr}`;
@@ -1921,24 +1910,22 @@
                 return;
             }
 
-            // --- CORE LOGIC: DEFINED CEILINGS & GREY OVERFLOWS ---
+            // --- DEFINED CEILINGS ---
             let maxRainNormal = 2000, step = 100;
             if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
             else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
             else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
             else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 200; step = 20; } // Applied 200mm Winter Max Fix
+            else if (metric === 'winter') { maxRainNormal = 200; step = 20; }
 
-            let numBins = maxRainNormal / step;
+            let numBins = Math.round(maxRainNormal / step);
 
-            // Master Palette: Red -> Orange -> Yellow -> Expanded Green -> Blue -> Deep Violet
+            // Master Palette: Red -> Orange -> Yellow -> Green -> Blue -> Deep Violet
             const masterPalette = [
-                "#d32f2f", "#f44336", // Reds
-                "#ff7043", "#ffa726", // Oranges
-                "#ffca28", "#ffeb3b", // Yellows
-                "#d4e157", "#9ccc65", "#66bb6a", "#43a047", "#2e7d32", // Expanded Greens
-                "#26c6da", "#00acc1", "#29b6f6", "#0288d1", "#1565c0", // Blues
-                "#3f51b5", "#5e35b1", "#4a148c" // Violets
+                "#d32f2f", "#e53935", "#f57c00", "#fb8c00", "#ffb300",
+                "#fbc02d", "#ffeb3b", "#cddc39", "#8bc34a", "#4caf50",
+                "#2e7d32", "#00acc1", "#00838f", "#039be5", "#0277bd",
+                "#1565c0", "#0d47a1", "#5e35b1", "#4527a0", "#311b92"
             ];
 
             const pointsCollection = turf.featureCollection(pts);
@@ -1982,15 +1969,12 @@
                     if (isDaily) {
                         color = getIMDColor(val);
                     } else {
-                        if (val >= maxRainNormal) {
-                            let overflowVal = val - maxRainNormal;
-                            let overflowIdx = Math.floor(overflowVal / 1000); // 1000mm gaps for extreme peaks
-                            if (overflowIdx === 0) color = '#9e9e9e';      // Light Gray
-                            else if (overflowIdx === 1) color = '#616161'; // Medium Gray
-                            else color = '#212121';                        // Deep Charcoal
+                        if (val > maxRainNormal) {
+                            color = '#ff00ff'; // Magenta Overflow
                         } else {
-                            let binIdx = Math.floor(val / step);
+                            let binIdx = Math.floor((val - 0.0001) / step);
                             if (binIdx < 0) binIdx = 0;
+                            if (binIdx >= numBins) binIdx = numBins - 1;
                             let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
                             color = masterPalette[colorIdx];
                         }
@@ -2000,11 +1984,11 @@
             }).addTo(exportIdwMapInstance);
 
             const maskCoords = generateInvertedMask(tnGeoJSONData);
-            L.polygon(maskCoords, { pane: 'maskPane', fillColor: '#1a1a2e', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
+            L.polygon(maskCoords, { pane: 'maskPane', fillColor: 'var(--exp-bg-annual)', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
 
             L.geoJSON(tnGeoJSONData, {
                 pane: 'boundsPane',
-                style: { fillColor: 'transparent', color: 'rgba(255,255,255,0.4)', weight: 1.5, opacity: 0.9 }
+                style: { fillColor: 'transparent', color: 'var(--exp-text-dim)', weight: 1.5, opacity: 0.9 }
             }).addTo(exportIdwMapInstance);
 
             const showStations = document.getElementById('idwShowStations').checked;
@@ -2012,7 +1996,7 @@
                 L.geoJSON(pointsCollection, {
                     pane: 'pointsPane',
                     pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng, { radius: 0.8, fillColor: "#000000", color: "transparent", fillOpacity: 0.7 });
+                        return L.circleMarker(latlng, { radius: 0.8, fillColor: "var(--exp-text)", color: "transparent", fillOpacity: 0.7 });
                     }
                 }).addTo(exportIdwMapInstance);
             }
@@ -2032,28 +2016,18 @@
 
                 let seasonalLegendHTML = "";
 
-                // Build normal scale legend
+                // Generate Step Legend (using 13px font to fit up to 20 blocks neatly)
                 for (let i = 0; i < numBins; i++) {
                     let lower = i * step;
                     let upper = (i + 1) * step;
                     let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
                     let color = masterPalette[colorIdx];
-                    let label = `${lower}-${upper}`;
-                    seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                    let label = lower === 0 ? `1-${upper}` : `${lower + 1}-${upper}`;
+                    seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
                 }
 
-                // Add Overflow Greys to legend ONLY if data hit those extremes
-                if (maxRain > maxRainNormal) {
-                    seasonalLegendHTML += `<div style="width:100%; height:0; margin:2px 0;"></div>`; // Line break for greys
-                    seasonalLegendHTML += `<span style="color:#9e9e9e; white-space:nowrap;"><span class="legend-dot" style="background:#9e9e9e; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal}-${maxRainNormal + 1000}</span>`;
-
-                    if (maxRain > maxRainNormal + 1000) {
-                        seasonalLegendHTML += `<span style="color:#616161; white-space:nowrap;"><span class="legend-dot" style="background:#616161; border:1px solid rgba(255,255,255,0.2);"></span> ${maxRainNormal + 1000}-${maxRainNormal + 2000}</span>`;
-                    }
-                    if (maxRain > maxRainNormal + 2000) {
-                        seasonalLegendHTML += `<span style="color:#212121; white-space:nowrap;"><span class="legend-dot" style="background:#212121; border:1px solid rgba(255,255,255,0.2);"></span> > ${maxRainNormal + 2000}</span>`;
-                    }
-                }
+                // Append Magenta Peak Overflow
+                seasonalLegendHTML += `<span style="color:#ff00ff; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:#ff00ff; border:1px solid rgba(255,255,255,0.2);"></span> > ${maxRainNormal}</span>`;
 
                 document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
             }
