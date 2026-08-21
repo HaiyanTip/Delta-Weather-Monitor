@@ -92,7 +92,6 @@
         button, select, input { font-family: inherit; }
         :focus-visible { outline: 2px solid var(--accent-rain); outline-offset: 2px; }
 
-        /* Remove black focus box on clicked map shapes */
         .leaflet-interactive:focus { outline: none; }
 
         /* ============================================================
@@ -214,7 +213,7 @@
 
         /* CONTINUOUS LEGEND (Annual/Seasonal) */
         .color-scale-container { margin-top: 5px; margin-bottom: 16px;}
-        .color-scale-bar { height: 12px; width: 100%; border-radius: var(--radius-sm); margin-top: 5px; margin-bottom: 6px; border: 1px solid var(--border-color); background: linear-gradient(to right, #d32f2f, #ffeb3b, #4caf50, #0288d1, #311b92, #ff00ff); }
+        .color-scale-bar { height: 12px; width: 100%; border-radius: var(--radius-sm); margin-top: 5px; margin-bottom: 6px; border: 1px solid var(--border-color); }
         .color-scale-labels { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-weight: 700; }
 
         /* IMD DISCRETE LEGEND (Daily View) */
@@ -367,7 +366,7 @@
             position: absolute; left: -9999px; top: 0;
             font-family: Arial, sans-serif;
             box-sizing: border-box; overflow: hidden; z-index: -1;
-            /* Export card theme \u2014 dark is the default */
+            /* Export card theme — dark is the default */
             --exp-bg: #121212; --exp-bg-annual: #1a1a2e; --exp-text: #ffffff;
             --exp-text-dim: #bdc3c7; --exp-text-dim2: #7f8c8d; --exp-text-table: #e0e0e0;
             --exp-panel-bg: rgba(255,255,255,0.05); --exp-panel-border: rgba(255,255,255,0.08);
@@ -517,93 +516,12 @@
 </head>
 <body>
 
-    <script>
-        function toggleDarkMode() {
-            const body = document.body;
-            const currentTheme = body.getAttribute('data-theme');
-            if (currentTheme === 'dark') { body.removeAttribute('data-theme'); }
-            else { body.setAttribute('data-theme', 'dark'); }
-            if(masterChartInstance) {
-                const isDark = body.getAttribute('data-theme') === 'dark';
-                masterChartInstance.options.scales.x.ticks.color = isDark ? '#e0e0e0' : '#666';
-                masterChartInstance.options.scales.y.ticks.color = isDark ? '#e0e0e0' : '#666';
-                masterChartInstance.options.scales.y.grid.color = isDark ? '#333' : '#e5e5e5';
-                masterChartInstance.update();
-            }
-        }
-
-        window.switchPopupTab = function(el, paneId) {
-            const container = el.closest('.matrix-popup');
-            container.querySelectorAll('.popup-tab').forEach(t => t.classList.remove('active'));
-            container.querySelectorAll('.popup-pane').forEach(p => p.style.display = 'none');
-            el.classList.add('active');
-            container.querySelector('#' + paneId).style.display = 'block';
-        };
-
-        function quickSelectDistricts(mode, checkboxClass) {
-            const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
-            const cdzCore = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
-            const cdzExt = [...cdzCore, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
-
-            checkboxes.forEach(cb => {
-                const val = cb.value.toLowerCase();
-                if (mode === 'ALL') { cb.checked = true; }
-                else if (mode === 'CLEAR') { cb.checked = false; }
-                else if (mode === 'CDZ_CORE') { cb.checked = cdzCore.some(d => val.includes(d)); }
-                else if (mode === 'CDZ_EXT') { cb.checked = cdzExt.some(d => val.includes(d)); }
-            });
-        }
-
-        function toggleMultiSelect(e) {
-            e.stopPropagation();
-            const menu = document.getElementById('stnDistFilterMenu');
-            menu.classList.toggle('show');
-        }
-
-        function checkAllStnFilters(checked) {
-            document.querySelectorAll('.stn-dist-chk').forEach(cb => cb.checked = checked);
-        }
-
-        function applyStnFilter() {
-            document.getElementById('stnDistFilterMenu').classList.remove('show');
-            const checkedBoxes = Array.from(document.querySelectorAll('.stn-dist-chk:checked')).map(cb => cb.value);
-            activeStationDistricts = checkedBoxes;
-            const btn = document.getElementById('stnDistFilterBtn');
-            const totalBoxes = document.querySelectorAll('.stn-dist-chk').length;
-            if (checkedBoxes.length === totalBoxes || checkedBoxes.length === 0) {
-                btn.innerText = "ALL ▼";
-                activeStationDistricts = [];
-            } else if (checkedBoxes.length === 1) {
-                btn.innerText = "1 SEL ▼";
-            } else {
-                btn.innerText = checkedBoxes.length + " SEL ▼";
-            }
-            renderTables();
-        }
-
-        window.onclick = function(event) {
-            if (!event.target.matches('.multi-select-btn') && !event.target.closest('.multi-select-menu')) {
-                const menus = document.getElementsByClassName("multi-select-menu");
-                for (let i = 0; i < menus.length; i++) {
-                    let openMenu = menus[i];
-                    if (openMenu.classList.contains('show')) { openMenu.classList.remove('show'); }
-                }
-            }
-        }
-
-        function showNotice(message) {
-            document.getElementById('noticeModalMessage').innerText = message;
-            document.getElementById('noticeModal').style.display = 'flex';
-        }
-        function closeNoticeModal() { document.getElementById('noticeModal').style.display = 'none'; }
-    </script>
-
     <header class="site-header">
         <div class="site-header-inner">
             <div class="site-brand">
                 <div class="site-brand-mark">🌧️</div>
                 <div>
-                    <div class="site-title">TN Daily Rainfall Info</div>
+                    <div class="site-title">TN Weather & Rainfall</div>
                     <div class="site-subtitle">Daily station rainfall across Tamil Nadu · Source: TNSMART</div>
                 </div>
                 <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
@@ -613,9 +531,7 @@
     </header>
 
     
-<!-- INTEGRATED FORECAST APPLICATION
-     TNSMART remains the base application.
-     The forecast application is isolated to prevent JS/DOM conflicts. -->
+<!-- INTEGRATED FORECAST APPLICATION -->
 <div id="forecastAppPanel" aria-hidden="true">
     <div id="forecastAppTopbar">
         <strong>🌦️ Multi-Model &amp; Seasonal Forecast</strong>
@@ -926,9 +842,6 @@ function memberKeys(h){return Object.keys(h).filter(k=&gt;/^precipitation_member
 function qsorted(v,q){if(!v.length)return null;const p=q*(v.length-1),lo=Math.floor(p),hi=Math.ceil(p);return lo===hi?v[lo]:v[lo]+(v[hi]-v[lo])*(p-lo)}
 function stats(members,dates){return dates.map((_,i)=&gt;{let v=members.map(x=&gt;x[i]).filter(x=&gt;typeof x===&#x27;number&#x27;&amp;&amp;Number.isFinite(x)).sort((a,b)=&gt;a-b);if(!v.length)return{min:null,max:null,p75:null,p90:null};return{min:v[0],max:v[v.length-1],p75:qsorted(v,.75),p90:qsorted(v,.90)}})}
 
-/* Member-visibility state: member data is already fetched with the
-   forecast. The checkbox only rebuilds the existing chart; it does
-   NOT make another API request. */
 let ensembleChartStates={};
 let ec46ChartState=null;
 let seasonalChartState=null;
@@ -994,9 +907,6 @@ async function loadEnsembleFromAPI(){
   const hourly=&#x27;precipitation&#x27;;
 
   try{
-    // Both the member and dedicated mean products are served by the Ensemble API.
-    // WeatherNext is a native 64-member, 6-hour model; Open-Meteo interpolates
-    // precipitation to hourly while preserving the accumulated amount.
     const [meanR,memR]=await Promise.all([
       fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${base}&amp;hourly=${hourly}&amp;models=${m.mean}`),
       fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${base}&amp;hourly=${hourly}&amp;models=${m.api || key}`)
@@ -1011,14 +921,10 @@ async function loadEnsembleFromAPI(){
     if(!mean.hourly || !mean.hourly.time)throw Error(`${m.name}: no mean data returned`);
     if(!mem.hourly || !mem.hourly.time)throw Error(`${m.name}: no member data returned`);
 
-    // Mean API returns the mean in the ordinary precipitation column.
     const md=dailyFromHourly(mean.hourly,&#x27;precipitation&#x27;,todayIST());
 
-    // WeatherNext can expose its member fields with the standard precipitation
-    // member naming; do not assume only 50 members.
     let mk=memberKeys(mem.hourly);
 
-    // Explicit fallback for the native 64-member WeatherNext response.
     if(m.weatherNext &amp;&amp; mk.length===0){
       mk=Object.keys(mem.hourly)
         .filter(k=&gt;/^precipitation(?:_member\d+)?$/.test(k))
@@ -1151,7 +1057,6 @@ async function loadSeasonalFromAPI(){
   }catch(e){seasonLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message)+&#x27;&lt;/div&gt;&#x27;}
 }
 
-/* Per-HQ forecast cache: successful API results stay in memory until HQ changes. */
 let forecastTabCache={};
 
 function activeLocationKey(){
@@ -1306,13 +1211,10 @@ load.onclick=async()=&gt;{
   }
 };
 
-// No separate Load buttons are required anymore.
-// The tab itself is the load trigger.
 if(typeof loadEns!==&#x27;undefined&#x27;) loadEns.style.display=&#x27;none&#x27;;
 if(typeof loadEC46!==&#x27;undefined&#x27;) loadEC46.style.display=&#x27;none&#x27;;
 if(typeof loadSeason!==&#x27;undefined&#x27;) loadSeason.style.display=&#x27;none&#x27;;
 
-// Member toggles still work and reload their existing products.
 if(typeof ec46Members!==&#x27;undefined&#x27;) ec46Members.onchange=()=&gt;{
   if(ec46ChartState) buildEC46Chart(ec46ChartState,ec46Members.checked);
 };
@@ -1324,7 +1226,6 @@ if(typeof ensMembers!==&#x27;undefined&#x27;) ensMembers.onchange=()=&gt;{
   if(ensembleChartStates[key]) buildEnsembleChart(ensembleChartStates[key],ensMembers.checked);
 };
 
-// Changing HQ invalidates every previously loaded forecast.
 district.onchange=()=&gt;{
   current=&#x27;&#x27;;
   currentLocation=null;
@@ -1390,7 +1291,6 @@ function setForecastStatus(message, state){
   el.innerHTML=message;
 }
 &lt;/script&gt;
-
 
 &lt;script id=&quot;final-ui-state-helper&quot;&gt;
 let forecastLoadedHQ=&#x27;&#x27;;
@@ -1469,7 +1369,6 @@ function openLocationMap(){
     });
   }
 
-  /* Important when Leaflet is opened inside a fixed modal. */
   setTimeout(()=&gt;{
     forecastMap.invalidateSize(true);
     forecastMap.setView([11.0,78.5],7);
@@ -1498,7 +1397,6 @@ async function confirmMapLocation(){
   loadText.textContent=&#x27;Preparing forecast…&#x27;;
   setForecastStatus(&#x27;Location selected. Preparing forecast…&#x27;,&#x27;loading&#x27;);
 
-  /* Deliberate 3-second loading buffer before the first Open-Meteo request. */
   await new Promise(resolve=&gt;setTimeout(resolve,3000));
 
   current=&#x27;&#x27;;
@@ -1552,7 +1450,6 @@ document.getElementById(&#x27;mapCancel&#x27;).addEventListener(&#x27;click&#x27
 document.getElementById(&#x27;mapClose&#x27;).addEventListener(&#x27;click&#x27;,closeLocationMap);
 document.getElementById(&#x27;mapConfirm&#x27;).addEventListener(&#x27;click&#x27;,confirmMapLocation);
 
-/* Close only when clicking the dark backdrop, not when clicking the map/dialog. */
 document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;,e=&gt;{
   if(e.target.id===&#x27;mapPanel&#x27;) closeLocationMap();
 });
@@ -1889,6 +1786,8 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 <label>Timeframe Type:</label>
                 <select id="idwMetricFilter" onchange="toggleIdwDateInput()">
                     <option value="daily">Daily Rainfall</option>
+                    <option value="monthly">Monthly Total</option>
+                    <option value="custom">Custom Multi-Date</option>
                     <option value="annual">Annual Total</option>
                     <option value="winter">Winter Total</option>
                     <option value="summer">Summer Total</option>
@@ -1902,7 +1801,34 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 <input type="date" id="idwDateInput">
             </div>
 
-            <div class="modal-group" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px;">
+            <div class="modal-group" id="idwMonthlyGroup" style="display:none;">
+                <label>Select Month:</label>
+                <select id="idwMonthSelect">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+
+            <div class="modal-group" id="idwCustomGroup" style="display:none;">
+                <label>Select Dates for Custom Map:</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="date" id="idwCustomDateInput" style="flex:1;">
+                    <button type="button" onclick="addCustomDate()" class="btn-quick-select" style="background:var(--accent-rain); color:white; border:none; padding:8px 12px;">Add Date</button>
+                </div>
+                <div id="customDateTags" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"></div>
+            </div>
+
+            <div class="modal-group" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px; margin-top: 10px;">
                 <input type="checkbox" id="idwShowStations" checked style="width:auto; cursor:pointer;">
                 <label for="idwShowStations" style="margin:0; cursor:pointer;">Show Station Markers</label>
             </div>
@@ -2009,11 +1935,10 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                         </tr>
                     </thead>
                     <tbody id="exportAnnualTableBody">
-                        <!-- Populated dynamically -->
                     </tbody>
                 </table>
             </div>
-            <div class="export-footer" style="border-top-color: var(--exp-footer-border); flex-direction: row; justify-content: space-between;">
+            <div class="export-footer" style="border-top-color: rgba(255,255,255,0.1); flex-direction: row; justify-content: space-between;">
                 <div class="export-source" style="color: #e94560;">Data: TNSMART</div>
                 <div style="font-size: 20px; color: #7f8c8d; font-style: italic;">Spot an error? Contact: X @HaiyanTip | IG @haiyan_clicks</div>
             </div>
@@ -2084,12 +2009,10 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         // Layer groups
         const layers = {
             station: L.layerGroup().addTo(map),
-            heatmap: L.layerGroup() 
+            heatmap: L.layerGroup()
         };
 
         let globalRainData = [];
-        let globalStations = {};
-        let fallbackStations = {};
         let tnGeoJSONData = null;
 
         let activeView = 'station';
@@ -2101,6 +2024,8 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         let finalImageBase64 = null;
         let finalImageFileName = "Report.png";
         let activeModalSource = "";
+        
+        let customDates = [];
 
         let currentDistrictData = [];
         let currentStationData = [];
@@ -2113,15 +2038,16 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             station: { key: 'district', dir: 'asc' }
         };
 
-        const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
-        const STATIONS_DATA = 'Stations.csv';
         const GEOJSON_DATA = 'tn_districts.geojson';
 
-        // Load CSVs and GeoJSON
         fetch(GEOJSON_DATA)
             .then(res => res.json())
             .then(gData => { tnGeoJSONData = gData; })
-            .catch(err => console.warn("GeoJSON loading failed or file missing:", err));
+            .catch(err => console.warn("GeoJSON loading failed:", err));
+
+        // Use static TNSMART data logic
+        const RAINFALL_DATA = 'thanjavur_stations_rainfall_2026.csv';
+        const STATIONS_DATA = 'Stations.csv';
 
         Papa.parse(RAINFALL_DATA, {
             download: true, header: true, skipEmptyLines: true,
@@ -2133,11 +2059,11 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                     download: true, header: true, skipEmptyLines: true,
                     complete: function(stationResults) {
                         buildStationLookup(stationResults.data);
-                        initializeDashboard();
+                        initializeDashboard(datasetActiveYear);
                     },
                     error: function() {
                         buildStationLookup([]);
-                        initializeDashboard();
+                        initializeDashboard(datasetActiveYear);
                     }
                 });
             }
@@ -2172,35 +2098,38 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             return null;
         }
 
-        // --- NEW 1955-STYLE COLOR ENGINE FOR ANNUAL/SEASONAL ---
+        // --- MASTER COLOR ENGINE FOR ANNUAL/SEASONAL ---
+        const basePalette = ['#FFFFFF', '#FFA500', '#FFD700', '#FFFF00', '#ADFF2F', '#32CD32', '#00BFFF', '#0000FF', '#8A2BE2', '#800080', '#4B0082'];
+
+        const seasonConfig = {
+            'annual': [0, 100, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
+            'nem': [0, 100, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
+            'swm': [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+            'summer': [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+            'winter': [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200],
+            'monthly': [0, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 500],
+            'custom': [0, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 500]
+        };
+
         function getSeasonalColor(value, metric = 'annual') {
-            if (value === 0) return '#ffffff';
+            if (value <= 0) return basePalette[0];
 
-            let maxRainNormal = 2000, step = 100;
-            if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
-            else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
-            else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
-            else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 200; step = 20; }
+            const bounds = seasonConfig[metric] || seasonConfig['annual'];
+            const maxBound = bounds[bounds.length - 1];
 
-            // Overflow peaks use Magenta
-            if (value > maxRainNormal) return '#ff00ff'; 
+            if (value > maxBound) return '#FF00FF';
 
-            let numBins = Math.round(maxRainNormal / step);
-            let binIdx = Math.floor((value - 0.0001) / step);
-            if (binIdx < 0) binIdx = 0;
-            if (binIdx >= numBins) binIdx = numBins - 1;
+            let binIdx = 0;
+            for (let i = 0; i < bounds.length - 1; i++) {
+                if (value > bounds[i] && value <= bounds[i+1]) {
+                    binIdx = i;
+                    break;
+                }
+            }
 
-            // 20-step Master Palette: Red -> Orange -> Yellow -> Green -> Blue -> Violet
-            const masterPalette = [
-                "#d32f2f", "#e53935", "#f57c00", "#fb8c00", "#ffb300",
-                "#fbc02d", "#ffeb3b", "#cddc39", "#8bc34a", "#4caf50",
-                "#2e7d32", "#00acc1", "#00838f", "#039be5", "#0277bd",
-                "#1565c0", "#0d47a1", "#5e35b1", "#4527a0", "#311b92"
-            ];
-
-            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
-            return masterPalette[colorIdx];
+            let numBins = bounds.length - 1;
+            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (basePalette.length - 1));
+            return basePalette[colorIdx];
         }
 
         function getIMDColor(mm) {
@@ -2214,6 +2143,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         }
 
         function parseDateString(dateStr) {
+            if(!dateStr) return null;
             const parts = dateStr.split('-');
             if(parts.length !== 3) return null;
             return { day: parseInt(parts[0]), month: parseInt(parts[1]), year: parseInt(parts[2]) };
@@ -2229,6 +2159,9 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             const date = new Date(year, 0, doy);
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         }
+
+        let fallbackStations = {}; 
+        let globalStations = {};
 
         function buildStationLookup(stationsData) {
             stationsData.forEach(st => {
@@ -2273,38 +2206,39 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             return { uniqueKey: cleanName(district) + "_" + cName, district: district, name: rawName ? rawName.trim() : "Unknown", lat: lat, lon: lon };
         }
 
-        function initializeDashboard() {
-            const yearSet = new Set(); let maxDOY = 1;
+        function initializeDashboard(loadedYear) {
+            datasetActiveYear = loadedYear;
+            const yearSelect = document.getElementById('yearSelect');
+            if (yearSelect.options.length === 0) {
+                const yearSet = new Set();
+                globalRainData.forEach(row => { const d = parseDateString(row.Date); if(d) yearSet.add(d.year); });
+                Array.from(yearSet).sort((a,b)=>b-a).forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; yearSelect.appendChild(opt); });
+                if(!yearSelect.value) yearSelect.value = loadedYear;
+                yearSelect.addEventListener('change', (e) => { datasetActiveYear = parseInt(e.target.value); updateEngine(); });
+            }
+
+            let maxDOY = 1;
             globalRainData.forEach(row => {
                 const d = parseDateString(row.Date);
-                if(d) { yearSet.add(d.year); const doy = getDayOfYear(d.day, d.month, d.year); if(doy > maxDOY) maxDOY = doy; }
+                if(d && d.year === datasetActiveYear) { const doy = getDayOfYear(d.day, d.month, d.year); if(doy > maxDOY) maxDOY = doy; }
             });
-
-            const yearSelect = document.getElementById('yearSelect');
-            const years = Array.from(yearSet).sort((a,b) => b - a);
-            years.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; yearSelect.appendChild(opt); });
-            datasetActiveYear = years.length > 0 ? years[0] : new Date().getFullYear();
-
-            yearSelect.addEventListener('change', (e) => { datasetActiveYear = parseInt(e.target.value); updateEngine(); });
 
             const slider = document.getElementById('timeSlider');
             slider.max = maxDOY; slider.value = maxDOY;
-            slider.addEventListener('input', (e) => { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); });
+            slider.removeEventListener('input', onSliderInput);
+            slider.removeEventListener('change', updateEngine);
+            slider.addEventListener('input', onSliderInput);
             slider.addEventListener('change', updateEngine);
+            
+            function onSliderInput(e) { document.getElementById('sliderDateDisplay').innerText = getFormattedDateFromDOY(parseInt(e.target.value), datasetActiveYear); }
 
             document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     activeView = e.target.value;
                     map.removeLayer(layers.station);
                     if(map.hasLayer(layers.heatmap)) map.removeLayer(layers.heatmap);
-
-                    if (activeView === 'heatmap') {
-                        map.addLayer(layers.heatmap);
-                        document.getElementById('heatmapMetric').style.display = 'block';
-                    } else {
-                        map.addLayer(layers[activeView]);
-                        document.getElementById('heatmapMetric').style.display = 'none';
-                    }
+                    if (activeView === 'heatmap') { map.addLayer(layers.heatmap); document.getElementById('heatmapMetric').style.display = 'block'; } 
+                    else { map.addLayer(layers[activeView]); document.getElementById('heatmapMetric').style.display = 'none'; }
                     updateEngine();
                 });
             });
@@ -2322,6 +2256,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         }
 
         function initEmptyDailyChart() {
+            if (masterChartInstance) return;
             const ctx = document.getElementById('masterDailyChart').getContext('2d');
             masterChartInstance = new Chart(ctx, {
                 type: 'bar', data: { labels: [], datasets: [] },
@@ -2331,21 +2266,29 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
         function setupChartDropdownListeners() {
             const distSelect = document.getElementById('chartDistSelect'); const stnSelect = document.getElementById('chartStnSelect');
-            distSelect.addEventListener('change', (e) => {
+            
+            distSelect.removeEventListener('change', onDistChange);
+            stnSelect.removeEventListener('change', onStnChange);
+
+            function onDistChange(e) {
                 const districtName = e.target.value; stnSelect.innerHTML = '<option value="">Select Station...</option>';
                 if (!districtName) { stnSelect.disabled = true; return; }
                 stnSelect.disabled = false;
                 stnSelect.innerHTML += `<option value="DISTRICT_AVG">⭐ ${districtName} (District Average)</option>`;
                 currentStationData.filter(s => s.district === districtName).sort((a,b) => a.name.localeCompare(b.name)).forEach(st => { const opt = document.createElement('option'); opt.value = st.id; opt.innerText = st.name; stnSelect.appendChild(opt); });
                 stnSelect.value = "DISTRICT_AVG"; stnSelect.dispatchEvent(new Event('change'));
-            });
-            stnSelect.addEventListener('change', (e) => {
+            }
+
+            function onStnChange(e) {
                 const val = e.target.value; const dist = distSelect.value;
                 const daysInYear = ((datasetActiveYear % 4 === 0 && datasetActiveYear % 100 !== 0) || (datasetActiveYear % 400 === 0)) ? 366 : 365;
                 if (!val) return;
                 if (val === "DISTRICT_AVG") { const dData = rawDistrictMap[cleanName(dist)]; if (dData) triggerDailyChartSync(dData, true, datasetActiveYear, daysInYear, dData.count || 1); }
                 else { const sData = currentStationData.find(s => s.id === val); if (sData) triggerDailyChartSync(sData, false, datasetActiveYear, daysInYear, 1); }
-            });
+            }
+
+            distSelect.addEventListener('change', onDistChange);
+            stnSelect.addEventListener('change', onStnChange);
         }
 
         function populateChartDropdowns() {
@@ -2471,28 +2414,26 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 }
             }
 
-            // Dual-Legend Display Logic
             const hMetric = document.getElementById('heatmapMetric').value;
             const isDailyHeatmap = (activeView === 'heatmap' && hMetric === 'daily');
 
             document.getElementById('continuousLegend').style.display = isDailyHeatmap ? 'none' : 'block';
             document.getElementById('imdLegendContainer').style.display = isDailyHeatmap ? 'block' : 'none';
 
-            // --- DYNAMIC WEB UI LEGEND FIX ---
             if (!isDailyHeatmap) {
                 let activeLegendMetric = (activeView === 'heatmap') ? hMetric : 'annual';
-                let maxR = 2000;
-                if (activeLegendMetric === 'nem') maxR = 1200;
-                else if (activeLegendMetric === 'swm') maxR = 1000;
-                else if (activeLegendMetric === 'summer') maxR = 500;
-                else if (activeLegendMetric === 'winter') maxR = 200;
+                const bounds = seasonConfig[activeLegendMetric] || seasonConfig['annual'];
+                const maxR = bounds[bounds.length - 1];
 
                 const lbls = document.getElementById('webContinuousLabels');
                 let mStr = maxR >= 1000 ? (maxR/1000 + 'k') : maxR;
-                lbls.innerHTML = `<span>0</span><span>${maxR*0.25}</span><span>${maxR*0.5}</span><span>${maxR*0.75}</span><span>${maxR}</span><span style="color:#ff00ff;">>${mStr}</span>`;
+                
+                lbls.innerHTML = `<span>0</span><span>${bounds[Math.floor(bounds.length/4)]}</span><span>${bounds[Math.floor(bounds.length/2)]}</span><span>${bounds[Math.floor((bounds.length*3)/4)]}</span><span>${maxR}</span><span style="color:#ff00ff;">>${mStr}</span>`;
+                
+                document.getElementById('webContinuousBar').style.background = `linear-gradient(to right, ${basePalette.join(', ')})`;
             }
 
-            // DISTRICT BOUNDARY CHOROPLETH FILL (Native GeoJSON Layer)
+            // DISTRICT BOUNDARY CHOROPLETH FILL
             if (activeView === 'heatmap' && tnGeoJSONData) {
                 const geoJsonLayer = L.geoJSON(tnGeoJSONData, {
                     style: function(feature) {
@@ -2525,7 +2466,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                         let val = 0;
                         let displayName = rawName;
                         if (matchedDist && matchedDist.count > 0) {
-                            displayName = matchedDist.name; // Uses exact CSV data name
+                            displayName = matchedDist.name; 
                             const div = matchedDist.count;
                             if (hMetric === 'daily') val = matchedDist.todaySum / div;
                             else if (hMetric === 'annual') val = matchedDist.total / div;
@@ -2534,7 +2475,6 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
                         layer.bindTooltip(`<b>${displayName} District</b><br>Rainfall Avg: <b>${val.toFixed(1)} mm</b>`, { sticky: true });
 
-                        // Bind full stats popup to the GeoJSON polygon
                         if (matchedDist && matchedDist.count > 0) {
                             const div = matchedDist.count;
                             const total = matchedDist.total / div;
@@ -2600,8 +2540,11 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         }
 
         function setupSortingListeners() {
-            document.querySelectorAll('th[data-sort]').forEach(th => {
-                th.addEventListener('click', function(e) {
+            let sortedElems = document.querySelectorAll('th[data-sort]');
+            sortedElems.forEach(th => {
+                let newTh = th.cloneNode(true);
+                th.parentNode.replaceChild(newTh, th);
+                newTh.addEventListener('click', function(e) {
                     if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('.multi-select-menu')) return;
                     const type = this.closest('table').id === 'districtTable' ? 'district' : 'station';
                     const key = this.getAttribute('data-sort');
@@ -2652,8 +2595,6 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             document.getElementById('stationTableBody').innerHTML = statHTML;
         }
 
-        // --- EXPORT MODALS & GENERATORS ---
-
         function populateModalDistrictChecklist(containerId, checkboxClass) {
             const chkContainer = document.getElementById(containerId);
             chkContainer.innerHTML = '';
@@ -2692,6 +2633,8 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
         function toggleIdwDateInput() {
             const val = document.getElementById('idwMetricFilter').value;
             document.getElementById('idwDateGroup').style.display = (val === 'daily') ? 'block' : 'none';
+            document.getElementById('idwMonthlyGroup').style.display = (val === 'monthly') ? 'block' : 'none';
+            document.getElementById('idwCustomGroup').style.display = (val === 'custom') ? 'block' : 'none';
         }
 
         function openIdwModal() {
@@ -2719,6 +2662,32 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             document.getElementById('previewModal').style.display = 'none';
             if(activeModalSource) document.getElementById(activeModalSource).style.display = 'flex';
         }
+
+        // --- Custom Date Tag Management ---
+        function addCustomDate() {
+            const dateInput = document.getElementById('idwCustomDateInput');
+            const val = dateInput.value;
+            if (!val) return;
+            if (!customDates.includes(val)) {
+                customDates.push(val);
+                renderCustomDates();
+            }
+        }
+
+        function removeCustomDate(val) {
+            customDates = customDates.filter(d => d !== val);
+            renderCustomDates();
+        }
+
+        function renderCustomDates() {
+            const container = document.getElementById('customDateTags');
+            container.innerHTML = customDates.map(d => `
+                <span style="background:var(--mist-100); padding:4px 8px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px; border:1px solid var(--border-color); color:var(--text-main);">
+                    ${d} <span style="cursor:pointer; color:var(--accent-rain); font-weight:bold;" onclick="removeCustomDate('${d}')">✖</span>
+                </span>
+            `).join('');
+        }
+        // ------------------------------------
 
         function generateDailyReportPreview() {
             const dateVal = document.getElementById('reportDateInput').value;
@@ -2842,7 +2811,6 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             triggerExportRender(targetDiv, 'annualReportModal');
         }
 
-        // --- IDW SPATIAL MAPPING ENGINE ---
         let exportIdwMapInstance = null;
 
         function generateInvertedMask(geoJsonFeatureCollection) {
@@ -2865,18 +2833,23 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             if(!tnGeoJSONData) { showNotice("Boundary data not loaded yet. Please wait."); return; }
 
             const metric = document.getElementById('idwMetricFilter').value;
-            const dateVal = document.getElementById('idwDateInput').value;
             const isDaily = metric === 'daily';
 
-            if (isDaily && !dateVal) { showNotice("Please select a date."); return; }
-
-            let targetDate, doy, prettyDate;
+            let prettyDate, doy = null, dateVal = null;
             if (isDaily) {
-                targetDate = new Date(dateVal);
+                dateVal = document.getElementById('idwDateInput').value;
+                if (!dateVal) { showNotice("Please select a date."); return; }
+                const targetDate = new Date(dateVal);
                 if (targetDate.getFullYear() !== datasetActiveYear) { showNotice(`Please select a date within ${datasetActiveYear}.`); return; }
                 const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
                 prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
                 doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
+            } else if (metric === 'monthly') {
+                const monthSelect = document.getElementById('idwMonthSelect');
+                prettyDate = `${monthSelect.options[monthSelect.selectedIndex].text} ${datasetActiveYear}`;
+            } else if (metric === 'custom') {
+                if (customDates.length === 0) { showNotice("Please add at least one date for custom accumulation."); return; }
+                prettyDate = `${customDates.length} Selected Day(s) Accumulation - ${datasetActiveYear}`;
             } else {
                 prettyDate = `${datasetActiveYear} - ${metric.toUpperCase()} Total`;
             }
@@ -2903,6 +2876,19 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
                 let val = 0;
                 if (isDaily) val = st.dailyArray[doy - 1] || 0;
+                else if (metric === 'monthly') {
+                    const monthIdx = parseInt(document.getElementById('idwMonthSelect').value) - 1;
+                    val = st.monthly[monthIdx] || 0;
+                }
+                else if (metric === 'custom') {
+                    customDates.forEach(d => {
+                        const p = parseDateString(d);
+                        if(p && p.year === datasetActiveYear) {
+                            const cDOY = getDayOfYear(p.day, p.month, p.year);
+                            val += st.dailyArray[cDOY - 1] || 0;
+                        }
+                    });
+                }
                 else if (metric === 'annual') val = st.total;
                 else val = st[metric];
 
@@ -2919,26 +2905,24 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 return;
             }
 
-            // --- DEFINED CEILINGS ---
-            let maxRainNormal = 2000, step = 100;
-            if (metric === 'annual') { maxRainNormal = 2000; step = 100; }
-            else if (metric === 'nem') { maxRainNormal = 1200; step = 100; }
-            else if (metric === 'swm') { maxRainNormal = 1000; step = 100; }
-            else if (metric === 'summer') { maxRainNormal = 500; step = 50; }
-            else if (metric === 'winter') { maxRainNormal = 200; step = 20; }
-
-            let numBins = Math.round(maxRainNormal / step);
-
-            // Master Palette: Red -> Orange -> Yellow -> Green -> Blue -> Deep Violet
-            const masterPalette = [
-                "#d32f2f", "#e53935", "#f57c00", "#fb8c00", "#ffb300",
-                "#fbc02d", "#ffeb3b", "#cddc39", "#8bc34a", "#4caf50",
-                "#2e7d32", "#00acc1", "#00838f", "#039be5", "#0277bd",
-                "#1565c0", "#0d47a1", "#5e35b1", "#4527a0", "#311b92"
-            ];
-
             const pointsCollection = turf.featureCollection(pts);
-            const grid = turf.interpolate(pointsCollection, 2.5, { gridType: 'hex', property: 'rain', units: 'kilometers', weight: 3 });
+            
+            // To prevent boundary cutoffs, generate the interpolation across the expanded bounding box
+            const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
+            const boundingBox = [
+                tnBounds.getWest() - 0.1, 
+                tnBounds.getSouth() - 0.1, 
+                tnBounds.getEast() + 0.1, 
+                tnBounds.getNorth() + 0.1
+            ];
+            
+            const grid = turf.interpolate(pointsCollection, 2.5, { 
+                gridType: 'hex', 
+                property: 'rain', 
+                units: 'kilometers', 
+                weight: 3,
+                bbox: boundingBox 
+            });
 
             const filteredFeatures = [];
             turf.featureEach(grid, function (cell) {
@@ -2966,7 +2950,6 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 exportIdwMapInstance.getPane('pointsPane').style.zIndex = 430;
             }
 
-            const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
             exportIdwMapInstance.eachLayer(l => exportIdwMapInstance.removeLayer(l));
 
             L.geoJSON(finalGrid, {
@@ -2978,14 +2961,24 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                     if (isDaily) {
                         color = getIMDColor(val);
                     } else {
-                        if (val > maxRainNormal) {
-                            color = '#ff00ff'; // Magenta Overflow
+                        const bounds = seasonConfig[metric] || seasonConfig['custom']; // Use explicit bounds array
+                        const maxBound = bounds[bounds.length - 1];
+
+                        if (val > maxBound) {
+                            color = '#ff00ff'; // Magenta Overflow Peak
+                        } else if (val <= 0) {
+                            color = basePalette[0];
                         } else {
-                            let binIdx = Math.floor((val - 0.0001) / step);
-                            if (binIdx < 0) binIdx = 0;
-                            if (binIdx >= numBins) binIdx = numBins - 1;
-                            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
-                            color = masterPalette[colorIdx];
+                            let binIdx = 0;
+                            for (let i = 0; i < bounds.length - 1; i++) {
+                                if (val > bounds[i] && val <= bounds[i+1]) {
+                                    binIdx = i;
+                                    break;
+                                }
+                            }
+                            let numBins = bounds.length - 1;
+                            let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (basePalette.length - 1));
+                            color = basePalette[colorIdx];
                         }
                     }
                     return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true };
@@ -3024,116 +3017,20 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 legendCont.style.display = 'flex';
 
                 let seasonalLegendHTML = "";
+                const bounds = seasonConfig[metric] || seasonConfig['custom'];
+                let numBins = bounds.length - 1;
 
-                // Generate Step Legend (using 13px font to fit up to 20 blocks neatly)
+                // Loop exclusively through the defined array breaks
                 for (let i = 0; i < numBins; i++) {
-                    let lower = i * step;
-                    let upper = (i + 1) * step;
-                    let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
-                    let color = masterPalette[colorIdx];
+                    let lower = bounds[i];
+                    let upper = bounds[i + 1];
+                    let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (basePalette.length - 1));
+                    let color = basePalette[colorIdx];
+                    
                     let label = lower === 0 ? `1-${upper}` : `${lower + 1}-${upper}`;
-                    seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                    let textColor = color === '#FFFFFF' ? 'var(--exp-text-dim)' : color;
+                    
+                    seasonalLegendHTML += `<span style="color:${textColor}; white-space:nowrap; font-size:12px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.4);"></span> ${label}</span>`;
                 }
 
-                // Append Magenta Peak Overflow
-                seasonalLegendHTML += `<span style="color:#ff00ff; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:#ff00ff; border:1px solid rgba(255,255,255,0.2);"></span> > ${maxRainNormal}</span>`;
-
-                document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
-            }
-
-            finalImageFileName = `IDW_Map_${isDaily ? dateVal : metric+'_'+datasetActiveYear}.png`;
-            activeModalSource = '';
-
-            const targetDiv = document.getElementById('exportIdwWrapper');
-            targetDiv.dataset.exportTheme = document.getElementById('idwExportTheme').value;
-            targetDiv.style.display = 'flex';
-            exportIdwMapInstance.invalidateSize(true);
-            exportIdwMapInstance.fitBounds(tnBounds);
-
-            setTimeout(() => {
-                document.getElementById('loadingModal').style.display = 'none';
-                const previewContainer = document.getElementById('previewContainer');
-                previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Capturing High-Res Map...</span>';
-                document.getElementById('previewModal').style.display = 'flex';
-
-                const bgColor = getComputedStyle(targetDiv).backgroundColor;
-                html2canvas(targetDiv, { scale: 2, useCORS: true, backgroundColor: bgColor }).then(canvas => {
-                    targetDiv.style.display = 'none';
-                    finalImageBase64 = canvas.toDataURL('image/png');
-                    previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
-                });
-            }, 1000);
-        }
-
-        // SHARED EXPORT RENDERER
-        function triggerExportRender(targetDiv, modalIdToClose) {
-            document.getElementById(modalIdToClose).style.display = 'none';
-            const previewContainer = document.getElementById('previewContainer');
-            previewContainer.innerHTML = '<span style="color: #fff; line-height: 100px;">Generating High-Res Image...</span>';
-            document.getElementById('previewModal').style.display = 'flex';
-
-            targetDiv.style.display = 'flex';
-            const bgColor = getComputedStyle(targetDiv).backgroundColor;
-
-            setTimeout(() => {
-                html2canvas(targetDiv, { scale: 2, backgroundColor: bgColor }).then(canvas => {
-                    targetDiv.style.display = 'none';
-                    finalImageBase64 = canvas.toDataURL('image/png');
-                    previewContainer.innerHTML = `<img id="previewImage" src="${finalImageBase64}" />`;
-                });
-            }, 100);
-        }
-
-        function downloadPreviewImage() {
-            if (!finalImageBase64) return;
-            const link = document.createElement('a');
-            link.download = finalImageFileName;
-            link.href = finalImageBase64;
-            link.click();
-            document.getElementById('previewModal').style.display = 'none';
-        }
-    </script>
-
-<script id="integrated-forecast-controller">
-(function(){
-    const forecastBtn=document.getElementById('openForecastBtn');
-    const closeBtn=document.getElementById('closeForecastBtn');
-    const panel=document.getElementById('forecastAppPanel');
-    const dashboard=document.getElementById('tnSmartDashboard');
-
-    function openForecast(){
-        if(!panel)return;
-        panel.classList.add('open');
-        panel.setAttribute('aria-hidden','false');
-        if(dashboard)dashboard.style.visibility='hidden';
-        document.body.style.overflow='hidden';
-
-        // Give the isolated forecast app a chance to render its map/charts
-        // correctly after becoming visible.
-        setTimeout(()=>{
-            const frame=document.getElementById('forecastFrame');
-            if(frame && frame.contentWindow){
-                try{frame.contentWindow.dispatchEvent(new Event('resize'));}catch(e){}
-            }
-        },150);
-    }
-
-    function closeForecast(){
-        if(!panel)return;
-        panel.classList.remove('open');
-        panel.setAttribute('aria-hidden','true');
-        if(dashboard)dashboard.style.visibility='';
-        document.body.style.overflow='';
-    }
-
-    if(forecastBtn)forecastBtn.addEventListener('click',openForecast);
-    if(closeBtn)closeBtn.addEventListener('click',closeForecast);
-
-    window.addEventListener('keydown',e=>{
-        if(e.key==='Escape' && panel && panel.classList.contains('open')) closeForecast();
-    });
-})();
-</script>
-
-</body>
-</html>
+                // Append the Magenta Peak forI encountered an error doing what you asked. Could you try again?
