@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TN Daily Rainfall Info</title>
+    <title>TN Weather & Rainfall — TNSMART + Forecast</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232f6690' d='M12 2C8 8 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-4-8-8-14z'/%3E%3C/svg%3E">
 
     <!-- Leaflet for Mapping -->
@@ -457,6 +457,60 @@
             #headerMeta { display: none; }
         }
     </style>
+
+<style id="integrated-forecast-style">
+.tn-forecast-launch{
+    border:0;
+    border-radius:8px;
+    padding:9px 14px;
+    font:600 13px/1.2 Arial,Helvetica,sans-serif;
+    cursor:pointer;
+    background:#173b63;
+    color:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.tn-forecast-launch:hover{filter:brightness(1.08);transform:translateY(-1px)}
+#forecastAppPanel{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:50000;
+    background:var(--bg-main,#f5f7fa);
+    overflow:auto;
+}
+#forecastAppPanel.open{display:block}
+#forecastAppTopbar{
+    position:sticky;
+    top:0;
+    z-index:50001;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 16px;
+    background:#16233a;
+    color:#fff;
+    box-shadow:0 2px 10px rgba(0,0,0,.2);
+}
+#forecastAppTopbar strong{font-size:14px}
+#closeForecastBtn{
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:7px;
+    padding:7px 12px;
+    background:rgba(255,255,255,.1);
+    color:#fff;
+    cursor:pointer;
+}
+#forecastFrame{
+    display:block;
+    width:100%;
+    height:calc(100vh - 52px);
+    min-height:900px;
+    border:0;
+    background:#fff;
+}
+</style>
+
 </head>
 <body>
 
@@ -550,11 +604,964 @@
                     <div class="site-subtitle">Daily station rainfall across Tamil Nadu · Source: TNSMART</div>
                 </div>
             </div>
-            <div id="headerMeta"></div>
+            <div id="headerMeta">
+                <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
+            </div>
         </div>
     </header>
 
-    <div class="dashboard-container">
+    
+<!-- INTEGRATED FORECAST APPLICATION
+     TNSMART remains the base application.
+     The forecast application is isolated to prevent JS/DOM conflicts. -->
+<div id="forecastAppPanel" aria-hidden="true">
+    <div id="forecastAppTopbar">
+        <strong>🌦️ Multi-Model &amp; Seasonal Forecast</strong>
+        <button id="closeForecastBtn" type="button">← Back to TNSMART Rainfall</button>
+    </div>
+    <iframe
+        id="forecastFrame"
+        title="Tamil Nadu Forecast"
+        loading="lazy"
+        srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;TN Forecast Test V3&lt;/title&gt;
+&lt;script src=&quot;https://cdn.jsdelivr.net/npm/chart.js&quot;&gt;&lt;/script&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.css&quot;/&gt;
+&lt;script src=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.js&quot;&gt;&lt;/script&gt;
+&lt;style&gt;
+*{box-sizing:border-box}body{margin:0;background:#f3f6f9;color:#18202b;font-family:Arial,Helvetica,sans-serif}.head{background:#172033;color:#fff;padding:18px 25px}.head h1{margin:0;font-size:25px}.head p{margin:5px 0 0;color:#bdc8d8}.wrap{max-width:1550px;margin:18px auto;padding:0 20px}.controls,.title,.panel{background:#fff;border-radius:12px;box-shadow:0 2px 10px #0000000d}.controls{padding:15px;display:flex;gap:10px;align-items:center}.controls select,.controls button,.tools select,.tools button{padding:9px 13px;border:1px solid #cbd3dd;border-radius:7px;font-size:14px}.controls button,.tools button{background:#286d9f;color:#fff;border:0;cursor:pointer}.title{margin-top:15px;padding:17px}.title h2{margin:0}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.tab{background:#e8edf3!important;color:#26313d!important}.tab.active{background:#286d9f!important;color:#fff!important}.panel{margin-top:14px;padding:20px}.panel h2{margin:0 0 14px;font-size:25px}.run-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.run-card{background:#f5f7fa;border:1px solid #e0e5eb;border-radius:8px;padding:8px 11px;min-width:145px}.run-card .lab{font-size:11px;color:#6c7785}.run-card .val{font-size:13px;font-weight:700;margin-top:2px}.run-card .small{font-size:10px;color:#687586}.heatwrap{overflow-x:auto}.heat{border-collapse:collapse;width:100%;min-width:1050px}.heat th,.heat td{border:1px solid #fff;text-align:center;padding:9px 6px}.heat th{background:#26364e;color:#fff}.model{text-align:left!important;background:#edf1f5!important;font-weight:700;min-width:175px}.model span{display:block;font-size:9px;color:#687586;font-weight:400;margin-top:2px}.cell{font-weight:700;min-width:70px}.avg td{border-top:3px solid #26364e}.avg .model{background:#26364e!important;color:#fff}.legend{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:12px;margin-top:12px}.box{width:30px;height:15px}.note{font-size:12px;color:#66717f;margin-top:10px}.tools{display:flex;gap:9px;align-items:end;flex-wrap:wrap;background:#f5f7fa;padding:12px;border-radius:9px;margin-bottom:13px}.tools label{font-size:11px;color:#66717f;display:block;margin-bottom:4px}.tools .group{display:flex;flex-direction:column}.check{background:#fff;border:1px solid #ccd3dc;border-radius:7px;padding:9px 12px;display:flex;gap:7px;align-items:center;font-size:14px}.chartbox{height:540px;position:relative}.loading{text-align:center;padding:30px}.error{padding:12px;background:#ffe9ed;color:#9c1c2b;border-radius:7px}.source{font-size:12px;color:#66717f;margin-top:12px}.tablewrap{overflow-x:auto}.tbl{border-collapse:collapse;width:100%}.tbl th,.tbl td{border:1px solid #ddd;padding:9px;text-align:center}.tbl th{background:#26364e;color:#fff}.season-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.season-card{background:#f5f7fa;padding:14px;border-radius:8px}.season-card h3{margin:0 0 6px}.metric{font-size:23px;font-weight:700}.sub{font-size:11px;color:#687586}.anomaly-chart{height:300px;position:relative;margin-top:12px}@media(max-width:700px){.wrap{padding:0 10px}.panel{padding:14px}.chartbox{height:450px}}
+&lt;/style&gt;
+
+&lt;style id=&quot;forecast-nav-fix&quot;&gt;
+.forecast-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-top:14px;
+}
+.forecast-tabs button{
+  appearance:none;
+  border:0 !important;
+  border-radius:10px !important;
+  background:#e7edf5 !important;
+  color:#12243a !important;
+  padding:11px 18px !important;
+  font-size:16px !important;
+  line-height:1.25 !important;
+  font-weight:500 !important;
+  cursor:pointer;
+  box-shadow:none !important;
+  transition:background .15s ease, color .15s ease;
+}
+.forecast-tabs button:hover{
+  background:#dbe5f0 !important;
+}
+.forecast-tabs button.active,
+.forecast-tabs button.selected{
+  background:#2875ad !important;
+  color:#fff !important;
+}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;comk-credit-hq-fix&quot;&gt;
+.head{position:relative}.comk-credit{position:absolute;right:24px;top:16px;font-size:13px;color:#c6d0dd;white-space:nowrap}
+.comk-credit a{color:#2875ad;text-decoration:none;font-weight:600}
+.comk-credit a:hover{text-decoration:underline}
+.forecast-header-row{display:flex;align-items:center;gap:14px}
+.hq-label{font-weight:600}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;forecast-status-style&quot;&gt;
+.forecast-status{
+  margin:10px 0 14px;
+  padding:9px 12px;
+  border-radius:8px;
+  background:#eef4f9;
+  color:#526579;
+  font-size:13px;
+}
+.forecast-status.loading{
+  background:#eef4f9;
+  color:#2875ad;
+}
+.forecast-status.success{
+  background:#eef7ee;
+  color:#35643a;
+}
+.forecast-status.error{
+  background:#fff0f0;
+  color:#8a3b3b;
+}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;map-location-style&quot;&gt;
+.location-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.location-actions button{padding:9px 13px;border:0;border-radius:7px;font-size:14px;cursor:pointer}
+#mapChoose{background:#e7edf5;color:#12243a}
+
+/* Map is a true popup/modal instead of an inline wide panel. */
+#mapPanel{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:none;
+  margin:0;
+  padding:18px;
+  background:rgba(10,18,30,.58);
+  align-items:center;
+  justify-content:center;
+}
+#mapPanel.map-open{display:flex!important}
+.map-dialog{
+  width:min(540px,94vw);
+  height:min(760px,92vh);
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 18px 60px rgba(0,0,0,.30);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.map-dialog-head{
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #e1e6ec;
+}
+.map-dialog-title{font-size:18px;font-weight:700;color:#18202b}
+.map-dialog-sub{font-size:12px;color:#687586;margin-top:3px}
+.map-close{
+  border:0;
+  background:#eef2f6;
+  color:#26313d;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+#forecastMap{
+  flex:1;
+  min-height:0;
+  width:100%;
+  border:0;
+  border-radius:0;
+}
+.map-info{
+  padding:12px 14px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  border-top:1px solid #e1e6ec;
+  background:#fff;
+}
+.map-coords{font-size:13px;color:#526579}
+.map-confirm{display:flex;gap:8px;align-items:center;margin-left:auto}
+.map-confirm button{padding:9px 14px;border:0;border-radius:7px;background:#286d9f;color:#fff;cursor:pointer;font-size:14px}
+.map-confirm button:disabled{opacity:.5;cursor:not-allowed}
+.map-cancel{background:#e7edf5!important;color:#12243a!important}
+.map-loading{font-size:12px;color:#2875ad}
+.leaflet-container{font-family:Arial,Helvetica,sans-serif}
+
+/* Prevent thin horizontal/vertical seams between raster map tiles
+   when Leaflet tiles are rendered at fractional pixel positions. */
+.leaflet-tile{
+  outline:1px solid transparent;
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+}
+.leaflet-tile-container{
+  will-change:transform;
+}
+.leaflet-layer{
+  image-rendering:auto;
+}
+@media(max-width:700px){
+  #mapPanel{padding:8px}
+  .map-dialog{width:96vw;height:90vh;border-radius:12px}
+  .map-dialog-title{font-size:16px}
+  .map-info{padding:10px}
+  .map-coords{width:100%}
+  .map-confirm{width:100%;margin-left:0}
+  .map-confirm button{flex:1}
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;head&quot;&gt;&lt;div class=&quot;comk-credit&quot;&gt;Inspired by &lt;a href=&quot;https://www.chennairains.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;COMK&lt;/a&gt;&lt;/div&gt;&lt;h1&gt;🌧️ Tamil Nadu Forecast&lt;/h1&gt;&lt;p&gt;Open-Meteo deterministic, ensemble and ECMWF seasonal guidance&lt;/p&gt;&lt;/div&gt;
+&lt;div class=&quot;wrap&quot;&gt;
+&lt;div class=&quot;controls&quot;&gt;
+&lt;div id=&quot;forecastStatus&quot; class=&quot;forecast-status&quot;&gt;Select a district and click &lt;b&gt;Load Forecast&lt;/b&gt;, or choose a location on the map.&lt;/div&gt;
+&lt;div class=&quot;location-actions&quot;&gt;&lt;b&gt;District HQ&lt;/b&gt;&lt;select id=&quot;district&quot;&gt;&lt;option value=&quot;&quot; selected disabled&gt;Select District HQ&lt;/option&gt;&lt;/select&gt;&lt;button id=&quot;load&quot;&gt;Load Forecast&lt;/button&gt;&lt;button id=&quot;mapChoose&quot; type=&quot;button&quot;&gt;📍 Choose on Map&lt;/button&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&quot;mapPanel&quot; aria-hidden=&quot;true&quot;&gt;
+  &lt;div class=&quot;map-dialog&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;mapDialogTitle&quot;&gt;
+    &lt;div class=&quot;map-dialog-head&quot;&gt;
+      &lt;div&gt;
+        &lt;div id=&quot;mapDialogTitle&quot; class=&quot;map-dialog-title&quot;&gt;📍 Select Forecast Location&lt;/div&gt;
+        &lt;div class=&quot;map-dialog-sub&quot;&gt;Click anywhere on the map to place the forecast point&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button id=&quot;mapClose&quot; class=&quot;map-close&quot; type=&quot;button&quot; aria-label=&quot;Close map&quot;&gt;×&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div id=&quot;forecastMap&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;map-info&quot;&gt;
+      &lt;div id=&quot;mapCoords&quot; class=&quot;map-coords&quot;&gt;Click on the map to select a location.&lt;/div&gt;
+      &lt;div class=&quot;map-confirm&quot;&gt;
+        &lt;span id=&quot;mapLoading&quot; class=&quot;map-loading&quot;&gt;&lt;/span&gt;
+        &lt;button id=&quot;mapCancel&quot; class=&quot;map-cancel&quot; type=&quot;button&quot;&gt;Cancel&lt;/button&gt;
+        &lt;button id=&quot;mapConfirm&quot; type=&quot;button&quot; disabled&gt;Confirm Location&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;title&quot;&gt;&lt;h2 id=&quot;title&quot;&gt;Select District HQ&lt;/h2&gt;&lt;div class=&quot;forecast-tabs tabs&quot;&gt;
+&lt;button class=&quot;tab active&quot; data-tab=&quot;multi&quot;&gt;🌦️ 7-Day Multi Model&lt;/button&gt;
+&lt;button class=&quot;tab&quot; data-tab=&quot;hourly&quot;&gt;🕐 Hourly Rainfall&lt;/button&gt;
+&lt;button class=&quot;tab&quot; data-tab=&quot;ens&quot;&gt;📊 7-Day Ensemble&lt;/button&gt;
+&lt;button class=&quot;tab&quot; data-tab=&quot;ec46&quot;&gt;📈 ECMWF EC46&lt;/button&gt;
+&lt;button class=&quot;tab&quot; data-tab=&quot;seasonal&quot;&gt;🌐 ECMWF Seasonal&lt;/button&gt;
+&lt;/div&gt;&lt;/div&gt;
+
+&lt;section id=&quot;multi&quot; class=&quot;panel&quot;&gt;&lt;h2&gt;7-Day Daily Precipitation — Multi Model &lt;span id=&quot;multiHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;heat&quot;&gt;&lt;div class=&quot;loading&quot;&gt;Loading…&lt;/div&gt;&lt;/div&gt;&lt;div id=&quot;multiRuns&quot; style=&quot;display:none&quot;&gt;&lt;/div&gt;&lt;/section&gt;
+
+&lt;section id=&quot;hourly&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;Hourly Rainfall Forecast &lt;span id=&quot;hourlyHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;hourRuns&quot;&gt;&lt;/div&gt;&lt;div id=&quot;hourLoad&quot; class=&quot;loading&quot;&gt;Load a district first.&lt;/div&gt;&lt;div id=&quot;hourBox&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;hourChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/section&gt;
+
+&lt;section id=&quot;ens&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;7-Day Ensemble Guidance &lt;span id=&quot;ensHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div class=&quot;tools&quot;&gt;&lt;div class=&quot;group&quot;&gt;&lt;label&gt;Ensemble model&lt;/label&gt;&lt;select id=&quot;ensModel&quot;&gt;
+&lt;option value=&quot;ecmwf_ifs025&quot;&gt;ECMWF IFS 0.25° Ensemble — 51&lt;/option&gt;
+&lt;option value=&quot;ecmwf_aifs025&quot;&gt;ECMWF AIFS 0.25° Ensemble — 51&lt;/option&gt;
+&lt;option value=&quot;gfs025&quot;&gt;GFS Ensemble 0.25° — 31&lt;/option&gt;
+&lt;option value=&quot;dwd_icon_seamless_eps&quot;&gt;DWD ICON EPS Seamless — 40&lt;/option&gt;
+&lt;option value=&quot;google_weathernext2&quot;&gt;Google WeatherNext 2 Ensemble — 64&lt;/option&gt;
+&lt;option value=&quot;ukmo_global_ensemble_20km&quot;&gt;UK MetOffice Global 20km — 18&lt;/option&gt;
+&lt;option value=&quot;gem_global&quot;&gt;GEM Global Ensemble — 21&lt;/option&gt;
+&lt;/select&gt;&lt;/div&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;ensMembers&quot; type=&quot;checkbox&quot;&gt; Show all ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;ensRuns&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;ensLoad&quot; class=&quot;loading&quot;&gt;Select this tab to load the latest ensemble forecast.&lt;/div&gt;&lt;div id=&quot;ensBox&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;ensChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;The ensemble mean is taken from the dedicated Ensemble Mean API. P75/P90/max/min are derived only from returned members; the mean is never calculated locally.&lt;/div&gt;&lt;/section&gt;
+
+&lt;section id=&quot;ec46&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;ECMWF EC46 — 46 Day Guidance &lt;span id=&quot;ec46HQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;ec46Runs&quot;&gt;&lt;/div&gt;&lt;div class=&quot;tools&quot;&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;ec46Members&quot; type=&quot;checkbox&quot;&gt; Show all 51 ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;ec46Load&quot; class=&quot;loading&quot;&gt;Select this tab to load the latest ECMWF EC46 forecast.&lt;/div&gt;&lt;div id=&quot;ec46Box&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;ec46Chart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;Source: Open-Meteo ECMWF EC46. 51-member ensemble. P75/P90/max/min are derived from the returned members.&lt;/div&gt;&lt;/section&gt;
+
+&lt;section id=&quot;seasonal&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;ECMWF SEAS5 — Seasonal Outlook &lt;span id=&quot;seasonalHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;seasonRuns&quot;&gt;&lt;/div&gt;&lt;div class=&quot;tools&quot;&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;seasonMembers&quot; type=&quot;checkbox&quot;&gt; Show all 51 ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;seasonLoad&quot; class=&quot;loading&quot;&gt;Select this tab to load the latest ECMWF SEAS5 forecast.&lt;/div&gt;&lt;div id=&quot;seasonContent&quot; style=&quot;display:none&quot;&gt;&lt;h3&gt;SEAS5 — 6-Month Daily Precipitation Guidance&lt;/h3&gt;&lt;div class=&quot;chartbox&quot;&gt;&lt;canvas id=&quot;seasonChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;h3 style=&quot;margin-top:24px&quot;&gt;Rainfall Anomaly&lt;/h3&gt;&lt;div class=&quot;anomaly-chart&quot;&gt;&lt;canvas id=&quot;anomChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;h3 style=&quot;margin-top:24px&quot;&gt;Monthly Seasonal Guidance&lt;/h3&gt;&lt;div id=&quot;monthly&quot; class=&quot;tablewrap&quot;&gt;&lt;/div&gt;&lt;h3 style=&quot;margin-top:24px&quot;&gt;Tamil Nadu Seasonal View&lt;/h3&gt;&lt;div id=&quot;seasonCards&quot; class=&quot;season-grid&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;SEAS5 anomaly is the model&#x27;s official climatological anomaly, not a locally calculated station anomaly. P75/P90/max/min are derived from the returned members.&lt;/div&gt;&lt;/section&gt;
+&lt;/div&gt;
+&lt;script&gt;
+const D={Ariyalur:[&#x27;Ariyalur&#x27;,11.1401,79.0786],Chengalpattu:[&#x27;Chengalpattu&#x27;,12.6819,79.9888],Chennai:[&#x27;Chennai&#x27;,13.0827,80.2707],Coimbatore:[&#x27;Coimbatore&#x27;,11.0168,76.9558],Cuddalore:[&#x27;Cuddalore&#x27;,11.7480,79.7714],Dharmapuri:[&#x27;Dharmapuri&#x27;,12.1211,78.1582],Dindigul:[&#x27;Dindigul&#x27;,10.3673,77.9803],Erode:[&#x27;Erode&#x27;,11.3410,77.7172],Kallakurichi:[&#x27;Kallakurichi&#x27;,11.7404,78.9597],Kancheepuram:[&#x27;Kancheepuram&#x27;,12.8342,79.7036],Karur:[&#x27;Karur&#x27;,10.9601,78.0766],Krishnagiri:[&#x27;Krishnagiri&#x27;,12.5186,78.2137],Madurai:[&#x27;Madurai&#x27;,9.9252,78.1198],Mayiladuthurai:[&#x27;Mayiladuthurai&#x27;,11.1035,79.6550],Nagapattinam:[&#x27;Nagapattinam&#x27;,10.7672,79.8449],Kanyakumari:[&#x27;Nagercoil&#x27;,8.1833,77.4119],Namakkal:[&#x27;Namakkal&#x27;,11.2194,78.1677],Perambalur:[&#x27;Perambalur&#x27;,11.2342,78.8800],Pudukottai:[&#x27;Pudukottai&#x27;,10.3833,78.8001],Ramanathapuram:[&#x27;Ramanathapuram&#x27;,9.3639,78.8395],Ranipet:[&#x27;Ranipet&#x27;,12.9249,79.3333],Salem:[&#x27;Salem&#x27;,11.6643,78.1460],Sivaganga:[&#x27;Sivaganga&#x27;,9.8433,78.4809],Tenkasi:[&#x27;Tenkasi&#x27;,8.9590,77.3152],Thanjavur:[&#x27;Thanjavur&#x27;,10.7867,79.1378],Theni:[&#x27;Theni&#x27;,10.0104,77.4768],Thiruvallur:[&#x27;Thiruvallur&#x27;,13.1437,79.9080],Thiruvarur:[&#x27;Thiruvarur&#x27;,10.7661,79.6344],Thoothukudi:[&#x27;Thoothukudi&#x27;,8.7642,78.1348],Tiruchirappalli:[&#x27;Tiruchirappalli&#x27;,10.7905,78.7047],Tirunelveli:[&#x27;Tirunelveli&#x27;,8.7139,77.7567],Tirupathur:[&#x27;Tirupathur&#x27;,12.4966,78.5650],Tiruppur:[&#x27;Tiruppur&#x27;,11.1085,77.3411],Tiruvannamalai:[&#x27;Tiruvannamalai&#x27;,12.2253,79.0747],&#x27;The Nilgiris&#x27;:[&#x27;Udagamandalam&#x27;,11.4102,76.6950],Vellore:[&#x27;Vellore&#x27;,12.9165,79.1325],Viluppuram:[&#x27;Viluppuram&#x27;,11.9401,79.4861],Virudhunagar:[&#x27;Virudhunagar&#x27;,9.5680,77.9624]};
+Object.keys(D).sort().forEach(k=&gt;district.insertAdjacentHTML(&#x27;beforeend&#x27;,`&lt;option value=&quot;${k}&quot;&gt;${k} — ${D[k][0]}&lt;/option&gt;`));
+let current=&#x27;&#x27;,currentLocation=null,hourChart,ensChart,ec46Chart,seasonChart,anomChart;
+const esc=s=&gt;String(s).replace(/[&amp;&lt;&gt;&quot;&#x27;]/g,m=&gt;({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;,&#x27;&quot;&#x27;:&#x27;&amp;quot;&#x27;,&quot;&#x27;&quot;:&#x27;&amp;#39;&#x27;}[m]));
+const loc=()=&gt;currentLocation ? ({name:currentLocation.name,lat:currentLocation.lat,lon:currentLocation.lon}) : ({name:&#x27;&#x27;,lat:null,lon:null});
+const todayIST=()=&gt;new Intl.DateTimeFormat(&#x27;en-CA&#x27;,{timeZone:&#x27;Asia/Kolkata&#x27;,year:&#x27;numeric&#x27;,month:&#x27;2-digit&#x27;,day:&#x27;2-digit&#x27;}).format(new Date());
+const fmtDate=s=&gt;new Date(s+&#x27;T00:00:00&#x27;).toLocaleDateString(&#x27;en-IN&#x27;,{day:&#x27;2-digit&#x27;,month:&#x27;short&#x27;,year:&#x27;numeric&#x27;});
+const fmtUTC=s=&gt;s?new Date(s+&#x27;:00Z&#x27;).toLocaleString(&#x27;en-IN&#x27;,{day:&#x27;2-digit&#x27;,month:&#x27;short&#x27;,year:&#x27;numeric&#x27;,hour:&#x27;2-digit&#x27;,minute:&#x27;2-digit&#x27;,hour12:false,timeZone:&#x27;UTC&#x27;})+&#x27; UTC&#x27;:&#x27;Unavailable&#x27;;
+function color(v){if(v==null)return&#x27;#eee&#x27;;if(v&lt;1)return&#x27;#fffbdc&#x27;;if(v&lt;3)return&#x27;#e9f5b7&#x27;;if(v&lt;5)return&#x27;#c8e8b4&#x27;;if(v&lt;10)return&#x27;#82cfc0&#x27;;if(v&lt;15)return&#x27;#4bb0c0&#x27;;if(v&lt;25)return&#x27;#2879ae&#x27;;if(v&lt;50)return&#x27;#194a91&#x27;;return&#x27;#10255f&#x27;}
+const models=[
+{name:&#x27;ECMWF IFS HRES&#x27;,model:&#x27;ecmwf_ifs025&#x27;,res:&#x27;9 km&#x27;},
+{name:&#x27;ECMWF AIFS&#x27;,model:&#x27;ecmwf_aifs025_single&#x27;,res:&#x27;~28 km&#x27;},
+{name:&#x27;GFS&#x27;,model:&#x27;gfs_global&#x27;,res:&#x27;~25 km&#x27;},
+{name:&#x27;GEM&#x27;,model:&#x27;gem_global&#x27;,res:&#x27;~25 km&#x27;},
+{name:&#x27;ICON&#x27;,model:&#x27;icon_global&#x27;,res:&#x27;~13 km&#x27;},
+{name:&#x27;JMA&#x27;,model:&#x27;jma_gsm&#x27;,res:&#x27;~55 km&#x27;},
+{name:&#x27;UK Met&#x27;,model:&#x27;ukmo_global_deterministic_10km&#x27;,res:&#x27;~10 km&#x27;}];
+function runCards(id,arr){document.getElementById(id).innerHTML=&#x27;&lt;div class=&quot;run-strip&quot;&gt;&#x27;+arr.map(x=&gt;`&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;${esc(x.name)}&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;${x.result?fmtUTC(x.result.run):&#x27;Unavailable&#x27;}&lt;/div&gt;&lt;div class=&quot;small&quot;&gt;${esc(x.res||&#x27;&#x27;)}&lt;/div&gt;&lt;/div&gt;`).join(&#x27;&#x27;)+&#x27;&lt;/div&gt;&#x27;}
+async function forecastDaily(model,days=7){
+  const start=todayIST();
+  const end=new Date(start+&#x27;T00:00:00+05:30&#x27;);
+  end.setDate(end.getDate()+days-1);
+  const endDate=new Intl.DateTimeFormat(&#x27;en-CA&#x27;,{timeZone:&#x27;Asia/Kolkata&#x27;,year:&#x27;numeric&#x27;,month:&#x27;2-digit&#x27;,day:&#x27;2-digit&#x27;}).format(end);
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;daily=precipitation_sum&amp;start_date=${start}&amp;end_date=${endDate}&amp;models=${model}&amp;timezone=Asia%2FKolkata`;
+  const r=await fetch(u); if(!r.ok) throw Error(&#x27;Forecast API HTTP &#x27;+r.status); return await r.json();
+}
+async function forecastHourly(model){
+  const start=todayIST();
+  const end=new Date(start+&#x27;T00:00:00+05:30&#x27;); end.setDate(end.getDate()+6);
+  const endDate=new Intl.DateTimeFormat(&#x27;en-CA&#x27;,{timeZone:&#x27;Asia/Kolkata&#x27;,year:&#x27;numeric&#x27;,month:&#x27;2-digit&#x27;,day:&#x27;2-digit&#x27;}).format(end);
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;hourly=precipitation&amp;start_date=${start}&amp;end_date=${endDate}&amp;models=${model}&amp;timezone=Asia%2FKolkata`;
+  const r=await fetch(u); if(!r.ok) throw Error(&#x27;Forecast API HTTP &#x27;+r.status); return await r.json();
+}
+async function loadMultiFromAPI(){
+  document.getElementById(&#x27;heat&#x27;).innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Loading today\&#x27;s 7-day model forecasts…&lt;/div&gt;&#x27;;
+  const rr=await Promise.all(models.map(async m=&gt;{let data=null;try{data=await forecastDaily(m.model,7)}catch(e){console.warn(m.name,e)}return {...m,data}}));
+  let dates=[],map={};
+  rr.forEach(r=&gt;{if(!r.data?.daily)return;map[r.name]={};r.data.daily.time.forEach((x,i)=&gt;{if(x&gt;=todayIST())map[r.name][x]=r.data.daily.precipitation_sum[i]});Object.keys(map[r.name]).forEach(x=&gt;{if(!dates.includes(x))dates.push(x)})});
+  dates.sort();dates=dates.slice(0,7);
+  let h=&#x27;&lt;div class=&quot;heatwrap&quot;&gt;&lt;table class=&quot;heat&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Model&lt;/th&gt;&#x27;+dates.map(x=&gt;`&lt;th&gt;${fmtDate(x)}&lt;/th&gt;`).join(&#x27;&#x27;)+&#x27;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;,av=dates.map(()=&gt;[]);
+  rr.forEach(r=&gt;{h+=`&lt;tr&gt;&lt;td class=&quot;model&quot;&gt;${esc(r.name)}&lt;/td&gt;`;dates.forEach((d,i)=&gt;{let v=map[r.name]?.[d];if(typeof v===&#x27;number&#x27;)av[i].push(v);h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)}&quot;&gt;${typeof v===&#x27;number&#x27;?v.toFixed(1):&#x27;—&#x27;}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&#x27;});
+  h+=&#x27;&lt;tr class=&quot;avg&quot;&gt;&lt;td class=&quot;model&quot;&gt;Average&lt;/td&gt;&#x27;;av.forEach(a=&gt;{let v=a.length?a.reduce((x,y)=&gt;x+y,0)/a.length:null;h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)}&quot;&gt;${v==null?&#x27;—&#x27;:v.toFixed(1)}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;legend&quot;&gt;&lt;b&gt;Rainfall&lt;/b&gt;&lt;i class=&quot;box&quot; style=&quot;background:#fffbdc&quot;&gt;&lt;/i&gt;0–1 &lt;i class=&quot;box&quot; style=&quot;background:#c8e8b4&quot;&gt;&lt;/i&gt;3–5 &lt;i class=&quot;box&quot; style=&quot;background:#4bb0c0&quot;&gt;&lt;/i&gt;10–15 &lt;i class=&quot;box&quot; style=&quot;background:#194a91&quot;&gt;&lt;/i&gt;25–50 &lt;i class=&quot;box&quot; style=&quot;background:#10255f&quot;&gt;&lt;/i&gt;&amp;gt;50 mm&lt;/div&gt;&#x27;;
+  document.getElementById(&#x27;heat&#x27;).innerHTML=h;
+  document.getElementById(&#x27;multiRuns&#x27;).innerHTML=&#x27;&#x27;;
+}
+async function loadHourlyFromAPI(){
+  const arr=await Promise.all(models.slice(0,2).map(async m=&gt;{let data=null;try{data=await forecastHourly(m.model)}catch(e){}return {...m,data}}));
+  document.getElementById(&#x27;hourRuns&#x27;).innerHTML=&#x27;&#x27;;
+  let valid=arr.filter(x=&gt;x.data?.hourly);
+  if(!valid.length){hourLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;Hourly forecast unavailable.&lt;/div&gt;&#x27;;throw Error(&#x27;Hourly forecast unavailable.&#x27;);}
+  const labels=valid[0].data.hourly.time;let ds=valid.map(x=&gt;({label:x.name,data:x.data.hourly.precipitation,borderWidth:3,pointRadius:0,tension:.2}));if(hourChart)hourChart.destroy();hourChart=new Chart(hourChartEl(),{type:&#x27;line&#x27;,data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:&#x27;index&#x27;,intersect:false},scales:{x:{offset:true,ticks:{maxTicksLimit:14}},y:{beginAtZero:true,title:{display:true,text:&#x27;Hourly precipitation (mm)&#x27;}}}}});hourLoad.style.display=&#x27;none&#x27;;hourBox.style.display=&#x27;block&#x27;;
+}
+function hourChartEl(){return document.getElementById(&#x27;hourChart&#x27;).getContext(&#x27;2d&#x27;)}
+
+const E={
+ecmwf_ifs025:{name:&#x27;ECMWF IFS 0.25° Ensemble&#x27;,api:&#x27;ecmwf_ifs025_ensemble&#x27;,mean:&#x27;ecmwf_ifs025_ensemble_mean&#x27;,meanLabel:&#x27;ECMWF IFS Ensemble Mean&#x27;,members:51,res:&#x27;0.25° (~25 km)&#x27;},
+ecmwf_aifs025:{name:&#x27;ECMWF AIFS 0.25° Ensemble&#x27;,api:&#x27;ecmwf_aifs025_ensemble&#x27;,mean:&#x27;ecmwf_aifs025_ensemble_mean&#x27;,meanLabel:&#x27;ECMWF AIFS Ensemble Mean&#x27;,members:51,res:&#x27;0.25° (~28 km)&#x27;},
+gfs025:{name:&#x27;GFS Ensemble 0.25°&#x27;,api:&#x27;ncep_gefs025&#x27;,mean:&#x27;ncep_gefs025_ensemble_mean&#x27;,meanLabel:&#x27;GFS Ensemble Mean&#x27;,members:31,res:&#x27;~25 km&#x27;},
+dwd_icon_seamless_eps:{name:&#x27;DWD ICON EPS Seamless&#x27;,api:&#x27;dwd_icon_seamless_eps&#x27;,mean:&#x27;dwd_icon_eps_ensemble_mean_seamless&#x27;,meanLabel:&#x27;DWD ICON EPS Ensemble Mean&#x27;,members:40,res:&#x27;~26 km&#x27;},
+google_weathernext2:{name:&#x27;Google WeatherNext 2 Ensemble&#x27;,api:&#x27;google_weathernext2_ensemble&#x27;,mean:&#x27;google_weathernext2_ensemble_mean&#x27;,meanLabel:&#x27;Google WeatherNext 2 Ensemble Mean&#x27;,members:64,res:&#x27;0.25° (~25 km)&#x27;,weatherNext:true},
+ukmo_global_ensemble_20km:{name:&#x27;UK MetOffice Global 20km&#x27;,api:&#x27;ukmo_global_ensemble_20km&#x27;,mean:&#x27;ukmo_global_ensemble_mean_20km&#x27;,meanLabel:&#x27;UK MetOffice Ensemble Mean&#x27;,members:18,res:&#x27;~20 km&#x27;},
+gem_global:{name:&#x27;GEM Global Ensemble&#x27;,api:&#x27;cmc_gem_geps&#x27;,mean:&#x27;cmc_gem_geps_ensemble_mean&#x27;,meanLabel:&#x27;GEM Ensemble Mean&#x27;,members:21,res:&#x27;~25 km&#x27;}
+};
+function dailyFromHourly(h,key,cutoff,days=7){let out={};h.time.forEach((t,i)=&gt;{let d=t.slice(0,10);if(d&lt;cutoff)return;if(!out[d])out[d]=0;let v=h[key]?.[i];if(typeof v===&#x27;number&#x27;)out[d]+=v});let ds=Object.keys(out).sort().slice(0,days);return{dates:ds,values:ds.map(d=&gt;out[d])}}
+function memberKeys(h){return Object.keys(h).filter(k=&gt;/^precipitation_member\d+$/.test(k))}
+function qsorted(v,q){if(!v.length)return null;const p=q*(v.length-1),lo=Math.floor(p),hi=Math.ceil(p);return lo===hi?v[lo]:v[lo]+(v[hi]-v[lo])*(p-lo)}
+function stats(members,dates){return dates.map((_,i)=&gt;{let v=members.map(x=&gt;x[i]).filter(x=&gt;typeof x===&#x27;number&#x27;&amp;&amp;Number.isFinite(x)).sort((a,b)=&gt;a-b);if(!v.length)return{min:null,max:null,p75:null,p90:null};return{min:v[0],max:v[v.length-1],p75:qsorted(v,.75),p90:qsorted(v,.90)}})}
+
+/* Member-visibility state: member data is already fetched with the
+   forecast. The checkbox only rebuilds the existing chart; it does
+   NOT make another API request. */
+let ensembleChartStates={};
+let ec46ChartState=null;
+let seasonalChartState=null;
+
+function buildEnsembleChart(state, showMembers){
+  if(ensChart) ensChart.destroy();
+  const datasets=state.base.map(x=&gt;({...x}));
+  if(showMembers){
+    state.members.forEach((v,i)=&gt;datasets.push({
+      label:&#x27;Member &#x27;+String(i).padStart(2,&#x27;0&#x27;),
+      data:v,borderWidth:1,borderColor:&#x27;rgba(100,100,100,.15)&#x27;,
+      pointRadius:0,order:20
+    }));
+  }
+  ensChart=new Chart(document.getElementById(&#x27;ensChart&#x27;).getContext(&#x27;2d&#x27;),{
+    type:&#x27;line&#x27;,
+    data:{labels:state.labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:&#x27;index&#x27;,intersect:false},
+      plugins:{legend:{position:&#x27;top&#x27;,labels:{filter:i=&gt;!i.text.startsWith(&#x27;Member &#x27;)}}},
+      scales:{x:{offset:true},y:{beginAtZero:true,title:{display:true,text:&#x27;Daily Precipitation (mm)&#x27;}}}
+    }
+  });
+}
+
+function buildEC46Chart(state, showMembers){
+  if(ec46Chart) ec46Chart.destroy();
+  const ds=state.base.map(x=&gt;({...x}));
+  if(showMembers)state.members.forEach((v,i)=&gt;ds.unshift({
+    label:&#x27;Member &#x27;+String(i).padStart(2,&#x27;0&#x27;),data:v,borderWidth:1,
+    borderColor:&#x27;rgba(100,100,100,.14)&#x27;,pointRadius:0,order:20
+  }));
+  ec46Chart=new Chart(document.getElementById(&#x27;ec46Chart&#x27;).getContext(&#x27;2d&#x27;),{
+    type:&#x27;line&#x27;,data:{labels:state.labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:&#x27;index&#x27;,intersect:false},
+      plugins:{legend:{position:&#x27;top&#x27;,labels:{filter:i=&gt;!i.text.startsWith(&#x27;Member &#x27;)}}},
+      scales:{x:{offset:true},y:{beginAtZero:true,title:{display:true,text:&#x27;Daily Precipitation (mm)&#x27;}}}}
+  });
+}
+
+function buildSeasonalChart(state, showMembers){
+  if(seasonChart) seasonChart.destroy();
+  const ds=state.base.map(x=&gt;({...x}));
+  if(showMembers)state.members.forEach((v,i)=&gt;ds.unshift({
+    label:&#x27;Member &#x27;+String(i).padStart(2,&#x27;0&#x27;),data:v,borderWidth:1,
+    borderColor:&#x27;rgba(100,100,100,.12)&#x27;,pointRadius:0,order:20
+  }));
+  seasonChart=new Chart(document.getElementById(&#x27;seasonChart&#x27;).getContext(&#x27;2d&#x27;),{
+    type:&#x27;line&#x27;,data:{labels:state.labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:&#x27;index&#x27;,intersect:false},
+      plugins:{legend:{position:&#x27;top&#x27;,labels:{filter:i=&gt;!i.text.startsWith(&#x27;Member &#x27;)}}},
+      scales:{x:{offset:true,ticks:{maxTicksLimit:12}},y:{beginAtZero:true,title:{display:true,text:&#x27;Daily Precipitation (mm)&#x27;}}}}
+  });
+}
+
+async function loadEnsembleFromAPI(){
+  const key=ensModel.value,m=E[key];
+  ensLoad.innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Loading ensemble mean and members…&lt;/div&gt;&#x27;;
+  ensLoad.style.display=&#x27;block&#x27;;ensBox.style.display=&#x27;none&#x27;;ensRuns.innerHTML=&#x27;&#x27;;
+
+  const base=`latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;forecast_days=7&amp;timezone=Asia%2FKolkata`;
+  const hourly=&#x27;precipitation&#x27;;
+
+  try{
+    // Both the member and dedicated mean products are served by the Ensemble API.
+    // WeatherNext is a native 64-member, 6-hour model; Open-Meteo interpolates
+    // precipitation to hourly while preserving the accumulated amount.
+    const [meanR,memR]=await Promise.all([
+      fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${base}&amp;hourly=${hourly}&amp;models=${m.mean}`),
+      fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${base}&amp;hourly=${hourly}&amp;models=${m.api || key}`)
+    ]);
+
+    if(!meanR.ok)throw Error(`${m.name}: Ensemble Mean API HTTP ${meanR.status}`);
+    if(!memR.ok)throw Error(`${m.name}: Ensemble Member API HTTP ${memR.status}`);
+
+    const mean=await meanR.json();
+    const mem=await memR.json();
+
+    if(!mean.hourly || !mean.hourly.time)throw Error(`${m.name}: no mean data returned`);
+    if(!mem.hourly || !mem.hourly.time)throw Error(`${m.name}: no member data returned`);
+
+    // Mean API returns the mean in the ordinary precipitation column.
+    const md=dailyFromHourly(mean.hourly,&#x27;precipitation&#x27;,todayIST());
+
+    // WeatherNext can expose its member fields with the standard precipitation
+    // member naming; do not assume only 50 members.
+    let mk=memberKeys(mem.hourly);
+
+    // Explicit fallback for the native 64-member WeatherNext response.
+    if(m.weatherNext &amp;&amp; mk.length===0){
+      mk=Object.keys(mem.hourly)
+        .filter(k=&gt;/^precipitation(?:_member\d+)?$/.test(k))
+        .sort((a,b)=&gt;{
+          const na=a===&#x27;precipitation&#x27;?0:Number((a.match(/member(\d+)/)||[,999])[1]);
+          const nb=b===&#x27;precipitation&#x27;?0:Number((b.match(/member(\d+)/)||[,999])[1]);
+          return na-nb;
+        });
+    }
+
+    if(!mk.length)throw Error(`${m.name}: no ensemble member precipitation fields returned`);
+
+    const memberDaily=mk.map(k=&gt;dailyFromHourly(mem.hourly,k,todayIST()).values);
+    const s=stats(memberDaily,md.dates);
+
+    const state={
+      labels:md.dates,
+      base:[
+        {label:m.meanLabel,data:md.values,borderWidth:4,pointRadius:2,tension:.2},
+        {label:&#x27;P75&#x27;,data:s.map(x=&gt;x.p75),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.2},
+        {label:&#x27;P90&#x27;,data:s.map(x=&gt;x.p90),borderWidth:2,borderDash:[6,4],pointRadius:0,tension:.2},
+        {label:&#x27;Maximum&#x27;,data:s.map(x=&gt;x.max),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.2},
+        {label:&#x27;Minimum&#x27;,data:s.map(x=&gt;x.min),borderWidth:2,borderDash:[2,4],pointRadius:0,tension:.2}
+      ],
+      members:memberDaily
+    };
+    ensembleChartStates[forecastCacheKey(&#x27;ens&#x27;)]=state;
+    buildEnsembleChart(state,ensMembers.checked);
+
+    ensRuns.innerHTML=`&lt;div class=&quot;run-strip&quot;&gt;
+      &lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Model&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;${esc(m.name)}&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Members&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;${m.members}&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Resolution&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;${m.res}&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Forecast&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;7 days&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;`;
+
+    ensLoad.style.display=&#x27;none&#x27;;ensBox.style.display=&#x27;block&#x27;;
+  }catch(e){
+    ensLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message)+&#x27;&lt;/div&gt;&#x27;;
+  }
+}
+async function loadEC46FromAPI(){
+  const {lat,lon}=loc();
+  ec46Load.innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Loading EC46 official mean + members…&lt;/div&gt;&#x27;;
+  ec46Load.style.display=&#x27;block&#x27;;ec46Box.style.display=&#x27;none&#x27;;
+  try{
+    const q=`latitude=${lat}&amp;longitude=${lon}&amp;daily=precipitation_sum&amp;forecast_days=46&amp;timezone=Asia%2FKolkata`;
+    const [a,b]=await Promise.all([
+      fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${q}&amp;models=ecmwf_ec46_ensemble_mean`),
+      fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${q}&amp;models=ecmwf_ec46`)
+    ]);
+    if(!a.ok||!b.ok)throw Error(&#x27;EC46 API failed&#x27;);
+    const mean=(await a.json()).daily, mem=(await b.json()).daily;
+    const keys=[&#x27;precipitation_sum&#x27;,...Array.from({length:50},(_,i)=&gt;&#x27;precipitation_sum_member&#x27;+String(i+1).padStart(2,&#x27;0&#x27;)).filter(k=&gt;mem[k])];
+    const vals=keys.map(k=&gt;mem[k]);
+    const st=stats(vals,mean.time);
+
+    ec46ChartState={
+      labels:mean.time,
+      base:[
+        {label:&#x27;ECMWF EC46 Ensemble Mean&#x27;,data:mean.precipitation_sum,borderWidth:4,pointRadius:2,tension:.2},
+        {label:&#x27;P75&#x27;,data:st.map(x=&gt;x.p75),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.2},
+        {label:&#x27;P90&#x27;,data:st.map(x=&gt;x.p90),borderWidth:2,borderDash:[6,4],pointRadius:0,tension:.2},
+        {label:&#x27;Maximum&#x27;,data:st.map(x=&gt;x.max),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.2},
+        {label:&#x27;Minimum&#x27;,data:st.map(x=&gt;x.min),borderWidth:2,borderDash:[2,4],pointRadius:0,tension:.2}
+      ],
+      members:vals
+    };
+    buildEC46Chart(ec46ChartState,ec46Members.checked);
+
+    ec46Runs.innerHTML=&#x27;&lt;div class=&quot;run-strip&quot;&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Product&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;ECMWF EC46&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Update&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;Daily · ~20:30 UTC&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Ensemble&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;51 members&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Horizon&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;46 days&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&#x27;;
+    ec46Load.style.display=&#x27;none&#x27;;ec46Box.style.display=&#x27;block&#x27;;
+  }catch(e){ec46Load.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message)+&#x27;&lt;/div&gt;&#x27;}
+}
+async function loadSeasonalFromAPI(){
+  const {lat,lon}=loc();
+  seasonLoad.innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Loading SEAS5 official mean, anomaly and 51-member daily precipitation…&lt;/div&gt;&#x27;;
+  seasonLoad.style.display=&#x27;block&#x27;;seasonContent.style.display=&#x27;none&#x27;;
+  try{
+    const q=`latitude=${lat}&amp;longitude=${lon}&amp;forecast_days=180&amp;timezone=Asia%2FKolkata`;
+    const [meanR,memR,anomR]=await Promise.all([
+      fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${q}&amp;daily=precipitation_sum&amp;models=ecmwf_seas5_ensemble_mean`),
+      fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${q}&amp;daily=precipitation_sum&amp;models=ecmwf_seas5`),
+      fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${q}&amp;monthly=precipitation_mean,precipitation_anomaly&amp;models=ecmwf_seas5_ensemble_mean`)
+    ]);
+    if(!meanR.ok||!memR.ok||!anomR.ok)throw Error(&#x27;SEAS5 API failed&#x27;);
+
+    const mean=(await meanR.json()).daily,mem=(await memR.json()).daily,anom=(await anomR.json()).monthly;
+    const keys=[&#x27;precipitation_sum&#x27;,...Array.from({length:50},(_,i)=&gt;&#x27;precipitation_sum_member&#x27;+String(i+1).padStart(2,&#x27;0&#x27;)).filter(k=&gt;mem[k])];
+    const vals=keys.map(k=&gt;mem[k]);
+    const st=stats(vals,mean.time);
+
+    seasonalChartState={
+      labels:mean.time,
+      base:[
+        {label:&#x27;ECMWF SEAS5 Ensemble Mean&#x27;,data:mean.precipitation_sum,borderWidth:4,pointRadius:1.5,tension:.15},
+        {label:&#x27;P75&#x27;,data:st.map(x=&gt;x.p75),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.15},
+        {label:&#x27;P90&#x27;,data:st.map(x=&gt;x.p90),borderWidth:2,borderDash:[6,4],pointRadius:0,tension:.15},
+        {label:&#x27;Maximum&#x27;,data:st.map(x=&gt;x.max),borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.15},
+        {label:&#x27;Minimum&#x27;,data:st.map(x=&gt;x.min),borderWidth:2,borderDash:[2,4],pointRadius:0,tension:.15}
+      ],
+      members:vals
+    };
+    buildSeasonalChart(seasonalChartState,seasonMembers.checked);
+
+    let months=anom.time||[];
+    monthly.innerHTML=&#x27;&lt;table class=&quot;tbl&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Month&lt;/th&gt;&lt;th&gt;Forecast mean&lt;/th&gt;&lt;th&gt;Anomaly&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;+
+      months.map((m,i)=&gt;`&lt;tr&gt;&lt;td&gt;${m}&lt;/td&gt;&lt;td&gt;${Number(anom.precipitation_mean?.[i]??0).toFixed(1)} mm&lt;/td&gt;&lt;td&gt;${Number(anom.precipitation_anomaly?.[i]??0).toFixed(1)} mm&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;)+
+      &#x27;&lt;/tbody&gt;&lt;/table&gt;&#x27;;
+
+    if(anomChart)anomChart.destroy();
+    anomChart=new Chart(document.getElementById(&#x27;anomChart&#x27;).getContext(&#x27;2d&#x27;),{
+      type:&#x27;bar&#x27;,data:{labels:months,datasets:[{label:&#x27;Precipitation anomaly (mm)&#x27;,data:anom.precipitation_anomaly}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:&#x27;Anomaly (mm)&#x27;}}}}
+    });
+
+    const seasons={SWM:[5,6,7,8],NEM:[9,10,11],Winter:[0,1]};
+    let cards=&#x27;&#x27;;
+    for(const [name,ms] of Object.entries(seasons)){
+      let total=0,n=0;
+      mean.time.forEach((d,i)=&gt;{
+        let mo=Number(d.slice(5,7))-1;
+        if(ms.includes(mo)&amp;&amp;typeof mean.precipitation_sum[i]===&#x27;number&#x27;){total+=mean.precipitation_sum[i];n++}
+      });
+      if(n)cards+=`&lt;div class=&quot;season-card&quot;&gt;&lt;h3&gt;${name}&lt;/h3&gt;&lt;div class=&quot;metric&quot;&gt;${total.toFixed(1)} mm&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;SEAS5 ensemble-mean accumulation covered by this forecast&lt;/div&gt;&lt;/div&gt;`;
+    }
+    seasonCards.innerHTML=cards;
+    seasonRuns.innerHTML=&#x27;&lt;div class=&quot;run-strip&quot;&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Product&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;ECMWF SEAS5&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Update&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;Monthly · 5th&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Ensemble&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;51 members&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Horizon&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;6 months&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&#x27;;
+    seasonLoad.style.display=&#x27;none&#x27;;seasonContent.style.display=&#x27;block&#x27;;
+  }catch(e){seasonLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message)+&#x27;&lt;/div&gt;&#x27;}
+}
+
+/* Per-HQ forecast cache: successful API results stay in memory until HQ changes. */
+let forecastTabCache={};
+
+function activeLocationKey(){
+  if(!currentLocation) return &#x27;&#x27;;
+  if(currentLocation.source===&#x27;hq&#x27;) return `hq:${current}`;
+  return `map:${Number(currentLocation.lat).toFixed(5)},${Number(currentLocation.lon).toFixed(5)}`;
+}
+function forecastCacheKey(tab){
+  const h=activeLocationKey();
+  if(tab===&#x27;ens&#x27;){
+    const m=(document.getElementById(&#x27;ensModel&#x27;)||{}).value||&#x27;&#x27;;
+    return `${h}|${tab}|${m}`;
+  }
+  return `${h}|${tab}`;
+}
+
+function clearForecastCache(){
+  forecastTabCache={};
+}
+
+async function cachedTabLoad(tab){
+  const key=forecastCacheKey(tab);
+  if(!key || key.startsWith(&#x27;|&#x27;)) return;
+
+  if(Object.prototype.hasOwnProperty.call(forecastTabCache,key)){
+    return forecastTabCache[key];
+  }
+
+  let p;
+  if(tab===&#x27;multi&#x27;) p=loadMultiFromAPI();
+  else if(tab===&#x27;hourly&#x27;) p=loadHourlyFromAPI();
+  else if(tab===&#x27;ens&#x27;) p=loadEnsembleFromAPI();
+  else if(tab===&#x27;ec46&#x27;) p=loadEC46FromAPI();
+  else if(tab===&#x27;seasonal&#x27;) p=loadSeasonalFromAPI();
+  else return;
+
+  const promise=Promise.resolve(p).then(result=&gt;{
+    forecastTabCache[key]=Promise.resolve(result);
+    return result;
+  }).catch(err=&gt;{
+    delete forecastTabCache[key];
+    throw err;
+  });
+
+  forecastTabCache[key]=promise;
+  return promise;
+}
+
+function clearForecastPanelsForHQChange(){
+  const multi=document.getElementById(&#x27;heat&#x27;);
+  const hourlyLoad=document.getElementById(&#x27;hourLoad&#x27;);
+  const hourlyBox=document.getElementById(&#x27;hourBox&#x27;);
+  const hourRuns=document.getElementById(&#x27;hourRuns&#x27;);
+  const ensLoad=document.getElementById(&#x27;ensLoad&#x27;);
+  const ensBox=document.getElementById(&#x27;ensBox&#x27;);
+  const ensRuns=document.getElementById(&#x27;ensRuns&#x27;);
+  const ec46Load=document.getElementById(&#x27;ec46Load&#x27;);
+  const ec46Box=document.getElementById(&#x27;ec46Box&#x27;);
+  const ec46Runs=document.getElementById(&#x27;ec46Runs&#x27;);
+  const seasonLoad=document.getElementById(&#x27;seasonLoad&#x27;);
+  const seasonContent=document.getElementById(&#x27;seasonContent&#x27;);
+  const seasonRuns=document.getElementById(&#x27;seasonRuns&#x27;);
+
+  if(multi) multi.innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Select Load Forecast to load the latest forecast for this district.&lt;/div&gt;&#x27;;
+  if(hourRuns) hourRuns.innerHTML=&#x27;&#x27;;
+  if(hourlyBox) hourlyBox.style.display=&#x27;none&#x27;;
+  if(hourlyLoad){
+    hourlyLoad.style.display=&#x27;block&#x27;;
+    hourlyLoad.innerHTML=&#x27;Loading latest hourly forecast when this tab is selected…&#x27;;
+  }
+
+  if(ensRuns) ensRuns.innerHTML=&#x27;&#x27;;
+  if(ensBox) ensBox.style.display=&#x27;none&#x27;;
+  if(ensLoad){
+    ensLoad.style.display=&#x27;block&#x27;;
+    ensLoad.innerHTML=&#x27;Loading latest ensemble forecast when this tab is selected…&#x27;;
+  }
+
+  if(ec46Runs) ec46Runs.innerHTML=&#x27;&#x27;;
+  if(ec46Box) ec46Box.style.display=&#x27;none&#x27;;
+  if(ec46Load){
+    ec46Load.style.display=&#x27;block&#x27;;
+    ec46Load.innerHTML=&#x27;Loading latest ECMWF EC46 forecast when this tab is selected…&#x27;;
+  }
+
+  if(seasonRuns) seasonRuns.innerHTML=&#x27;&#x27;;
+  if(seasonContent) seasonContent.style.display=&#x27;none&#x27;;
+  if(seasonLoad){
+    seasonLoad.style.display=&#x27;block&#x27;;
+    seasonLoad.innerHTML=&#x27;Loading latest ECMWF SEAS5 forecast when this tab is selected…&#x27;;
+  }
+}
+
+let tabLoading=false;
+
+async function loadTabData(tab){
+  if(!currentLocation || tabLoading) return;
+  tabLoading=true;
+  try{
+    await cachedTabLoad(tab);
+    if(typeof markForecastLoaded===&#x27;function&#x27;) markForecastLoaded();
+  }catch(e){
+    console.error(&#x27;Forecast tab load failed:&#x27;,tab,e);
+    const ids={multi:&#x27;heat&#x27;,hourly:&#x27;hourLoad&#x27;,ens:&#x27;ensLoad&#x27;,ec46:&#x27;ec46Load&#x27;,seasonal:&#x27;seasonLoad&#x27;};
+    const el=document.getElementById(ids[tab]);
+    if(el){
+      el.style.display=&#x27;block&#x27;;
+      el.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message||&#x27;Unable to load the latest forecast.&#x27;)+&#x27;&lt;/div&gt;&#x27;;
+    }
+  }finally{
+    tabLoading=false;
+  }
+}
+
+function show(tab){
+  updateHQHeadings();
+  document.querySelectorAll(&#x27;.tab&#x27;).forEach(b=&gt;{
+    b.classList.toggle(&#x27;active&#x27;,b.dataset.tab===tab);
+  });
+  [&#x27;multi&#x27;,&#x27;hourly&#x27;,&#x27;ens&#x27;,&#x27;ec46&#x27;,&#x27;seasonal&#x27;].forEach(x=&gt;{
+    const el=document.getElementById(x);
+    if(el) el.style.display=x===tab?&#x27;block&#x27;:&#x27;none&#x27;;
+  });
+
+  if(currentLocation){
+    setTimeout(()=&gt;loadTabData(tab),0);
+  }
+}
+
+document.querySelectorAll(&#x27;.tab&#x27;).forEach(b=&gt;{
+  b.onclick=()=&gt;show(b.dataset.tab);
+});
+
+load.onclick=async()=&gt;{
+  if(!district.value) return;
+  current=district.value;
+  currentLocation={source:&#x27;hq&#x27;,name:D[current][0],lat:D[current][1],lon:D[current][2]};
+  clearForecastCache();
+  ensembleChartStates={};
+  ec46ChartState=null;
+  seasonalChartState=null;
+  title.textContent=`${current} — ${D[current][0]}`;
+  updateHQHeadings();
+  setForecastStatus(`Loading latest forecast for &lt;b&gt;${D[current][0]}&lt;/b&gt;…`,&#x27;loading&#x27;);
+  show(&#x27;multi&#x27;);
+  try{
+    await loadTabData(&#x27;multi&#x27;);
+    setForecastStatus(`Latest forecast loaded for &lt;b&gt;${D[current][0]}&lt;/b&gt;.`,&#x27;success&#x27;);
+  }catch(e){
+    setForecastStatus(`Unable to load the forecast for &lt;b&gt;${D[current][0]}&lt;/b&gt;. Please try again.`,&#x27;error&#x27;);
+    console.error(e);
+  }
+};
+
+// No separate Load buttons are required anymore.
+// The tab itself is the load trigger.
+if(typeof loadEns!==&#x27;undefined&#x27;) loadEns.style.display=&#x27;none&#x27;;
+if(typeof loadEC46!==&#x27;undefined&#x27;) loadEC46.style.display=&#x27;none&#x27;;
+if(typeof loadSeason!==&#x27;undefined&#x27;) loadSeason.style.display=&#x27;none&#x27;;
+
+// Member toggles still work and reload their existing products.
+if(typeof ec46Members!==&#x27;undefined&#x27;) ec46Members.onchange=()=&gt;{
+  if(ec46ChartState) buildEC46Chart(ec46ChartState,ec46Members.checked);
+};
+if(typeof seasonMembers!==&#x27;undefined&#x27;) seasonMembers.onchange=()=&gt;{
+  if(seasonalChartState) buildSeasonalChart(seasonalChartState,seasonMembers.checked);
+};
+if(typeof ensMembers!==&#x27;undefined&#x27;) ensMembers.onchange=()=&gt;{
+  const key=forecastCacheKey(&#x27;ens&#x27;);
+  if(ensembleChartStates[key]) buildEnsembleChart(ensembleChartStates[key],ensMembers.checked);
+};
+
+// Changing HQ invalidates every previously loaded forecast.
+district.onchange=()=&gt;{
+  current=&#x27;&#x27;;
+  currentLocation=null;
+  clearForecastCache();
+  ensembleChartStates={};
+  ec46ChartState=null;
+  seasonalChartState=null;
+  title.textContent=&#x27;Select District HQ&#x27;;
+  updateHQHeadings();
+  clearForecastPanelsForHQChange();
+  setForecastStatus(
+    &#x27;District HQ selected. Click &lt;b&gt;Load Forecast&lt;/b&gt; to load the latest forecast.&#x27;,
+    &#x27;loading&#x27;
+  );
+};
+
+district.value=&#x27;&#x27;;
+current=&#x27;&#x27;;
+currentLocation=null;
+updateHQHeadings();
+&lt;/script&gt;
+
+&lt;script id=&quot;hq-display-helper&quot;&gt;
+function forecastHQName(){
+  try{
+    if(typeof loc===&#x27;function&#x27;){
+      const L=loc();
+      if(L &amp;&amp; (L.name||L.hq||L.city)) return L.name||L.hq||L.city;
+    }
+  }catch(e){}
+  const s=document.querySelector(&#x27;select&#x27;);
+  if(s &amp;&amp; s.selectedOptions &amp;&amp; s.selectedOptions[0]){
+    return s.selectedOptions[0].textContent.trim().split(&#x27;—&#x27;)[0].trim();
+  }
+  return &#x27;&#x27;;
+}
+function updateForecastHQLabels(){
+  const h=forecastHQName();
+  [&#x27;multiModelHQ&#x27;,&#x27;hourlyHQ&#x27;,&#x27;ensembleHQ&#x27;,&#x27;ec46HQ&#x27;,&#x27;seasonalHQ&#x27;].forEach(id=&gt;{
+    const el=document.getElementById(id);
+    if(el) el.textContent=h ? &#x27; — &#x27;+h : &#x27;&#x27;;
+  });
+}
+document.addEventListener(&#x27;DOMContentLoaded&#x27;,updateForecastHQLabels);
+document.addEventListener(&#x27;change&#x27;,e=&gt;{
+  if(e.target &amp;&amp; e.target.tagName===&#x27;SELECT&#x27;) setTimeout(updateForecastHQLabels,50);
+});
+&lt;/script&gt;
+
+&lt;script id=&quot;hq-heading-only&quot;&gt;
+function updateHQHeadings(){
+ const h=(typeof loc===&#x27;function&#x27;&amp;&amp;loc().name)?loc().name:&#x27;&#x27;;
+ [&#x27;multiHQ&#x27;,&#x27;hourlyHQ&#x27;,&#x27;ensHQ&#x27;,&#x27;ec46HQ&#x27;,&#x27;seasonalHQ&#x27;].forEach(id=&gt;{
+  const e=document.getElementById(id); if(e)e.textContent=h?&#x27; — &#x27;+h:&#x27;&#x27;;
+ });
+}
+&lt;/script&gt;
+&lt;script id=&quot;forecast-status-helper&quot;&gt;
+function setForecastStatus(message, state){
+  const el=document.getElementById(&#x27;forecastStatus&#x27;);
+  if(!el)return;
+  el.className=&#x27;forecast-status&#x27;+(state?&#x27; &#x27;+state:&#x27;&#x27;);
+  el.innerHTML=message;
+}
+&lt;/script&gt;
+
+
+&lt;script id=&quot;final-ui-state-helper&quot;&gt;
+let forecastLoadedHQ=&#x27;&#x27;;
+function selectedHQName(){
+  return currentLocation ? (currentLocation.name||&#x27;&#x27;) : &#x27;&#x27;;
+}
+function invalidateForecastOnHQChange(){
+  forecastLoadedHQ=&#x27;&#x27;;
+  const h=selectedHQName();
+  const status=document.getElementById(&#x27;forecastStatus&#x27;);
+  if(status){
+    status.className=&#x27;forecast-status&#x27;;
+    status.innerHTML=h
+      ? `Location selected: &lt;b&gt;${esc(h)}&lt;/b&gt;.`
+      : &#x27;Select a district and click &lt;b&gt;Load Forecast&lt;/b&gt;, or choose a location on the map.&#x27;;
+  }
+}
+function markForecastLoaded(){
+  forecastLoadedHQ=selectedHQName();
+  if(typeof updateHQHeadings===&#x27;function&#x27;) updateHQHeadings();
+}
+&lt;/script&gt;
+
+&lt;script id=&quot;final-auto-tab-loader&quot;&gt;
+let autoTabLoading=false;
+async function loadCurrentTabData(tab){
+  const h=selectedHQName();
+  if(!h || !currentLocation || autoTabLoading) return;
+  if(tab===&#x27;ec46&#x27; || tab===&#x27;seasonal&#x27;) return;
+  autoTabLoading=true;
+  try{
+    if(tab===&#x27;multi&#x27; &amp;&amp; typeof multi===&#x27;function&#x27;) await multi();
+    else if(tab===&#x27;hourly&#x27; &amp;&amp; typeof hourly===&#x27;function&#x27;) await hourly();
+    else if(tab===&#x27;ens&#x27; &amp;&amp; typeof ensemble===&#x27;function&#x27;) await ensemble();
+    markForecastLoaded();
+  }catch(e){
+    console.error(&#x27;Automatic tab load failed:&#x27;,e);
+  }finally{
+    autoTabLoading=false;
+  }
+}
+&lt;/script&gt;
+
+&lt;script id=&quot;map-location-controller&quot;&gt;
+let forecastMap=null,mapMarker=null,pendingMapLocation=null,mapConfirmBusy=false;
+
+function openLocationMap(){
+  const panel=document.getElementById(&#x27;mapPanel&#x27;);
+  panel.classList.add(&#x27;map-open&#x27;);
+  panel.setAttribute(&#x27;aria-hidden&#x27;,&#x27;false&#x27;);
+
+  if(!forecastMap){
+    forecastMap=L.map(&#x27;forecastMap&#x27;,{
+      zoomControl:true,
+      attributionControl:true
+    }).setView([11.0,78.5],7);
+
+    L.tileLayer(&#x27;https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png&#x27;,{
+      maxZoom:19,
+      attribution:&#x27;&amp;copy; OpenStreetMap contributors&#x27;,
+      crossOrigin:true
+    }).addTo(forecastMap);
+
+    forecastMap.on(&#x27;click&#x27;,e=&gt;{
+      pendingMapLocation={lat:e.latlng.lat,lon:e.latlng.lng};
+
+      if(mapMarker){
+        mapMarker.setLatLng(e.latlng);
+      }else{
+        mapMarker=L.marker(e.latlng,{draggable:false}).addTo(forecastMap);
+      }
+
+      document.getElementById(&#x27;mapCoords&#x27;).textContent=
+        `Selected: ${e.latlng.lat.toFixed(5)}° N, ${e.latlng.lng.toFixed(5)}° E`;
+      document.getElementById(&#x27;mapConfirm&#x27;).disabled=false;
+    });
+  }
+
+  /* Important when Leaflet is opened inside a fixed modal. */
+  setTimeout(()=&gt;{
+    forecastMap.invalidateSize(true);
+    forecastMap.setView([11.0,78.5],7);
+  },100);
+}
+
+function closeLocationMap(){
+  const panel=document.getElementById(&#x27;mapPanel&#x27;);
+  panel.classList.remove(&#x27;map-open&#x27;);
+  panel.setAttribute(&#x27;aria-hidden&#x27;,&#x27;true&#x27;);
+  document.getElementById(&#x27;mapLoading&#x27;).textContent=&#x27;&#x27;;
+}
+
+async function confirmMapLocation(){
+  if(!pendingMapLocation || mapConfirmBusy) return;
+
+  mapConfirmBusy=true;
+  const confirm=document.getElementById(&#x27;mapConfirm&#x27;);
+  const cancel=document.getElementById(&#x27;mapCancel&#x27;);
+  const close=document.getElementById(&#x27;mapClose&#x27;);
+  const loadText=document.getElementById(&#x27;mapLoading&#x27;);
+
+  confirm.disabled=true;
+  cancel.disabled=true;
+  close.disabled=true;
+  loadText.textContent=&#x27;Preparing forecast…&#x27;;
+  setForecastStatus(&#x27;Location selected. Preparing forecast…&#x27;,&#x27;loading&#x27;);
+
+  /* Deliberate 3-second loading buffer before the first Open-Meteo request. */
+  await new Promise(resolve=&gt;setTimeout(resolve,3000));
+
+  current=&#x27;&#x27;;
+  currentLocation={
+    source:&#x27;map&#x27;,
+    name:&#x27;Selected Location&#x27;,
+    lat:pendingMapLocation.lat,
+    lon:pendingMapLocation.lon
+  };
+
+  clearForecastCache();
+  ensembleChartStates={};
+  ec46ChartState=null;
+  seasonalChartState=null;
+
+  title.textContent=&#x27;Forecast — Selected Location&#x27;;
+  updateHQHeadings();
+  district.value=&#x27;&#x27;;
+  clearForecastPanelsForHQChange();
+  closeLocationMap();
+
+  setForecastStatus(
+    `Loading forecast for &lt;b&gt;Selected Location&lt;/b&gt; — ${currentLocation.lat.toFixed(4)}°N, ${currentLocation.lon.toFixed(4)}°E…`,
+    &#x27;loading&#x27;
+  );
+
+  show(&#x27;multi&#x27;);
+
+  try{
+    await loadTabData(&#x27;multi&#x27;);
+    setForecastStatus(
+      `Latest forecast loaded for &lt;b&gt;Selected Location&lt;/b&gt; — ${currentLocation.lat.toFixed(4)}°N, ${currentLocation.lon.toFixed(4)}°E.`,
+      &#x27;success&#x27;
+    );
+  }catch(e){
+    setForecastStatus(
+      &#x27;Unable to load the forecast for the selected location. Please try again.&#x27;,
+      &#x27;error&#x27;
+    );
+    console.error(e);
+  }finally{
+    mapConfirmBusy=false;
+    cancel.disabled=false;
+    close.disabled=false;
+    loadText.textContent=&#x27;&#x27;;
+  }
+}
+
+document.getElementById(&#x27;mapChoose&#x27;).addEventListener(&#x27;click&#x27;,openLocationMap);
+document.getElementById(&#x27;mapCancel&#x27;).addEventListener(&#x27;click&#x27;,closeLocationMap);
+document.getElementById(&#x27;mapClose&#x27;).addEventListener(&#x27;click&#x27;,closeLocationMap);
+document.getElementById(&#x27;mapConfirm&#x27;).addEventListener(&#x27;click&#x27;,confirmMapLocation);
+
+/* Close only when clicking the dark backdrop, not when clicking the map/dialog. */
+document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;,e=&gt;{
+  if(e.target.id===&#x27;mapPanel&#x27;) closeLocationMap();
+});
+&lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;
+">
+    </iframe>
+</div>
+
+<div class="dashboard-container" id="tnSmartDashboard">
+
 
         <!-- 1. TOP ROW -->
         <div class="top-row">
@@ -2084,5 +3091,47 @@
             document.getElementById('previewModal').style.display = 'none';
         }
     </script>
+
+<script id="integrated-forecast-controller">
+(function(){
+    const forecastBtn=document.getElementById('openForecastBtn');
+    const closeBtn=document.getElementById('closeForecastBtn');
+    const panel=document.getElementById('forecastAppPanel');
+    const dashboard=document.getElementById('tnSmartDashboard');
+
+    function openForecast(){
+        if(!panel)return;
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden','false');
+        if(dashboard)dashboard.style.visibility='hidden';
+        document.body.style.overflow='hidden';
+
+        // Give the isolated forecast app a chance to render its map/charts
+        // correctly after becoming visible.
+        setTimeout(()=>{
+            const frame=document.getElementById('forecastFrame');
+            if(frame && frame.contentWindow){
+                try{frame.contentWindow.dispatchEvent(new Event('resize'));}catch(e){}
+            }
+        },150);
+    }
+
+    function closeForecast(){
+        if(!panel)return;
+        panel.classList.remove('open');
+        panel.setAttribute('aria-hidden','true');
+        if(dashboard)dashboard.style.visibility='';
+        document.body.style.overflow='';
+    }
+
+    if(forecastBtn)forecastBtn.addEventListener('click',openForecast);
+    if(closeBtn)closeBtn.addEventListener('click',closeForecast);
+
+    window.addEventListener('keydown',e=>{
+        if(e.key==='Escape' && panel && panel.classList.contains('open')) closeForecast();
+    });
+})();
+</script>
+
 </body>
 </html>
