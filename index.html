@@ -110,7 +110,7 @@
             max-width: 1400px; margin: 0 auto; padding: 14px 20px;
             display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
         }
-        .site-brand { display: flex; align-items: center; gap: 12px; }
+        .site-brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .site-brand-mark {
             width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
             background: linear-gradient(155deg, var(--accent-rain), var(--accent-storm));
@@ -606,10 +606,9 @@
                     <div class="site-title">TN Daily Rainfall Info</div>
                     <div class="site-subtitle">Daily station rainfall across Tamil Nadu · Source: TNSMART</div>
                 </div>
-                <div id="headerMeta">
-                    <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
-                </div>
+                <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
             </div>
+            <div id="headerMeta"></div>
         </div>
     </header>
 
