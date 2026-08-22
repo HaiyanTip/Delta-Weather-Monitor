@@ -514,6 +514,88 @@
 }
 </style>
 
+
+<style id="idw-month-custom-style">
+#idwCustomDateTags .idw-date-tag{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:6px 10px;border-radius:999px;
+    background:#eef4fb;
+    border:1px solid #c7d5e6;
+    color:#24344d;font-size:12px;font-weight:700;
+}
+#idwCustomDateTags .idw-date-remove{
+    border:0;background:transparent;color:#d64545;
+    cursor:pointer;font-weight:800;padding:0 2px;font-size:14px;
+}
+body.dark-mode #idwCustomDateTags .idw-date-tag,
+.dark-mode #idwCustomDateTags .idw-date-tag{
+    background:#26364d;
+    border-color:#50647d;
+    color:#f3f7fb;
+}
+body.dark-mode #idwCustomDateTags .idw-date-remove,
+.dark-mode #idwCustomDateTags .idw-date-remove{
+    color:#ff8b8b;
+}
+</style>
+
+
+<style id="site-author-footer-style">
+.site-author-footer{
+    margin:28px auto 0;
+    padding:18px 24px;
+    text-align:center;
+    border-top:1px solid var(--border-color,#d8e0ea);
+    color:var(--text-muted,#64748b);
+    font-size:13px;
+    line-height:1.7;
+}
+.site-author-footer .author-name{
+    color:var(--text-main,#17233a);
+    font-weight:700;
+    font-size:14px;
+}
+.site-author-footer .social-links{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px 18px;
+    margin-top:6px;
+}
+.site-author-footer a{
+    color:var(--accent-storm,#286fa8);
+    text-decoration:none;
+    font-weight:600;
+}
+.site-author-footer a:hover{text-decoration:underline;}
+body.dark-mode .site-author-footer .author-name,
+.dark-mode .site-author-footer .author-name{color:#f4f7fb;}
+</style>
+
+
+<style id="tn-author-links-style">
+.tn-author-links{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;margin-top:4px;font-size:12px;line-height:1.2}
+.tn-author-links strong{color:#e8eef7;font-weight:700}
+.tn-author-links a{color:#8fc8f2;text-decoration:none;font-weight:600}
+.tn-author-links a:hover{text-decoration:underline}
+</style>
+
+
+<style id="tn-leaflet-control-fix">
+/* Main TNSMART map: zoom controls belong to the map, never the page header. */
+.map-wrapper #map { position:relative !important; }
+.map-wrapper #map .leaflet-control-container { position:absolute !important; inset:0 !important; pointer-events:none; }
+.map-wrapper #map .leaflet-top { top:10px !important; }
+.map-wrapper #map .leaflet-left { left:10px !important; }
+.map-wrapper #map .leaflet-control { pointer-events:auto; }
+.map-wrapper #map .leaflet-control-zoom { margin:0 !important; z-index:1000 !important; }
+</style>
+
+<style id="site-footer-link-fix">
+.site-footer a{color:inherit;text-decoration:none}
+.site-footer a:hover{text-decoration:underline}
+</style>
+
 </head>
 <body>
 
@@ -605,6 +687,12 @@
                 <div>
                     <div class="site-title">TN Daily Rainfall Info</div>
                     <div class="site-subtitle">Daily station rainfall across Tamil Nadu · Source: TNSMART</div>
+<div class="tn-author-links">
+  <strong>Vidhyapathi · Haiyan</strong>
+  <a href="https://x.com/HaiyanTip" target="_blank" rel="noopener noreferrer">𝕏 HaiyanTip</a>
+  <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener noreferrer">Instagram · haiyan_clicks</a>
+</div>
+
                 </div>
                 <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
             </div>
@@ -801,9 +889,199 @@
   .map-confirm button{flex:1}
 }
 &lt;/style&gt;
+
+&lt;style id=&quot;forecast-local-theme&quot;&gt;
+/* Forecast-only theme; independent of the main TNSMART theme. */
+#forecastThemeToggle{
+  position:absolute;
+  right:24px;
+  top:48px;
+  display:flex;
+  gap:3px;
+  padding:3px;
+  border:1px solid #536278;
+  border-radius:9px;
+  background:#202c40;
+  z-index:20;
+}
+#forecastThemeToggle button{
+  border:0;
+  border-radius:7px;
+  padding:6px 10px;
+  background:transparent;
+  color:#dbe5f0;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:600;
+}
+#forecastThemeToggle button.active{
+  background:#2d73a8;
+  color:#fff;
+}
+body.forecast-dark{
+  background:#101827!important;
+  color:#edf3fa!important;
+}
+body.forecast-dark .controls,
+body.forecast-dark .title,
+body.forecast-dark .panel{
+  background:#172235!important;
+  color:#edf3fa!important;
+  box-shadow:0 2px 12px rgba(0,0,0,.22);
+}
+body.forecast-dark .controls select,
+body.forecast-dark .controls button,
+body.forecast-dark .tools select,
+body.forecast-dark .tools button{
+  background:#202d42!important;
+  color:#edf3fa!important;
+  border-color:#50617a!important;
+}
+body.forecast-dark .tools{
+  background:#1d2a3d!important;
+}
+body.forecast-dark .check{
+  background:#202d42!important;
+  color:#edf3fa!important;
+  border-color:#50617a!important;
+}
+body.forecast-dark .tab{
+  background:#26364d!important;
+  color:#e8eef6!important;
+}
+body.forecast-dark .tab:hover{
+  background:#30445f!important;
+}
+body.forecast-dark .tab.active,
+body.forecast-dark .tab.selected{
+  background:#2875ad!important;
+  color:#fff!important;
+}
+body.forecast-dark .run-card,
+body.forecast-dark .season-card{
+  background:#202d42!important;
+  border-color:#40526a!important;
+  color:#edf3fa!important;
+}
+body.forecast-dark .run-card .lab,
+body.forecast-dark .run-card .small,
+body.forecast-dark .source,
+body.forecast-dark .note,
+body.forecast-dark .loading{
+  color:#b8c5d5!important;
+}
+body.forecast-dark .model{
+  background:#202d42!important;
+  color:#edf3fa!important;
+}
+body.forecast-dark .model span{
+  color:#b8c5d5!important;
+}
+body.forecast-dark .heat td{
+  border-color:#33445a!important;
+}
+body.forecast-dark .tbl td{
+  border-color:#40526a!important;
+}
+body.forecast-dark .tbl th,
+body.forecast-dark .heat th{
+  background:#26364e!important;
+}
+body.forecast-dark .forecast-status{
+  background:#1e3146!important;
+  color:#c6d5e5!important;
+}
+body.forecast-dark .forecast-status.success{
+  background:#1d3b2a!important;
+  color:#c9ead3!important;
+}
+body.forecast-dark .forecast-status.error{
+  background:#47262b!important;
+  color:#ffd1d6!important;
+}
+body.forecast-dark .error{
+  background:#47262b!important;
+  color:#ffd1d6!important;
+}
+body.forecast-dark .map-dialog{
+  background:#172235!important;
+  color:#edf3fa!important;
+}
+body.forecast-dark .map-dialog-head,
+body.forecast-dark .map-info{
+  border-color:#40526a!important;
+  background:#172235!important;
+}
+body.forecast-dark .map-dialog-title{
+  color:#edf3fa!important;
+}
+body.forecast-dark .map-dialog-sub,
+body.forecast-dark .map-coords{
+  color:#b8c5d5!important;
+}
+body.forecast-dark .map-close{
+  background:#26364d!important;
+  color:#edf3fa!important;
+}
+.forecast-author{
+  margin:28px 0 0;
+  padding:18px 20px;
+  text-align:center;
+  border-top:1px solid #d8e0ea;
+  color:#64748b;
+  font-size:13px;
+  line-height:1.7;
+}
+.forecast-author .author-name{
+  font-weight:700;
+  color:#17233a;
+  font-size:14px;
+}
+.forecast-author a{
+  color:#286fa8;
+  text-decoration:none;
+  font-weight:600;
+  margin:0 8px;
+}
+body.forecast-dark .forecast-author{
+  border-color:#40526a;
+  color:#b8c5d5;
+}
+body.forecast-dark .forecast-author .author-name{
+  color:#f3f7fb;
+}
+body.forecast-dark .forecast-author a{
+  color:#83c9ff;
+}
+@media(max-width:700px){
+  #forecastThemeToggle{right:10px;top:8px}
+  .head{padding-top:62px!important}
+}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;forecast-heatmap-text-fix&quot;&gt;
+/* Heat-map numbers must remain readable against each rainfall colour. */
+.heat .cell { color:#17233a; font-weight:700; }
+body.forecast-dark .heat .cell { color:#17233a; }
+&lt;/style&gt;
+
+&lt;style id=&quot;forecast-map-zoom-fix&quot;&gt;
+#forecastMap .leaflet-control-container{pointer-events:none}
+#forecastMap .leaflet-control{pointer-events:auto}
+#forecastMap .leaflet-top{top:10px!important}
+#forecastMap .leaflet-left{left:10px!important}
+&lt;/style&gt;
+
 &lt;/head&gt;
 &lt;body&gt;
-&lt;div class=&quot;head&quot;&gt;&lt;div class=&quot;comk-credit&quot;&gt;Inspired by &lt;a href=&quot;https://www.chennairains.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;COMK&lt;/a&gt;&lt;/div&gt;&lt;h1&gt;🌧️ Tamil Nadu Forecast&lt;/h1&gt;&lt;p&gt;Open-Meteo deterministic, ensemble and ECMWF seasonal guidance&lt;/p&gt;&lt;/div&gt;
+&lt;div class=&quot;head&quot;&gt;&lt;div class=&quot;comk-credit&quot;&gt;Inspired by &lt;a href=&quot;https://www.chennairains.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;COMK&lt;/a&gt;&lt;/div&gt;
+
+&lt;div id=&quot;forecastThemeToggle&quot; aria-label=&quot;Forecast theme&quot;&gt;
+  &lt;button id=&quot;forecastLightBtn&quot; type=&quot;button&quot; class=&quot;active&quot; onclick=&quot;setForecastLocalTheme(&#x27;light&#x27;)&quot;&gt;☀️ Light&lt;/button&gt;
+  &lt;button id=&quot;forecastDarkBtn&quot; type=&quot;button&quot; onclick=&quot;setForecastLocalTheme(&#x27;dark&#x27;)&quot;&gt;🌙 Dark&lt;/button&gt;
+&lt;/div&gt;
+&lt;h1&gt;🌧️ Tamil Nadu Forecast&lt;/h1&gt;&lt;p&gt;Open-Meteo deterministic, ensemble and ECMWF seasonal guidance&lt;/p&gt;&lt;/div&gt;
 &lt;div class=&quot;wrap&quot;&gt;
 &lt;div class=&quot;controls&quot;&gt;
 &lt;div id=&quot;forecastStatus&quot; class=&quot;forecast-status&quot;&gt;Select a district and click &lt;b&gt;Load Forecast&lt;/b&gt;, or choose a location on the map.&lt;/div&gt;
@@ -898,8 +1176,8 @@ async function loadMultiFromAPI(){
   rr.forEach(r=&gt;{if(!r.data?.daily)return;map[r.name]={};r.data.daily.time.forEach((x,i)=&gt;{if(x&gt;=todayIST())map[r.name][x]=r.data.daily.precipitation_sum[i]});Object.keys(map[r.name]).forEach(x=&gt;{if(!dates.includes(x))dates.push(x)})});
   dates.sort();dates=dates.slice(0,7);
   let h=&#x27;&lt;div class=&quot;heatwrap&quot;&gt;&lt;table class=&quot;heat&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Model&lt;/th&gt;&#x27;+dates.map(x=&gt;`&lt;th&gt;${fmtDate(x)}&lt;/th&gt;`).join(&#x27;&#x27;)+&#x27;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;,av=dates.map(()=&gt;[]);
-  rr.forEach(r=&gt;{h+=`&lt;tr&gt;&lt;td class=&quot;model&quot;&gt;${esc(r.name)}&lt;/td&gt;`;dates.forEach((d,i)=&gt;{let v=map[r.name]?.[d];if(typeof v===&#x27;number&#x27;)av[i].push(v);h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)}&quot;&gt;${typeof v===&#x27;number&#x27;?v.toFixed(1):&#x27;—&#x27;}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&#x27;});
-  h+=&#x27;&lt;tr class=&quot;avg&quot;&gt;&lt;td class=&quot;model&quot;&gt;Average&lt;/td&gt;&#x27;;av.forEach(a=&gt;{let v=a.length?a.reduce((x,y)=&gt;x+y,0)/a.length:null;h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)}&quot;&gt;${v==null?&#x27;—&#x27;:v.toFixed(1)}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;legend&quot;&gt;&lt;b&gt;Rainfall&lt;/b&gt;&lt;i class=&quot;box&quot; style=&quot;background:#fffbdc&quot;&gt;&lt;/i&gt;0–1 &lt;i class=&quot;box&quot; style=&quot;background:#c8e8b4&quot;&gt;&lt;/i&gt;3–5 &lt;i class=&quot;box&quot; style=&quot;background:#4bb0c0&quot;&gt;&lt;/i&gt;10–15 &lt;i class=&quot;box&quot; style=&quot;background:#194a91&quot;&gt;&lt;/i&gt;25–50 &lt;i class=&quot;box&quot; style=&quot;background:#10255f&quot;&gt;&lt;/i&gt;&amp;gt;50 mm&lt;/div&gt;&#x27;;
+  rr.forEach(r=&gt;{h+=`&lt;tr&gt;&lt;td class=&quot;model&quot;&gt;${esc(r.name)}&lt;/td&gt;`;dates.forEach((d,i)=&gt;{let v=map[r.name]?.[d];if(typeof v===&#x27;number&#x27;)av[i].push(v);h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${typeof v===&#x27;number&#x27;?v.toFixed(1):&#x27;—&#x27;}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&#x27;});
+  h+=&#x27;&lt;tr class=&quot;avg&quot;&gt;&lt;td class=&quot;model&quot;&gt;Average&lt;/td&gt;&#x27;;av.forEach(a=&gt;{let v=a.length?a.reduce((x,y)=&gt;x+y,0)/a.length:null;h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${v==null?&#x27;—&#x27;:v.toFixed(1)}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;legend&quot;&gt;&lt;b&gt;Rainfall&lt;/b&gt;&lt;i class=&quot;box&quot; style=&quot;background:#fffbdc&quot;&gt;&lt;/i&gt;0–1 &lt;i class=&quot;box&quot; style=&quot;background:#c8e8b4&quot;&gt;&lt;/i&gt;3–5 &lt;i class=&quot;box&quot; style=&quot;background:#4bb0c0&quot;&gt;&lt;/i&gt;10–15 &lt;i class=&quot;box&quot; style=&quot;background:#194a91&quot;&gt;&lt;/i&gt;25–50 &lt;i class=&quot;box&quot; style=&quot;background:#10255f&quot;&gt;&lt;/i&gt;&amp;gt;50 mm&lt;/div&gt;&#x27;;
   document.getElementById(&#x27;heat&#x27;).innerHTML=h;
   document.getElementById(&#x27;multiRuns&#x27;).innerHTML=&#x27;&#x27;;
 }
@@ -1435,18 +1713,30 @@ async function loadCurrentTabData(tab){
 &lt;/script&gt;
 
 &lt;script id=&quot;map-location-controller&quot;&gt;
-let forecastMap=null,mapMarker=null,pendingMapLocation=null,mapConfirmBusy=false;
+let forecastMap=null,mapMarker=null,pendingMapLocation=null,mapConfirmBusy=false,forecastZoomControl=null;
 
 function openLocationMap(){
   const panel=document.getElementById(&#x27;mapPanel&#x27;);
   panel.classList.add(&#x27;map-open&#x27;);
   panel.setAttribute(&#x27;aria-hidden&#x27;,&#x27;false&#x27;);
 
+  if(!forecastZoomControl){
+    forecastZoomControl=L.control.zoom({position:&#x27;topleft&#x27;});
+  }
+  if(forecastMap &amp;&amp; !forecastZoomControl._map){
+    forecastZoomControl.addTo(forecastMap);
+  }
+
   if(!forecastMap){
     forecastMap=L.map(&#x27;forecastMap&#x27;,{
-      zoomControl:true,
+      zoomControl:false,
       attributionControl:true
     }).setView([11.0,78.5],7);
+
+    if(!forecastZoomControl){
+      forecastZoomControl=L.control.zoom({position:&#x27;topleft&#x27;});
+    }
+    forecastZoomControl.addTo(forecastMap);
 
     L.tileLayer(&#x27;https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png&#x27;,{
       maxZoom:19,
@@ -1480,6 +1770,9 @@ function closeLocationMap(){
   const panel=document.getElementById(&#x27;mapPanel&#x27;);
   panel.classList.remove(&#x27;map-open&#x27;);
   panel.setAttribute(&#x27;aria-hidden&#x27;,&#x27;true&#x27;);
+  if(forecastZoomControl &amp;&amp; forecastZoomControl._map){
+    forecastZoomControl.remove();
+  }
   document.getElementById(&#x27;mapLoading&#x27;).textContent=&#x27;&#x27;;
 }
 
@@ -1557,6 +1850,121 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
   if(e.target.id===&#x27;mapPanel&#x27;) closeLocationMap();
 });
 &lt;/script&gt;
+
+&lt;script id=&quot;ensemble-model-change-fix&quot;&gt;
+(function(){
+  const select = document.getElementById(&#x27;ensModel&#x27;);
+  if (!select) return;
+
+  select.addEventListener(&#x27;change&#x27;, async function(){
+    if (!currentLocation) return;
+
+    const loadBox = document.getElementById(&#x27;ensLoad&#x27;);
+    const chartBox = document.getElementById(&#x27;ensBox&#x27;);
+    const runs = document.getElementById(&#x27;ensRuns&#x27;);
+
+    if (loadBox) {
+      loadBox.style.display = &#x27;block&#x27;;
+      loadBox.innerHTML = &#x27;&lt;div class=&quot;loading&quot;&gt;Loading the selected ensemble model…&lt;/div&gt;&#x27;;
+    }
+    if (chartBox) chartBox.style.display = &#x27;none&#x27;;
+    if (runs) runs.innerHTML = &#x27;&#x27;;
+
+    try {
+      // forecastCacheKey(&#x27;ens&#x27;) includes the selected model, so each
+      // model/location combination has its own cached result.
+      await loadTabData(&#x27;ens&#x27;);
+    } catch(e) {
+      console.error(&#x27;Ensemble model switch failed:&#x27;, e);
+    }
+  });
+})();
+&lt;/script&gt;
+
+
+&lt;script id=&quot;forecast-local-theme-functions&quot;&gt;
+function setForecastLocalTheme(mode){
+  document.body.classList.toggle(&#x27;forecast-dark&#x27;, mode === &#x27;dark&#x27;);
+
+  const light=document.getElementById(&#x27;forecastLightBtn&#x27;);
+  const dark=document.getElementById(&#x27;forecastDarkBtn&#x27;);
+  if(light) light.classList.toggle(&#x27;active&#x27;, mode !== &#x27;dark&#x27;);
+  if(dark) dark.classList.toggle(&#x27;active&#x27;, mode === &#x27;dark&#x27;);
+
+  try{ localStorage.setItem(&#x27;tnForecastTheme&#x27;,mode); }catch(e){}
+
+  // Make Chart.js axes/legend text follow the forecast theme.
+  if(typeof Chart !== &#x27;undefined&#x27;){
+    Chart.defaults.color = mode === &#x27;dark&#x27; ? &#x27;#d9e3ef&#x27; : &#x27;#526579&#x27;;
+    Chart.defaults.borderColor = mode === &#x27;dark&#x27; ? &#x27;#3b4b61&#x27; : &#x27;#d9e0e8&#x27;;
+  }
+
+  // Redraw already-created charts so their labels immediately change.
+  try{
+    [ensChart,hourChart,ec46Chart,seasonChart,anomChart].forEach(c=&gt;{
+      if(c &amp;&amp; typeof c.update===&#x27;function&#x27;) c.update();
+    });
+  }catch(e){}
+}
+
+document.addEventListener(&#x27;DOMContentLoaded&#x27;,function(){
+  let mode=&#x27;light&#x27;;
+  try{ mode=localStorage.getItem(&#x27;tnForecastTheme&#x27;)||&#x27;light&#x27;; }catch(e){}
+  setForecastLocalTheme(mode);
+});
+&lt;/script&gt;
+
+&lt;script id=&quot;forecast-all-chart-colors&quot;&gt;
+(function(){
+  const C={
+    mean:&#x27;#2f9ee8&#x27;,p75:&#x27;#ff5b7d&#x27;,p90:&#x27;#ff8a2b&#x27;,
+    max:&#x27;#ffbd32&#x27;,min:&#x27;#28b8b8&#x27;,hres:&#x27;#2f9ee8&#x27;,
+    aifs:&#x27;#ff8a2b&#x27;,gfs:&#x27;#7b61ff&#x27;,gem:&#x27;#27ae60&#x27;,
+    icon:&#x27;#8e63ce&#x27;,jma:&#x27;#e05a5a&#x27;,uk:&#x27;#00a6a6&#x27;,anomaly:&#x27;#2f9ee8&#x27;
+  };
+  function pick(label){
+    const s=String(label||&#x27;&#x27;).toLowerCase();
+    if(s.includes(&#x27;p75&#x27;))return C.p75;
+    if(s.includes(&#x27;p90&#x27;))return C.p90;
+    if(s.includes(&#x27;maximum&#x27;)||s.includes(&#x27; max&#x27;))return C.max;
+    if(s.includes(&#x27;minimum&#x27;)||s.includes(&#x27; min&#x27;))return C.min;
+    if(s.includes(&#x27;anomaly&#x27;))return C.anomaly;
+    if(s.includes(&#x27;ifs hres&#x27;))return C.hres;
+    if(s.includes(&#x27;aifs&#x27;))return C.aifs;
+    if(s.startsWith(&#x27;gfs&#x27;)||s.includes(&#x27;gfs ensemble&#x27;))return C.gfs;
+    if(s.startsWith(&#x27;gem&#x27;)||s.includes(&#x27;gem ensemble&#x27;))return C.gem;
+    if(s.includes(&#x27;icon&#x27;))return C.icon;
+    if(s.includes(&#x27;jma&#x27;))return C.jma;
+    if(s.includes(&#x27;uk met&#x27;))return C.uk;
+    if(s.includes(&#x27;ensemble mean&#x27;)||s.includes(&#x27; mean&#x27;))return C.mean;
+    return null;
+  }
+  function apply(chart){
+    if(!chart?.data?.datasets)return;
+    chart.data.datasets.forEach(ds=&gt;{
+      const c=pick(ds.label);
+      if(c){ds.borderColor=c;ds.backgroundColor=c;}
+    });
+  }
+  function install(){
+    if(typeof Chart===&#x27;undefined&#x27;){setTimeout(install,50);return;}
+    if(Chart.registry?.plugins?.get(&#x27;forecastAllColors&#x27;))return;
+    Chart.register({id:&#x27;forecastAllColors&#x27;,beforeUpdate(chart){apply(chart);}});
+  }
+  install();
+})();
+&lt;/script&gt;
+
+
+&lt;footer class=&quot;forecast-author&quot; id=&quot;forecastAuthor&quot;&gt;
+  &lt;div class=&quot;author-name&quot;&gt;Vidhyapathi · Haiyan&lt;/div&gt;
+  &lt;div&gt;Weather, rainfall &amp;amp; forecast information for Tamil Nadu&lt;/div&gt;
+  &lt;div style=&quot;margin-top:5px;&quot;&gt;
+    &lt;a href=&quot;https://x.com/HaiyanTip&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;𝕏 HaiyanTip&lt;/a&gt;
+    &lt;a href=&quot;https://www.instagram.com/haiyan_clicks/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Instagram · haiyan_clicks&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/footer&gt;
+
 &lt;/body&gt;&lt;/html&gt;
 ">
     </iframe>
@@ -1768,7 +2176,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
         <footer class="site-footer">
             <span>Data: <strong>TNSMART</strong> · Tamil Nadu daily station rainfall</span>
-            <span>Spot an error? Contact <strong>X @HaiyanTip</strong> · <strong>IG @haiyan_clicks</strong></span>
+            <span>Spot an error? Contact <a href="https://x.com/HaiyanTip" target="_blank" rel="noopener noreferrer"><strong>X @HaiyanTip</strong></a> · <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener noreferrer"><strong>IG @haiyan_clicks</strong></a></span>
         </footer>
     </div>
 
@@ -1894,12 +2302,40 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                     <option value="summer">Summer Total</option>
                     <option value="swm">SWM Total</option>
                     <option value="nem">NEM Total</option>
+                    <option value="monthly">Monthly Total</option>
+                    <option value="custom">Custom Multi-Date</option>
                 </select>
             </div>
 
             <div class="modal-group" id="idwDateGroup">
                 <label>Select Date:</label>
                 <input type="date" id="idwDateInput">
+            </div>
+            <div class="modal-group" id="idwMonthGroup" style="display:none;">
+                <label>Select Month:</label>
+                <select id="idwMonthInput">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                </select>
+            </div>
+
+            <div class="modal-group" id="idwCustomGroup" style="display:none;">
+                <label>Select Date & Add:</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="date" id="idwCustomDateInput" style="flex:1;">
+                    <button type="button" class="btn-generate" style="padding:9px 13px; background:var(--accent-storm);" onclick="addIdwCustomDate()">Add Date</button>
+                </div>
+                <div id="idwCustomDateTags" style="display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;"></div><div style="font-size:11px;color:var(--text-muted);margin-top:7px;">Selected dates are summed station-by-station and then passed to the existing IDW engine.</div>
             </div>
 
             <div class="modal-group" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px;">
@@ -2075,7 +2511,12 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
     </div>
 
     <script>
-        const map = L.map('map', { center: [10.80, 79.35], zoom: 8.5 });
+        const map = L.map('map', {
+            center: [10.80, 79.35],
+            zoom: 8.5,
+            zoomControl: false
+        });
+        L.control.zoom({ position: 'topleft' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
         }).addTo(map);
@@ -2691,8 +3132,62 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
         function toggleIdwDateInput() {
             const val = document.getElementById('idwMetricFilter').value;
-            document.getElementById('idwDateGroup').style.display = (val === 'daily') ? 'block' : 'none';
+            const dateGroup = document.getElementById('idwDateGroup');
+            const monthGroup = document.getElementById('idwMonthGroup');
+            const customGroup = document.getElementById('idwCustomGroup');
+
+            dateGroup.style.display = (val === 'daily') ? 'block' : 'none';
+            monthGroup.style.display = (val === 'monthly') ? 'block' : 'none';
+            customGroup.style.display = (val === 'custom') ? 'block' : 'none';
+
+            if (val === 'custom') renderIdwCustomDateTags();
         }
+
+        let idwCustomDates = [];
+
+        function addIdwCustomDate() {
+            const input = document.getElementById('idwCustomDateInput');
+            const value = input.value;
+            if (!value) { showNotice("Please select a date."); return; }
+
+            const y = Number(value.slice(0,4));
+            if (y !== datasetActiveYear) {
+                showNotice(`Please select dates within ${datasetActiveYear}.`);
+                return;
+            }
+
+            if (idwCustomDates.includes(value)) {
+                showNotice("That date is already selected.");
+                return;
+            }
+
+            idwCustomDates.push(value);
+            idwCustomDates.sort();
+            renderIdwCustomDateTags();
+            input.value = '';
+        }
+
+        function removeIdwCustomDate(value) {
+            idwCustomDates = idwCustomDates.filter(d => d !== value);
+            renderIdwCustomDateTags();
+        }
+
+        function renderIdwCustomDateTags() {
+            const box = document.getElementById('idwCustomDateTags');
+            if (!box) return;
+
+            if (!idwCustomDates.length) {
+                box.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No dates selected.</span>';
+                return;
+            }
+
+            box.innerHTML = idwCustomDates.map(value => {
+                const d = new Date(value + 'T00:00:00');
+                const label = d.toLocaleDateString('en-US', {day:'2-digit', month:'short', year:'numeric'});
+                return `<span class="idw-date-tag">${label}<button type="button" class="idw-date-remove" onclick="removeIdwCustomDate('${value}')">×</button></span>`;
+            }).join('');
+        }
+
 
         function openIdwModal() {
             let maxDOY = 1;
@@ -2709,6 +3204,10 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             const dd = String(latestDate.getDate()).padStart(2, '0');
 
             document.getElementById('idwDateInput').value = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('idwMonthInput').value = String(new Date(datasetActiveYear, maxDOY - 1, 1).getMonth());
+            idwCustomDates = [];
+            document.getElementById('idwCustomDateInput').value = '';
+            renderIdwCustomDateTags();
             document.getElementById('idwModal').style.display = 'flex';
             toggleIdwDateInput();
         }
@@ -2867,16 +3366,33 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             const metric = document.getElementById('idwMetricFilter').value;
             const dateVal = document.getElementById('idwDateInput').value;
             const isDaily = metric === 'daily';
+            const isMonthly = metric === 'monthly';
+            const isCustom = metric === 'custom';
 
             if (isDaily && !dateVal) { showNotice("Please select a date."); return; }
+            if (isCustom && idwCustomDates.length === 0) {
+                showNotice("Please add at least one date.");
+                return;
+            }
 
-            let targetDate, doy, prettyDate;
+            let targetDate, doy, prettyDate, monthIndex = null, customDates = [];
+
             if (isDaily) {
                 targetDate = new Date(dateVal);
-                if (targetDate.getFullYear() !== datasetActiveYear) { showNotice(`Please select a date within ${datasetActiveYear}.`); return; }
+                if (targetDate.getFullYear() !== datasetActiveYear) {
+                    showNotice(`Please select a date within ${datasetActiveYear}.`); return;
+                }
                 const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
                 prettyDate = targetDate.toLocaleDateString('en-US', formatOptions);
                 doy = getDayOfYear(targetDate.getDate(), targetDate.getMonth() + 1, targetDate.getFullYear());
+            } else if (isMonthly) {
+                monthIndex = Number(document.getElementById('idwMonthInput').value);
+                const monthName = document.getElementById('idwMonthInput').options[monthIndex].text;
+                prettyDate = `${monthName} ${datasetActiveYear} Total`;
+            } else if (isCustom) {
+                customDates = [...idwCustomDates];
+                const labels = customDates.map(v => new Date(v + 'T00:00:00').toLocaleDateString('en-US', {day:'numeric', month:'short'}));
+                prettyDate = `${labels.join(', ')} — Cumulative`;
             } else {
                 prettyDate = `${datasetActiveYear} - ${metric.toUpperCase()} Total`;
             }
@@ -2886,7 +3402,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
             setTimeout(() => {
                 try {
-                    runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal);
+                    runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex, customDates);
                 } catch(e) {
                     console.error("IDW Generation Failed:", e);
                     showNotice("Error generating spatial map: " + e.message);
@@ -2895,16 +3411,29 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
             }, 100);
         }
 
-        function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal) {
+
+        function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex = null, customDates = []) {
             let maxRain = 0;
             const pts = [];
             currentStationData.forEach(st => {
                 if (!st.lat || !st.lon || isNaN(st.lat) || isNaN(st.lon) || st.lat === 0 || st.lon === 0) return;
 
                 let val = 0;
-                if (isDaily) val = st.dailyArray[doy - 1] || 0;
-                else if (metric === 'annual') val = st.total;
-                else val = st[metric];
+                if (isDaily) {
+                    val = st.dailyArray[doy - 1] || 0;
+                } else if (metric === 'monthly') {
+                    val = (st.monthly && st.monthly[monthIndex] != null) ? st.monthly[monthIndex] : 0;
+                } else if (metric === 'custom') {
+                    val = customDates.reduce((sum, dateStr) => {
+                        const d = new Date(dateStr + 'T00:00:00');
+                        const cdoy = getDayOfYear(d.getDate(), d.getMonth() + 1, d.getFullYear());
+                        return sum + (st.dailyArray[cdoy - 1] || 0);
+                    }, 0);
+                } else if (metric === 'annual') {
+                    val = st.total;
+                } else {
+                    val = st[metric];
+                }
 
                 if (val > maxRain) maxRain = val;
 
@@ -2918,6 +3447,15 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 document.getElementById('loadingModal').style.display = 'none';
                 return;
             }
+
+            // --- CUSTOM MULTI-DATE ONLY: dedicated cumulative rainfall scale ---
+            const customThresholds = [0, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 500];
+            const customColors = [
+                "#ffffff", "#ffd1b3", "#ff9f43", "#ffe66d",
+                "#9be564", "#2e8b57", "#21d4d8", "#7ec8ff",
+                "#246bce", "#4b3f9f", "#7a2fa3", "#9b59b6"
+            ];
+            const customOverflowColor = "#ff00ff";
 
             // --- DEFINED CEILINGS ---
             let maxRainNormal = 2000, step = 100;
@@ -2977,9 +3515,19 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
                     if (isDaily) {
                         color = getIMDColor(val);
+                    } else if (metric === 'custom') {
+                        if (val > 500) {
+                            color = customOverflowColor;
+                        } else {
+                            let binIdx = 0;
+                            for (let i = 0; i < customThresholds.length - 1; i++) {
+                                if (val > customThresholds[i]) binIdx = i + 1;
+                            }
+                            color = customColors[Math.min(binIdx, customColors.length - 1)];
+                        }
                     } else {
                         if (val > maxRainNormal) {
-                            color = '#ff00ff'; // Magenta Overflow
+                            color = '#ff00ff'; // Existing seasonal overflow
                         } else {
                             let binIdx = Math.floor((val - 0.0001) / step);
                             if (binIdx < 0) binIdx = 0;
@@ -3010,7 +3558,7 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
                 }).addTo(exportIdwMapInstance);
             }
 
-            document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : "Spatial Rainfall Distribution";
+            document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : (metric === 'custom' ? "Custom Multi-Date Spatial Distribution" : "Spatial Rainfall Distribution");
             document.getElementById('idwExportSubtitle').innerText = prettyDate;
 
             const legendImd = document.getElementById('idwLegendImd');
@@ -3025,23 +3573,34 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 
                 let seasonalLegendHTML = "";
 
-                // Generate Step Legend (using 13px font to fit up to 20 blocks neatly)
-                for (let i = 0; i < numBins; i++) {
-                    let lower = i * step;
-                    let upper = (i + 1) * step;
-                    let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
-                    let color = masterPalette[colorIdx];
-                    let label = lower === 0 ? `1-${upper}` : `${lower + 1}-${upper}`;
-                    seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                if (metric === 'custom') {
+                    const customLabels = [
+                        '0–25','25–50','50–75','75–100',
+                        '100–150','150–200','200–250','250–300',
+                        '300–350','350–400','400–500'
+                    ];
+                    customLabels.forEach((label, i) => {
+                        seasonalLegendHTML += `<span style="color:${customColors[i]}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${customColors[i]}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                    });
+                    seasonalLegendHTML += `<span style="color:${customOverflowColor}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${customOverflowColor}; border:1px solid rgba(255,255,255,0.2);"></span> &gt; 500</span>`;
+                } else {
+                    // Existing legend for Annual / Winter / Summer / SWM / NEM,
+                    // and now Monthly.
+                    for (let i = 0; i < numBins; i++) {
+                        let lower = i * step;
+                        let upper = (i + 1) * step;
+                        let colorIdx = Math.floor((i / Math.max(1, numBins - 1)) * (masterPalette.length - 1));
+                        let color = masterPalette[colorIdx];
+                        let label = lower === 0 ? `1-${upper}` : `${lower + 1}-${upper}`;
+                        seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                    }
+                    seasonalLegendHTML += `<span style="color:#ff00ff; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:#ff00ff; border:1px solid rgba(255,255,255,0.2);"></span> &gt; ${maxRainNormal}</span>`;
                 }
-
-                // Append Magenta Peak Overflow
-                seasonalLegendHTML += `<span style="color:#ff00ff; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:#ff00ff; border:1px solid rgba(255,255,255,0.2);"></span> > ${maxRainNormal}</span>`;
 
                 document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
             }
 
-            finalImageFileName = `IDW_Map_${isDaily ? dateVal : metric+'_'+datasetActiveYear}.png`;
+            finalImageFileName = `IDW_Map_${isDaily ? dateVal : (metric === 'custom' ? 'custom_multidate' : metric+'_'+datasetActiveYear)}.png`;
             activeModalSource = '';
 
             const targetDiv = document.getElementById('exportIdwWrapper');
@@ -3142,5 +3701,15 @@ document.getElementById(&#x27;mapPanel&#x27;).addEventListener(&#x27;click&#x27;
 #openMeteoAttribution a:hover{text-decoration:underline}
 </style>
 <div id="openMeteoAttribution">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a></div>
+
+<footer class="site-author-footer">
+  <div class="author-name">Vidhyapathi · Haiyan</div>
+  <div>Weather, rainfall &amp; forecast information for Tamil Nadu</div>
+  <div class="social-links">
+    <a href="https://x.com/HaiyanTip" target="_blank" rel="noopener noreferrer">𝕏 X · HaiyanTip</a>
+    <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener noreferrer">Instagram · haiyan_clicks</a>
+  </div>
+</footer>
+
 </body>
 </html>
