@@ -804,15 +804,16 @@ body.dark-mode .site-author-footer .author-name,
   z-index:99999;
   display:none;
   margin:0;
-  padding:18px;
+  padding:2px 12px;
   background:rgba(10,18,30,.58);
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
 }
 #mapPanel.map-open{display:flex!important}
 .map-dialog{
   width:min(540px,94vw);
-  height:min(760px,92vh);
+  height:min(760px,calc(100vh - 4px));
+  max-height:calc(100vh - 4px);
   background:#fff;
   border-radius:14px;
   box-shadow:0 18px 60px rgba(0,0,0,.30);
@@ -880,8 +881,8 @@ body.dark-mode .site-author-footer .author-name,
   image-rendering:auto;
 }
 @media(max-width:700px){
-  #mapPanel{padding:8px}
-  .map-dialog{width:96vw;height:90vh;border-radius:12px}
+  #mapPanel{padding:1px}
+  .map-dialog{width:96vw;height:calc(100vh - 2px);max-height:calc(100vh - 2px);border-radius:12px}
   .map-dialog-title{font-size:16px}
   .map-info{padding:10px}
   .map-coords{width:100%}
@@ -1073,6 +1074,34 @@ body.forecast-dark .heat .cell { color:#17233a; }
 #forecastMap .leaflet-left{left:10px!important}
 &lt;/style&gt;
 
+
+&lt;style id=&quot;forecast-tab-layout-fix&quot;&gt;
+.forecast-tab-panel[hidden]{display:none!important}
+&lt;/style&gt;
+
+
+&lt;style id=&quot;ensemble-refresh-style&quot;&gt;
+.ens-model-row{display:flex;align-items:center;gap:6px}
+.ens-model-row select{flex:1}
+.ens-refresh{
+  width:34px;height:34px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--border,#cbd5e1);
+  border-radius:7px;background:var(--control,#fff);
+  color:inherit;cursor:pointer;font-size:19px;font-weight:700;
+}
+.ens-refresh:hover{background:#e8eef5}
+.ens-refresh:disabled{opacity:.55;cursor:wait}
+body.forecast-dark .ens-refresh{background:#202d42;border-color:#50617a;color:#edf3fa}
+body.forecast-dark .ens-refresh:hover{background:#2b3b53}
+&lt;/style&gt;
+
+&lt;style id=&quot;forecast-temperature-style&quot;&gt;
+.temp-section{margin-top:22px;padding-top:16px;border-top:1px solid #dbe2ea}
+.temp-section h3{margin:0 0 10px;font-size:20px}
+.temp-chartbox{height:390px!important}
+body.forecast-dark .temp-section{border-top-color:#3b4b61}
+&lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;div class=&quot;head&quot;&gt;&lt;div class=&quot;comk-credit&quot;&gt;Inspired by &lt;a href=&quot;https://www.chennairains.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;COMK&lt;/a&gt;&lt;/div&gt;
@@ -1116,11 +1145,11 @@ body.forecast-dark .heat .cell { color:#17233a; }
 &lt;button class=&quot;tab&quot; data-tab=&quot;seasonal&quot;&gt;🌐 ECMWF Seasonal&lt;/button&gt;
 &lt;/div&gt;&lt;/div&gt;
 
-&lt;section id=&quot;multi&quot; class=&quot;panel&quot;&gt;&lt;h2&gt;7-Day Daily Precipitation — Multi Model &lt;span id=&quot;multiHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;heat&quot;&gt;&lt;div class=&quot;loading&quot;&gt;Loading…&lt;/div&gt;&lt;/div&gt;&lt;div id=&quot;multiRuns&quot; style=&quot;display:none&quot;&gt;&lt;/div&gt;&lt;/section&gt;
+&lt;section id=&quot;multi&quot; class=&quot;panel&quot;&gt;&lt;h2&gt;7-Day Daily Precipitation — Multi Model &lt;span id=&quot;multiHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;heat&quot;&gt;&lt;div class=&quot;loading&quot;&gt;Loading…&lt;/div&gt;&lt;/div&gt;&lt;div id=&quot;multiRuns&quot; style=&quot;display:none&quot;&gt;&lt;/div&gt;&lt;div id=&quot;multiTempSection&quot; class=&quot;temp-section&quot; style=&quot;display:none&quot;&gt;&lt;h3&gt;7-Day Temperature — Multi Model&lt;/h3&gt;&lt;div class=&quot;chartbox temp-chartbox&quot;&gt;&lt;canvas id=&quot;multiTempChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;2 m temperature · ECMWF IFS HRES, GFS, DWD ICON and UK Met.&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;
 
 &lt;section id=&quot;hourly&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;Hourly Rainfall Forecast &lt;span id=&quot;hourlyHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;hourRuns&quot;&gt;&lt;/div&gt;&lt;div id=&quot;hourLoad&quot; class=&quot;loading&quot;&gt;Load a district first.&lt;/div&gt;&lt;div id=&quot;hourBox&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;hourChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/section&gt;
 
-&lt;section id=&quot;ens&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;7-Day Ensemble Guidance &lt;span id=&quot;ensHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div class=&quot;tools&quot;&gt;&lt;div class=&quot;group&quot;&gt;&lt;label&gt;Ensemble model&lt;/label&gt;&lt;select id=&quot;ensModel&quot;&gt;
+&lt;section id=&quot;ens&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;7-Day Ensemble Guidance &lt;span id=&quot;ensHQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div class=&quot;tools&quot;&gt;&lt;div class=&quot;group&quot;&gt;&lt;label&gt;Ensemble model&lt;/label&gt;&lt;div class=&quot;ens-model-row&quot;&gt;&lt;select id=&quot;ensModel&quot;&gt;
 &lt;option value=&quot;ecmwf_ifs025&quot;&gt;ECMWF IFS 0.25° Ensemble — 51&lt;/option&gt;
 &lt;option value=&quot;ecmwf_aifs025&quot;&gt;ECMWF AIFS 0.25° Ensemble — 51&lt;/option&gt;
 &lt;option value=&quot;gfs025&quot;&gt;GFS Ensemble 0.25° — 31&lt;/option&gt;
@@ -1128,7 +1157,7 @@ body.forecast-dark .heat .cell { color:#17233a; }
 &lt;option value=&quot;google_weathernext2&quot;&gt;Google WeatherNext 2 Ensemble — 64&lt;/option&gt;
 &lt;option value=&quot;ukmo_global_ensemble_20km&quot;&gt;UK MetOffice Global 20km — 18&lt;/option&gt;
 &lt;option value=&quot;gem_global&quot;&gt;GEM Global Ensemble — 21&lt;/option&gt;
-&lt;/select&gt;&lt;/div&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;ensMembers&quot; type=&quot;checkbox&quot;&gt; Show all ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;ensRuns&quot;&gt;&lt;/div&gt;
+&lt;/select&gt;&lt;button id=&quot;ensRefresh&quot; type=&quot;button&quot; class=&quot;ens-refresh&quot; title=&quot;Refresh 7-day ensemble data&quot; onclick=&quot;refreshEnsembleData()&quot;&gt;↻&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;ensMembers&quot; type=&quot;checkbox&quot;&gt; Show all ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;ensRuns&quot;&gt;&lt;/div&gt;
 &lt;div id=&quot;ensLoad&quot; class=&quot;loading&quot;&gt;Select this tab to load the latest ensemble forecast.&lt;/div&gt;&lt;div id=&quot;ensBox&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;ensChart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;The ensemble mean is taken from the dedicated Ensemble Mean API. P75/P90/max/min are derived only from returned members; the mean is never calculated locally.&lt;/div&gt;&lt;/section&gt;
 
 &lt;section id=&quot;ec46&quot; class=&quot;panel&quot; style=&quot;display:none&quot;&gt;&lt;h2&gt;ECMWF EC46 — 46 Day Guidance &lt;span id=&quot;ec46HQ&quot; class=&quot;hq-label&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;ec46Runs&quot;&gt;&lt;/div&gt;&lt;div class=&quot;tools&quot;&gt;&lt;label class=&quot;check&quot;&gt;&lt;input id=&quot;ec46Members&quot; type=&quot;checkbox&quot;&gt; Show all 51 ensemble members&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;ec46Load&quot; class=&quot;loading&quot;&gt;Select this tab to load the latest ECMWF EC46 forecast.&lt;/div&gt;&lt;div id=&quot;ec46Box&quot; class=&quot;chartbox&quot; style=&quot;display:none&quot;&gt;&lt;canvas id=&quot;ec46Chart&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;div class=&quot;source&quot;&gt;Source: Open-Meteo ECMWF EC46. 51-member ensemble. P75/P90/max/min are derived from the returned members.&lt;/div&gt;&lt;/section&gt;
@@ -1159,7 +1188,7 @@ async function forecastDaily(model,days=7){
   const end=new Date(start+&#x27;T00:00:00+05:30&#x27;);
   end.setDate(end.getDate()+days-1);
   const endDate=new Intl.DateTimeFormat(&#x27;en-CA&#x27;,{timeZone:&#x27;Asia/Kolkata&#x27;,year:&#x27;numeric&#x27;,month:&#x27;2-digit&#x27;,day:&#x27;2-digit&#x27;}).format(end);
-  const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;daily=precipitation_sum&amp;start_date=${start}&amp;end_date=${endDate}&amp;models=${model}&amp;timezone=Asia%2FKolkata`;
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;daily=precipitation_sum&amp;hourly=temperature_2m&amp;start_date=${start}&amp;end_date=${endDate}&amp;models=${model}&amp;timezone=Asia%2FKolkata`;
   const r=await fetch(u); if(!r.ok) throw Error(&#x27;Forecast API HTTP &#x27;+r.status); return await r.json();
 }
 async function forecastHourly(model){
@@ -1169,17 +1198,148 @@ async function forecastHourly(model){
   const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&amp;longitude=${loc().lon}&amp;hourly=precipitation&amp;start_date=${start}&amp;end_date=${endDate}&amp;models=${model}&amp;timezone=Asia%2FKolkata`;
   const r=await fetch(u); if(!r.ok) throw Error(&#x27;Forecast API HTTP &#x27;+r.status); return await r.json();
 }
+async function fetchMultiModelData(){
+  const results=await Promise.all(models.map(async m=&gt;{
+    try{
+      const data=await forecastDaily(m.model,7);
+      return {...m,data};
+    }catch(e){
+      console.warn(m.name,e);
+      return {...m,data:null,error:e?.message||String(e)};
+    }
+  }));
+  return {results, fetchedAt:Date.now()};
+}
+
+function renderMultiModel(data){
+  const heat=document.getElementById(&#x27;heat&#x27;);
+  if(!heat) return;
+
+  const rr=data?.results||[];
+  let dates=[], map={};
+
+  rr.forEach(r=&gt;{
+    if(!r.data?.daily) return;
+    map[r.name]={};
+    r.data.daily.time.forEach((x,i)=&gt;{
+      if(x&gt;=todayIST()) map[r.name][x]=r.data.daily.precipitation_sum[i];
+    });
+    Object.keys(map[r.name]).forEach(x=&gt;{
+      if(!dates.includes(x)) dates.push(x);
+    });
+  });
+
+  dates.sort();
+  dates=dates.slice(0,7);
+
+  if(!dates.length){
+    heat.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;7-day multi-model forecast unavailable.&lt;/div&gt;&#x27;;
+    return;
+  }
+
+  let h=&#x27;&lt;div class=&quot;heatwrap&quot;&gt;&lt;table class=&quot;heat&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Model&lt;/th&gt;&#x27;+
+        dates.map(x=&gt;`&lt;th&gt;${fmtDate(x)}&lt;/th&gt;`).join(&#x27;&#x27;)+
+        &#x27;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;;
+  const av=dates.map(()=&gt;[]);
+
+  rr.forEach(r=&gt;{
+    h+=`&lt;tr&gt;&lt;td class=&quot;model&quot;&gt;${esc(r.name)}&lt;/td&gt;`;
+    dates.forEach((d,i)=&gt;{
+      const v=map[r.name]?.[d];
+      if(typeof v===&#x27;number&#x27;) av[i].push(v);
+      h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${
+        typeof v===&#x27;number&#x27;?v.toFixed(1):&#x27;—&#x27;
+      }&lt;/td&gt;`;
+    });
+    h+=&#x27;&lt;/tr&gt;&#x27;;
+  });
+
+  h+=&#x27;&lt;tr class=&quot;avg&quot;&gt;&lt;td class=&quot;model&quot;&gt;Average&lt;/td&gt;&#x27;;
+  av.forEach(a=&gt;{
+    const v=a.length?a.reduce((x,y)=&gt;x+y,0)/a.length:null;
+    h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${
+      v==null?&#x27;—&#x27;:v.toFixed(1)
+    }&lt;/td&gt;`;
+  });
+  h+=&#x27;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;legend&quot;&gt;&lt;b&gt;Rainfall&lt;/b&gt;&#x27;+
+     &#x27;&lt;i class=&quot;box&quot; style=&quot;background:#fffbdc&quot;&gt;&lt;/i&gt;0–1 &#x27;+
+     &#x27;&lt;i class=&quot;box&quot; style=&quot;background:#c8e8b4&quot;&gt;&lt;/i&gt;3–5 &#x27;+
+     &#x27;&lt;i class=&quot;box&quot; style=&quot;background:#4bb0c0&quot;&gt;&lt;/i&gt;10–15 &#x27;+
+     &#x27;&lt;i class=&quot;box&quot; style=&quot;background:#194a91&quot;&gt;&lt;/i&gt;25–50 &#x27;+
+     &#x27;&lt;i class=&quot;box&quot; style=&quot;background:#10255f&quot;&gt;&lt;/i&gt;&amp;gt;50 mm&lt;/div&gt;&#x27;;
+
+  heat.innerHTML=h;
+  const runs=document.getElementById(&#x27;multiRuns&#x27;);
+  if(runs) runs.innerHTML=&#x27;&#x27;;
+  buildMultiTemperatureChart(rr);
+}
+
+
+let multiTempChart=null;
+
+const TEMP_DET_MODELS=[
+  {name:&#x27;ECMWF IFS HRES&#x27;,model:&#x27;ecmwf_ifs025&#x27;},
+  {name:&#x27;GFS&#x27;,model:&#x27;gfs_global&#x27;},
+  {name:&#x27;DWD ICON&#x27;,model:&#x27;icon_global&#x27;},
+  {name:&#x27;UK Met&#x27;,model:&#x27;ukmo_global_deterministic_10km&#x27;}
+];
+
+
+const TEMP_COLORS=[&#x27;#2f9ee8&#x27;,&#x27;#7b61ff&#x27;,&#x27;#27ae60&#x27;,&#x27;#ff8a2b&#x27;];
+
+function destroyTemperatureCharts(){
+  if(multiTempChart){multiTempChart.destroy();multiTempChart=null;}
+  const a=document.getElementById(&#x27;multiTempSection&#x27;); if(a)a.style.display=&#x27;none&#x27;;
+}
+function buildMultiTemperatureChart(results){
+  const sec=document.getElementById(&#x27;multiTempSection&#x27;);
+  if(!sec) return;
+  if(!currentLocation || currentLocation.source!==&#x27;hq&#x27;){
+    sec.style.display=&#x27;none&#x27;;
+    return;
+  }
+
+  const allowedTempModels=new Set(TEMP_DET_MODELS.map(m=&gt;m.name));
+  const valid=results.filter(r=&gt;
+    allowedTempModels.has(r.name) &amp;&amp;
+    r.data?.hourly?.time &amp;&amp;
+    Array.isArray(r.data.hourly.temperature_2m)
+  );
+  if(!valid.length){sec.style.display=&#x27;none&#x27;;return;}
+
+  const labels=valid[0].data.hourly.time;
+  const datasets=valid.map((r,i)=&gt;({
+    label:r.name,
+    data:r.data.hourly.temperature_2m,
+    borderColor:TEMP_COLORS[i%TEMP_COLORS.length],
+    backgroundColor:TEMP_COLORS[i%TEMP_COLORS.length],
+    borderWidth:2,
+    pointRadius:0,
+    tension:.18
+  }));
+
+  if(multiTempChart)multiTempChart.destroy();
+  multiTempChart=new Chart(document.getElementById(&#x27;multiTempChart&#x27;).getContext(&#x27;2d&#x27;),{
+    type:&#x27;line&#x27;,
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:&#x27;index&#x27;,intersect:false},
+      plugins:{legend:{position:&#x27;top&#x27;}},
+      scales:{
+        x:{offset:true,ticks:{maxTicksLimit:14}},
+        y:{title:{display:true,text:&#x27;Temperature (°C)&#x27;}}
+      }
+    }
+  });
+  sec.style.display=&#x27;block&#x27;;
+}
+
 async function loadMultiFromAPI(){
   document.getElementById(&#x27;heat&#x27;).innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Loading today\&#x27;s 7-day model forecasts…&lt;/div&gt;&#x27;;
-  const rr=await Promise.all(models.map(async m=&gt;{let data=null;try{data=await forecastDaily(m.model,7)}catch(e){console.warn(m.name,e)}return {...m,data}}));
-  let dates=[],map={};
-  rr.forEach(r=&gt;{if(!r.data?.daily)return;map[r.name]={};r.data.daily.time.forEach((x,i)=&gt;{if(x&gt;=todayIST())map[r.name][x]=r.data.daily.precipitation_sum[i]});Object.keys(map[r.name]).forEach(x=&gt;{if(!dates.includes(x))dates.push(x)})});
-  dates.sort();dates=dates.slice(0,7);
-  let h=&#x27;&lt;div class=&quot;heatwrap&quot;&gt;&lt;table class=&quot;heat&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Model&lt;/th&gt;&#x27;+dates.map(x=&gt;`&lt;th&gt;${fmtDate(x)}&lt;/th&gt;`).join(&#x27;&#x27;)+&#x27;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;,av=dates.map(()=&gt;[]);
-  rr.forEach(r=&gt;{h+=`&lt;tr&gt;&lt;td class=&quot;model&quot;&gt;${esc(r.name)}&lt;/td&gt;`;dates.forEach((d,i)=&gt;{let v=map[r.name]?.[d];if(typeof v===&#x27;number&#x27;)av[i].push(v);h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${typeof v===&#x27;number&#x27;?v.toFixed(1):&#x27;—&#x27;}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&#x27;});
-  h+=&#x27;&lt;tr class=&quot;avg&quot;&gt;&lt;td class=&quot;model&quot;&gt;Average&lt;/td&gt;&#x27;;av.forEach(a=&gt;{let v=a.length?a.reduce((x,y)=&gt;x+y,0)/a.length:null;h+=`&lt;td class=&quot;cell&quot; style=&quot;background:${color(v)};color:${typeof v===&#x27;number&#x27;&amp;&amp;v&gt;=10?&#x27;#fff&#x27;:&#x27;#17233a&#x27;}&quot;&gt;${v==null?&#x27;—&#x27;:v.toFixed(1)}&lt;/td&gt;`});h+=&#x27;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;legend&quot;&gt;&lt;b&gt;Rainfall&lt;/b&gt;&lt;i class=&quot;box&quot; style=&quot;background:#fffbdc&quot;&gt;&lt;/i&gt;0–1 &lt;i class=&quot;box&quot; style=&quot;background:#c8e8b4&quot;&gt;&lt;/i&gt;3–5 &lt;i class=&quot;box&quot; style=&quot;background:#4bb0c0&quot;&gt;&lt;/i&gt;10–15 &lt;i class=&quot;box&quot; style=&quot;background:#194a91&quot;&gt;&lt;/i&gt;25–50 &lt;i class=&quot;box&quot; style=&quot;background:#10255f&quot;&gt;&lt;/i&gt;&amp;gt;50 mm&lt;/div&gt;&#x27;;
-  document.getElementById(&#x27;heat&#x27;).innerHTML=h;
-  document.getElementById(&#x27;multiRuns&#x27;).innerHTML=&#x27;&#x27;;
+  const data=await fetchMultiModelData();
+  renderMultiModel(data);
+  return data;
 }
 async function loadHourlyFromAPI(){
   const arr=await Promise.all(models.slice(0,2).map(async m=&gt;{let data=null;try{data=await forecastHourly(m.model)}catch(e){}return {...m,data}}));
@@ -1333,9 +1493,9 @@ async function loadEnsembleFromAPI(){
       &lt;div class=&quot;run-card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Forecast&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;7 days&lt;/div&gt;&lt;/div&gt;
     &lt;/div&gt;`;
 
-    ensLoad.style.display=&#x27;none&#x27;;ensBox.style.display=&#x27;block&#x27;;
-  }catch(e){
+    ensLoad.style.display=&#x27;none&#x27;;ensBox.style.display=&#x27;block&#x27;;  }catch(e){
     ensLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message)+&#x27;&lt;/div&gt;&#x27;;
+    throw e;
   }
 }
 async function loadEC46FromAPI(){
@@ -1446,6 +1606,47 @@ function forecastCacheKey(tab){
   return `${h}|${tab}`;
 }
 
+
+async function refreshEnsembleData(){
+  if(!currentLocation) return;
+
+  const key=forecastCacheKey(&#x27;ens&#x27;);
+  if(!key || key.startsWith(&#x27;|&#x27;)) return;
+
+  const btn=document.getElementById(&#x27;ensRefresh&#x27;);
+  if(btn){
+    btn.disabled=true;
+    btn.textContent=&#x27;⟳&#x27;;
+  }
+
+  // Invalidate ONLY the currently selected ensemble model/location.
+  delete forecastTabCache[key];
+  delete ensembleChartStates[key];
+
+  try{
+    // Destroy only the current ensemble chart so the fresh render is clean.
+    if(ensChart){
+      ensChart.destroy();
+      ensChart=null;
+    }
+    ensBox.style.display=&#x27;none&#x27;;
+    ensRuns.innerHTML=&#x27;&#x27;;
+    ensLoad.style.display=&#x27;block&#x27;;
+    ensLoad.innerHTML=&#x27;&lt;div class=&quot;loading&quot;&gt;Refreshing 7-day ensemble data…&lt;/div&gt;&#x27;;
+
+    // This is an explicit user refresh, so one new request is intentional.
+    await cachedTabLoad(&#x27;ens&#x27;);
+  }catch(e){
+    ensLoad.style.display=&#x27;block&#x27;;
+    ensLoad.innerHTML=&#x27;&lt;div class=&quot;error&quot;&gt;&#x27;+esc(e.message||String(e))+&#x27;&lt;/div&gt;&#x27;;
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=&#x27;↻&#x27;;
+    }
+  }
+}
+
 function clearForecastCache(){
   forecastTabCache={};
 }
@@ -1455,7 +1656,21 @@ async function cachedTabLoad(tab){
   if(!key || key.startsWith(&#x27;|&#x27;)) return;
 
   if(Object.prototype.hasOwnProperty.call(forecastTabCache,key)){
-    return forecastTabCache[key];
+    const cached=await forecastTabCache[key];
+
+    // IMPORTANT: cached data is not just &quot;already loaded&quot; state.
+    // Re-render the visible panel from the cached data whenever the user
+    // returns to the tab. No API call is made here.
+    if(tab===&#x27;multi&#x27;){
+      renderMultiModel(cached);
+    }else if(tab===&#x27;ens&#x27;){
+      const ensState=ensembleChartStates[key];
+      if(ensState) buildEnsembleChart(ensState,ensMembers.checked);
+    }else if(tab===&#x27;hourly&#x27;){
+      // Hourly chart is rebuilt by its loader; leave its existing cache
+      // behavior unchanged for now.
+    }
+    return cached;
   }
 
   let p;
@@ -1479,6 +1694,7 @@ async function cachedTabLoad(tab){
 }
 
 function clearForecastPanelsForHQChange(){
+  destroyTemperatureCharts();
   const multi=document.getElementById(&#x27;heat&#x27;);
   const hourlyLoad=document.getElementById(&#x27;hourLoad&#x27;);
   const hourlyBox=document.getElementById(&#x27;hourBox&#x27;);
@@ -1526,7 +1742,17 @@ function clearForecastPanelsForHQChange(){
 let tabLoading=false;
 
 async function loadTabData(tab){
-  if(!currentLocation || tabLoading) return;
+  if(!currentLocation) return;
+  if(tabLoading){
+    // If this tab already has cached data, render it immediately instead of
+    // dropping the tab switch because another tab is still finishing.
+    const key=forecastCacheKey(tab);
+    if(key &amp;&amp; Object.prototype.hasOwnProperty.call(forecastTabCache,key)){
+      await cachedTabLoad(tab);
+      return;
+    }
+    return;
+  }
   tabLoading=true;
   try{
     await cachedTabLoad(tab);
@@ -1791,8 +2017,8 @@ async function confirmMapLocation(){
   loadText.textContent=&#x27;Preparing forecast…&#x27;;
   setForecastStatus(&#x27;Location selected. Preparing forecast…&#x27;,&#x27;loading&#x27;);
 
-  /* Deliberate 3-second loading buffer before the first Open-Meteo request. */
-  await new Promise(resolve=&gt;setTimeout(resolve,3000));
+  /* Deliberate 4-second loading buffer before the first Open-Meteo request. */
+  await new Promise(resolve=&gt;setTimeout(resolve,4000));
 
   current=&#x27;&#x27;;
   currentLocation={
@@ -1901,7 +2127,7 @@ function setForecastLocalTheme(mode){
 
   // Redraw already-created charts so their labels immediately change.
   try{
-    [ensChart,hourChart,ec46Chart,seasonChart,anomChart].forEach(c=&gt;{
+    [ensChart,hourChart,ec46Chart,seasonChart,anomChart,multiTempChart].forEach(c=&gt;{
       if(c &amp;&amp; typeof c.update===&#x27;function&#x27;) c.update();
     });
   }catch(e){}
@@ -1964,6 +2190,7 @@ document.addEventListener(&#x27;DOMContentLoaded&#x27;,function(){
     &lt;a href=&quot;https://www.instagram.com/haiyan_clicks/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Instagram · haiyan_clicks&lt;/a&gt;
   &lt;/div&gt;
 &lt;/footer&gt;
+
 
 &lt;/body&gt;&lt;/html&gt;
 ">
