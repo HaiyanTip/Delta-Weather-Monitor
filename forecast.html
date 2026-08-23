@@ -1,0 +1,2488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TN Forecast Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f3f6f9;
+        color: #18202b;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .head {
+        background: #172033;
+        color: #fff;
+        padding: 18px 25px;
+      }
+      .head h1 {
+        margin: 0;
+        font-size: 25px;
+      }
+      .head p {
+        margin: 5px 0 0;
+        color: #bdc8d8;
+      }
+      .wrap {
+        max-width: 1550px;
+        margin: 18px auto;
+        padding: 0 20px;
+      }
+      .controls,
+      .title,
+      .panel {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px #0000000d;
+      }
+      .controls {
+        padding: 15px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .controls select,
+      .controls button,
+      .tools select,
+      .tools button {
+        padding: 9px 13px;
+        border: 1px solid #cbd3dd;
+        border-radius: 7px;
+        font-size: 14px;
+      }
+      .controls button,
+      .tools button {
+        background: #286d9f;
+        color: #fff;
+        border: 0;
+        cursor: pointer;
+      }
+      .title {
+        margin-top: 15px;
+        padding: 17px;
+      }
+      .title h2 {
+        margin: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 13px;
+      }
+      .tab {
+        background: #e8edf3 !important;
+        color: #26313d !important;
+      }
+      .tab.active {
+        background: #286d9f !important;
+        color: #fff !important;
+      }
+      .panel {
+        margin-top: 14px;
+        padding: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 25px;
+      }
+      .run-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .run-card {
+        background: #f5f7fa;
+        border: 1px solid #e0e5eb;
+        border-radius: 8px;
+        padding: 8px 11px;
+        min-width: 145px;
+      }
+      .run-card .lab {
+        font-size: 11px;
+        color: #6c7785;
+      }
+      .run-card .val {
+        font-size: 13px;
+        font-weight: 700;
+        margin-top: 2px;
+      }
+      .run-card .small {
+        font-size: 10px;
+        color: #687586;
+      }
+      .heatwrap {
+        overflow-x: auto;
+      }
+      .heat {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 1050px;
+      }
+      .heat th,
+      .heat td {
+        border: 1px solid #fff;
+        text-align: center;
+        padding: 9px 6px;
+      }
+      .heat th {
+        background: #26364e;
+        color: #fff;
+      }
+      .model {
+        text-align: left !important;
+        background: #edf1f5 !important;
+        font-weight: 700;
+        min-width: 175px;
+      }
+      .model span {
+        display: block;
+        font-size: 9px;
+        color: #687586;
+        font-weight: 400;
+        margin-top: 2px;
+      }
+      .cell {
+        font-weight: 700;
+        min-width: 70px;
+      }
+      .avg td {
+        border-top: 3px solid #26364e;
+      }
+      .avg .model {
+        background: #26364e !important;
+        color: #fff;
+      }
+      .legend {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 12px;
+        margin-top: 12px;
+      }
+      .box {
+        width: 30px;
+        height: 15px;
+      }
+      .note {
+        font-size: 12px;
+        color: #66717f;
+        margin-top: 10px;
+      }
+      .tools {
+        display: flex;
+        gap: 9px;
+        align-items: end;
+        flex-wrap: wrap;
+        background: #f5f7fa;
+        padding: 12px;
+        border-radius: 9px;
+        margin-bottom: 13px;
+      }
+      .tools label {
+        font-size: 11px;
+        color: #66717f;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .tools .group {
+        display: flex;
+        flex-direction: column;
+      }
+      .check {
+        background: #fff;
+        border: 1px solid #ccd3dc;
+        border-radius: 7px;
+        padding: 9px 12px;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        font-size: 14px;
+      }
+      .chartbox {
+        height: 540px;
+        position: relative;
+      }
+      .loading {
+        text-align: center;
+        padding: 30px;
+      }
+      .error {
+        padding: 12px;
+        background: #ffe9ed;
+        color: #9c1c2b;
+        border-radius: 7px;
+      }
+      .source {
+        font-size: 12px;
+        color: #66717f;
+        margin-top: 12px;
+      }
+      .tablewrap {
+        overflow-x: auto;
+      }
+      .tbl {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .tbl th,
+      .tbl td {
+        border: 1px solid #ddd;
+        padding: 9px;
+        text-align: center;
+      }
+      .tbl th {
+        background: #26364e;
+        color: #fff;
+      }
+      .season-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+      }
+      .season-card {
+        background: #f5f7fa;
+        padding: 14px;
+        border-radius: 8px;
+      }
+      .season-card h3 {
+        margin: 0 0 6px;
+      }
+      .metric {
+        font-size: 23px;
+        font-weight: 700;
+      }
+      .sub {
+        font-size: 11px;
+        color: #687586;
+      }
+      .anomaly-chart {
+        height: 300px;
+        position: relative;
+        margin-top: 12px;
+      }
+      @media (max-width: 700px) {
+        .wrap {
+          padding: 0 10px;
+        }
+        .panel {
+          padding: 14px;
+        }
+        .chartbox {
+          height: 450px;
+        }
+      }
+
+      /* Forecast Specific Theme Fixes */
+      .forecast-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 14px;
+      }
+      .forecast-tabs button {
+        appearance: none;
+        border: 0 !important;
+        border-radius: 10px !important;
+        background: #e7edf5 !important;
+        color: #12243a !important;
+        padding: 11px 18px !important;
+        font-size: 16px !important;
+        line-height: 1.25 !important;
+        font-weight: 500 !important;
+        cursor: pointer;
+        box-shadow: none !important;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .forecast-tabs button:hover {
+        background: #dbe5f0 !important;
+      }
+      .forecast-tabs button.active,
+      .forecast-tabs button.selected {
+        background: #2875ad !important;
+        color: #fff !important;
+      }
+      .head {
+        position: relative;
+      }
+      .comk-credit {
+        position: absolute;
+        right: 24px;
+        top: 16px;
+        font-size: 13px;
+        color: #c6d0dd;
+        white-space: nowrap;
+      }
+      .comk-credit a {
+        color: #2875ad;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .comk-credit a:hover {
+        text-decoration: underline;
+      }
+      .forecast-header-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .hq-label {
+        font-weight: 600;
+      }
+      .forecast-status {
+        margin: 10px 0 14px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        background: #eef4f9;
+        color: #526579;
+        font-size: 13px;
+      }
+      .forecast-status.loading {
+        background: #eef4f9;
+        color: #2875ad;
+      }
+      .forecast-status.success {
+        background: #eef7ee;
+        color: #35643a;
+      }
+      .forecast-status.error {
+        background: #fff0f0;
+        color: #8a3b3b;
+      }
+
+      /* Map specific */
+      .location-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .location-actions button {
+        padding: 9px 13px;
+        border: 0;
+        border-radius: 7px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      #mapChoose {
+        background: #e7edf5;
+        color: #12243a;
+      }
+      #mapPanel {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        margin: 0;
+        padding: 2px 12px;
+        background: rgba(10, 18, 30, 0.58);
+        align-items: flex-start;
+        justify-content: center;
+      }
+      #mapPanel.map-open {
+        display: flex !important;
+      }
+      .map-dialog {
+        width: min(540px, 94vw);
+        height: min(760px, calc(100vh - 4px));
+        max-height: calc(100vh - 4px);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .map-dialog-head {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid #e1e6ec;
+      }
+      .map-dialog-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #18202b;
+      }
+      .map-dialog-sub {
+        font-size: 12px;
+        color: #687586;
+        margin-top: 3px;
+      }
+      .map-close {
+        border: 0;
+        background: #eef2f6;
+        color: #26313d;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      #forecastMap {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        border: 0;
+        border-radius: 0;
+      }
+      .map-info {
+        padding: 12px 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        border-top: 1px solid #e1e6ec;
+        background: #fff;
+      }
+      .map-coords {
+        font-size: 13px;
+        color: #526579;
+      }
+      .map-confirm {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-left: auto;
+      }
+      .map-confirm button {
+        padding: 9px 14px;
+        border: 0;
+        border-radius: 7px;
+        background: #286d9f;
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .map-confirm button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .map-cancel {
+        background: #e7edf5 !important;
+        color: #12243a !important;
+      }
+      .map-loading {
+        font-size: 12px;
+        color: #2875ad;
+      }
+      .leaflet-container {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .leaflet-tile {
+        outline: 1px solid transparent;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .leaflet-tile-container {
+        will-change: transform;
+      }
+      .leaflet-layer {
+        image-rendering: auto;
+      }
+
+      /* Dark Mode Theme Engine */
+      #forecastThemeToggle {
+        position: absolute;
+        right: 24px;
+        top: 48px;
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid #536278;
+        border-radius: 9px;
+        background: #202c40;
+        z-index: 20;
+      }
+      #forecastThemeToggle button {
+        border: 0;
+        border-radius: 7px;
+        padding: 6px 10px;
+        background: transparent;
+        color: #dbe5f0;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      #forecastThemeToggle button.active {
+        background: #2d73a8;
+        color: #fff;
+      }
+      body.forecast-dark {
+        background: #101827 !important;
+        color: #edf3fa !important;
+      }
+      body.forecast-dark .controls,
+      body.forecast-dark .title,
+      body.forecast-dark .panel {
+        background: #172235 !important;
+        color: #edf3fa !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+      }
+      body.forecast-dark .controls select,
+      body.forecast-dark .controls button,
+      body.forecast-dark .tools select,
+      body.forecast-dark .tools button {
+        background: #202d42 !important;
+        color: #edf3fa !important;
+        border-color: #50617a !important;
+      }
+      body.forecast-dark .tools {
+        background: #1d2a3d !important;
+      }
+      body.forecast-dark .check {
+        background: #202d42 !important;
+        color: #edf3fa !important;
+        border-color: #50617a !important;
+      }
+      body.forecast-dark .tab {
+        background: #26364d !important;
+        color: #e8eef6 !important;
+      }
+      body.forecast-dark .tab:hover {
+        background: #30445f !important;
+      }
+      body.forecast-dark .tab.active,
+      body.forecast-dark .tab.selected {
+        background: #2875ad !important;
+        color: #fff !important;
+      }
+      body.forecast-dark .run-card,
+      body.forecast-dark .season-card {
+        background: #202d42 !important;
+        border-color: #40526a !important;
+        color: #edf3fa !important;
+      }
+      body.forecast-dark .run-card .lab,
+      body.forecast-dark .run-card .small,
+      body.forecast-dark .source,
+      body.forecast-dark .note,
+      body.forecast-dark .loading {
+        color: #b8c5d5 !important;
+      }
+      body.forecast-dark .model {
+        background: #202d42 !important;
+        color: #edf3fa !important;
+      }
+      body.forecast-dark .model span {
+        color: #b8c5d5 !important;
+      }
+      body.forecast-dark .heat td {
+        border-color: #33445a !important;
+      }
+      body.forecast-dark .tbl td {
+        border-color: #40526a !important;
+      }
+      body.forecast-dark .tbl th,
+      body.forecast-dark .heat th {
+        background: #26364e !important;
+      }
+      body.forecast-dark .forecast-status {
+        background: #1e3146 !important;
+        color: #c6d5e5 !important;
+      }
+      body.forecast-dark .forecast-status.success {
+        background: #1d3b2a !important;
+        color: #c9ead3 !important;
+      }
+      body.forecast-dark .forecast-status.error {
+        background: #47262b !important;
+        color: #ffd1d6 !important;
+      }
+      body.forecast-dark .error {
+        background: #47262b !important;
+        color: #ffd1d6 !important;
+      }
+      body.forecast-dark .map-dialog {
+        background: #172235 !important;
+        color: #edf3fa !important;
+      }
+      body.forecast-dark .map-dialog-head,
+      body.forecast-dark .map-info {
+        border-color: #40526a !important;
+        background: #172235 !important;
+      }
+      body.forecast-dark .map-dialog-title {
+        color: #edf3fa !important;
+      }
+      body.forecast-dark .map-dialog-sub,
+      body.forecast-dark .map-coords {
+        color: #b8c5d5 !important;
+      }
+      body.forecast-dark .map-close {
+        background: #26364d !important;
+        color: #edf3fa !important;
+      }
+      .forecast-author {
+        margin: 28px 0 0;
+        padding: 18px 20px;
+        text-align: center;
+        border-top: 1px solid #d8e0ea;
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .forecast-author .author-name {
+        font-weight: 700;
+        color: #17233a;
+        font-size: 14px;
+      }
+      .forecast-author a {
+        color: #286fa8;
+        text-decoration: none;
+        font-weight: 600;
+        margin: 0 8px;
+      }
+      body.forecast-dark .forecast-author {
+        border-color: #40526a;
+        color: #b8c5d5;
+      }
+      body.forecast-dark .forecast-author .author-name {
+        color: #f3f7fb;
+      }
+      body.forecast-dark .forecast-author a {
+        color: #83c9ff;
+      }
+
+      .heat .cell {
+        color: #17233a;
+        font-weight: 700;
+      }
+      body.forecast-dark .heat .cell {
+        color: #17233a;
+      }
+
+      #forecastMap .leaflet-control-container {
+        pointer-events: none;
+      }
+      #forecastMap .leaflet-control {
+        pointer-events: auto;
+      }
+      #forecastMap .leaflet-top {
+        top: 10px !important;
+      }
+      #forecastMap .leaflet-left {
+        left: 10px !important;
+      }
+
+      .forecast-tab-panel[hidden] {
+        display: none !important;
+      }
+      .ens-model-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .ens-model-row select {
+        flex: 1;
+      }
+      .ens-refresh {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border, #cbd5e1);
+        border-radius: 7px;
+        background: var(--control, #fff);
+        color: inherit;
+        cursor: pointer;
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .ens-refresh:hover {
+        background: #e8eef5;
+      }
+      .ens-refresh:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      body.forecast-dark .ens-refresh {
+        background: #202d42;
+        border-color: #50617a;
+        color: #edf3fa;
+      }
+      body.forecast-dark .ens-refresh:hover {
+        background: #2b3b53;
+      }
+      .temp-section {
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid #dbe2ea;
+      }
+      .temp-section h3 {
+        margin: 0 0 10px;
+        font-size: 20px;
+      }
+      .temp-chartbox {
+        height: 390px !important;
+      }
+      body.forecast-dark .temp-section {
+        border-top-color: #3b4b61;
+      }
+      @media (max-width: 700px) {
+        #forecastThemeToggle {
+          right: 10px;
+          top: 8px;
+        }
+        .head {
+          padding-top: 62px !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="head">
+      <div class="comk-credit">
+        Inspired by
+        <a
+          href="https://www.chennairains.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >COMK</a
+        >
+      </div>
+      <div id="forecastThemeToggle" aria-label="Forecast theme">
+        <button
+          id="forecastLightBtn"
+          type="button"
+          class="active"
+          onclick="setForecastLocalTheme('light')"
+        >
+          ☀️ Light
+        </button>
+        <button
+          id="forecastDarkBtn"
+          type="button"
+          onclick="setForecastLocalTheme('dark')"
+        >
+          🌙 Dark
+        </button>
+      </div>
+      <h1>🌧️ Tamil Nadu Forecast</h1>
+      <p>Open-Meteo deterministic, ensemble and ECMWF seasonal guidance</p>
+    </div>
+
+    <div class="wrap">
+      <div class="controls">
+        <div id="forecastStatus" class="forecast-status">
+          Select a district and click <b>Load Forecast</b>, or choose a location
+          on the map.
+        </div>
+        <div class="location-actions">
+          <b>District HQ</b>
+          <select id="district">
+            <option value="" selected disabled>Select District HQ</option>
+          </select>
+          <button id="load">Load Forecast</button>
+          <button id="mapChoose" type="button">📍 Choose on Map</button>
+        </div>
+      </div>
+      <div id="mapPanel" aria-hidden="true">
+        <div
+          class="map-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mapDialogTitle"
+        >
+          <div class="map-dialog-head">
+            <div>
+              <div id="mapDialogTitle" class="map-dialog-title">
+                📍 Select Forecast Location
+              </div>
+              <div class="map-dialog-sub">
+                Click anywhere on the map to place the forecast point
+              </div>
+            </div>
+            <button
+              id="mapClose"
+              class="map-close"
+              type="button"
+              aria-label="Close map"
+            >
+              ×
+            </button>
+          </div>
+          <div id="forecastMap"></div>
+          <div class="map-info">
+            <div id="mapCoords" class="map-coords">
+              Click on the map to select a location.
+            </div>
+            <div class="map-confirm">
+              <span id="mapLoading" class="map-loading"></span>
+              <button id="mapCancel" class="map-cancel" type="button">
+                Cancel
+              </button>
+              <button id="mapConfirm" type="button" disabled>
+                Confirm Location
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="title">
+      <h2 id="title">Select District HQ</h2>
+      <div class="forecast-tabs tabs">
+        <button class="tab active" data-tab="multi">
+          🌦️ 7-Day Multi Model
+        </button>
+        <button class="tab" data-tab="hourly">🕐 Hourly Rainfall</button>
+        <button class="tab" data-tab="ens">📊 7-Day Ensemble</button>
+        <button class="tab" data-tab="ec46">📈 ECMWF EC46</button>
+        <button class="tab" data-tab="seasonal">🌐 ECMWF Seasonal</button>
+      </div>
+    </div>
+
+    <section id="multi" class="panel">
+      <h2>
+        7-Day Daily Precipitation — Multi Model
+        <span id="multiHQ" class="hq-label"></span>
+      </h2>
+      <div id="heat"><div class="loading">Loading…</div></div>
+      <div id="multiRuns" style="display: none"></div>
+      <div id="multiTempSection" class="temp-section" style="display: none">
+        <h3>7-Day Temperature — Multi Model</h3>
+        <div class="chartbox temp-chartbox">
+          <canvas id="multiTempChart"></canvas>
+        </div>
+        <div class="source">
+          2 m temperature · ECMWF IFS HRES, GFS, DWD ICON and UK Met.
+        </div>
+      </div>
+    </section>
+
+    <section id="hourly" class="panel" style="display: none">
+      <h2>
+        Hourly Rainfall Forecast <span id="hourlyHQ" class="hq-label"></span>
+      </h2>
+      <div id="hourRuns"></div>
+      <div id="hourLoad" class="loading">Load a district first.</div>
+      <div id="hourBox" class="chartbox" style="display: none">
+        <canvas id="hourChart"></canvas>
+      </div>
+    </section>
+
+    <section id="ens" class="panel" style="display: none">
+      <h2>7-Day Ensemble Guidance <span id="ensHQ" class="hq-label"></span></h2>
+      <div class="tools">
+        <div class="group">
+          <label>Ensemble model</label>
+          <div class="ens-model-row">
+            <select id="ensModel">
+              <option value="ecmwf_ifs025">
+                ECMWF IFS 0.25° Ensemble — 51
+              </option>
+              <option value="ecmwf_aifs025">
+                ECMWF AIFS 0.25° Ensemble — 51
+              </option>
+              <option value="gfs025">GFS Ensemble 0.25° — 31</option>
+              <option value="dwd_icon_seamless_eps">
+                DWD ICON EPS Seamless — 40
+              </option>
+              <option value="google_weathernext2">
+                Google WeatherNext 2 Ensemble — 64
+              </option>
+              <option value="ukmo_global_ensemble_20km">
+                UK MetOffice Global 20km — 18
+              </option>
+              <option value="gem_global">GEM Global Ensemble — 21</option>
+            </select>
+            <button
+              id="ensRefresh"
+              type="button"
+              class="ens-refresh"
+              title="Refresh 7-day ensemble data"
+              onclick="refreshEnsembleData()"
+            >
+              ↻
+            </button>
+          </div>
+        </div>
+        <label class="check"
+          ><input id="ensMembers" type="checkbox" /> Show all ensemble
+          members</label
+        >
+      </div>
+      <div id="ensRuns"></div>
+      <div id="ensLoad" class="loading">
+        Select this tab to load the latest ensemble forecast.
+      </div>
+      <div id="ensBox" class="chartbox" style="display: none">
+        <canvas id="ensChart"></canvas>
+      </div>
+      <div class="source">
+        The ensemble mean is taken from the dedicated Ensemble Mean API.
+        P75/P90/max/min are derived only from returned members; the mean is
+        never calculated locally.
+      </div>
+    </section>
+
+    <section id="ec46" class="panel" style="display: none">
+      <h2>
+        ECMWF EC46 — 46 Day Guidance <span id="ec46HQ" class="hq-label"></span>
+      </h2>
+      <div id="ec46Runs"></div>
+      <div class="tools">
+        <label class="check"
+          ><input id="ec46Members" type="checkbox" /> Show all 51 ensemble
+          members</label
+        >
+      </div>
+      <div id="ec46Load" class="loading">
+        Select this tab to load the latest ECMWF EC46 forecast.
+      </div>
+      <div id="ec46Box" class="chartbox" style="display: none">
+        <canvas id="ec46Chart"></canvas>
+      </div>
+      <div class="source">
+        Source: Open-Meteo ECMWF EC46. 51-member ensemble. P75/P90/max/min are
+        derived from the returned members.
+      </div>
+    </section>
+
+    <section id="seasonal" class="panel" style="display: none">
+      <h2>
+        ECMWF SEAS5 — Seasonal Outlook
+        <span id="seasonalHQ" class="hq-label"></span>
+      </h2>
+      <div id="seasonRuns"></div>
+      <div class="tools">
+        <label class="check"
+          ><input id="seasonMembers" type="checkbox" /> Show all 51 ensemble
+          members</label
+        >
+      </div>
+      <div id="seasonLoad" class="loading">
+        Select this tab to load the latest ECMWF SEAS5 forecast.
+      </div>
+      <div id="seasonContent" style="display: none">
+        <h3>SEAS5 — 6-Month Daily Precipitation Guidance</h3>
+        <div class="chartbox"><canvas id="seasonChart"></canvas></div>
+        <h3 style="margin-top: 24px">Rainfall Anomaly</h3>
+        <div class="anomaly-chart"><canvas id="anomChart"></canvas></div>
+        <h3 style="margin-top: 24px">Monthly Seasonal Guidance</h3>
+        <div id="monthly" class="tablewrap"></div>
+        <h3 style="margin-top: 24px">Tamil Nadu Seasonal View</h3>
+        <div id="seasonCards" class="season-grid"></div>
+      </div>
+      <div class="source">
+        SEAS5 anomaly is the model's official climatological anomaly, not a
+        locally calculated station anomaly. P75/P90/max/min are derived from the
+        returned members.
+      </div>
+    </section>
+
+    <!-- ==============================================
+     FORECAST JAVASCRIPT ENGINE
+     ============================================== -->
+    <!-- ==============================================
+     COMPLETE FORECAST JAVASCRIPT ENGINE
+     ============================================== -->
+    <script>
+      const D = {
+        Ariyalur: ["Ariyalur", 11.1401, 79.0786],
+        Chengalpattu: ["Chengalpattu", 12.6819, 79.9888],
+        Chennai: ["Chennai", 13.0827, 80.2707],
+        Coimbatore: ["Coimbatore", 11.0168, 76.9558],
+        Cuddalore: ["Cuddalore", 11.748, 79.7714],
+        Dharmapuri: ["Dharmapuri", 12.1211, 78.1582],
+        Dindigul: ["Dindigul", 10.3673, 77.9803],
+        Erode: ["Erode", 11.341, 77.7172],
+        Kallakurichi: ["Kallakurichi", 11.7404, 78.9597],
+        Kancheepuram: ["Kancheepuram", 12.8342, 79.7036],
+        Karur: ["Karur", 10.9601, 78.0766],
+        Krishnagiri: ["Krishnagiri", 12.5186, 78.2137],
+        Madurai: ["Madurai", 9.9252, 78.1198],
+        Mayiladuthurai: ["Mayiladuthurai", 11.1035, 79.655],
+        Nagapattinam: ["Nagapattinam", 10.7672, 79.8449],
+        Kanyakumari: ["Nagercoil", 8.1833, 77.4119],
+        Namakkal: ["Namakkal", 11.2194, 78.1677],
+        Perambalur: ["Perambalur", 11.2342, 78.88],
+        Pudukottai: ["Pudukottai", 10.3833, 78.8001],
+        Ramanathapuram: ["Ramanathapuram", 9.3639, 78.8395],
+        Ranipet: ["Ranipet", 12.9249, 79.3333],
+        Salem: ["Salem", 11.6643, 78.146],
+        Sivaganga: ["Sivaganga", 9.8433, 78.4809],
+        Tenkasi: ["Tenkasi", 8.959, 77.3152],
+        Thanjavur: ["Thanjavur", 10.7867, 79.1378],
+        Theni: ["Theni", 10.0104, 77.4768],
+        Thiruvallur: ["Thiruvallur", 13.1437, 79.908],
+        Thiruvarur: ["Thiruvarur", 10.7661, 79.6344],
+        Thoothukudi: ["Thoothukudi", 8.7642, 78.1348],
+        Tiruchirappalli: ["Tiruchirappalli", 10.7905, 78.7047],
+        Tirunelveli: ["Tirunelveli", 8.7139, 77.7567],
+        Tirupathur: ["Tirupathur", 12.4966, 78.565],
+        Tiruppur: ["Tiruppur", 11.1085, 77.3411],
+        Tiruvannamalai: ["Tiruvannamalai", 12.2253, 79.0747],
+        "The Nilgiris": ["Udagamandalam", 11.4102, 76.695],
+        Vellore: ["Vellore", 12.9165, 79.1325],
+        Viluppuram: ["Viluppuram", 11.9401, 79.4861],
+        Virudhunagar: ["Virudhunagar", 9.568, 77.9624],
+      };
+      const district = document.getElementById("district");
+      Object.keys(D)
+        .sort()
+        .forEach((k) =>
+          district.insertAdjacentHTML(
+            "beforeend",
+            `<option value="${k}">${k} — ${D[k][0]}</option>`,
+          ),
+        );
+
+      let current = "",
+        currentLocation = null,
+        hourChart,
+        ensChart,
+        ec46Chart,
+        seasonChart,
+        anomChart,
+        multiTempChart = null;
+      let forecastTabCache = {},
+        ensembleChartStates = {},
+        ec46ChartState = null,
+        seasonalChartState = null;
+
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
+      const loc = () =>
+        currentLocation
+          ? {
+              name: currentLocation.name,
+              lat: currentLocation.lat,
+              lon: currentLocation.lon,
+            }
+          : { name: "", lat: null, lon: null };
+      const todayIST = () =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+      const fmtDate = (s) =>
+        new Date(s + "T00:00:00").toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      const fmtUTC = (s) =>
+        s
+          ? new Date(s + ":00Z").toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "UTC",
+            }) + " UTC"
+          : "Unavailable";
+
+      function color(v) {
+        if (v == null) return "#eee";
+        if (v < 1) return "#fffbdc";
+        if (v < 3) return "#e9f5b7";
+        if (v < 5) return "#c8e8b4";
+        if (v < 10) return "#82cfc0";
+        if (v < 15) return "#4bb0c0";
+        if (v < 25) return "#2879ae";
+        if (v < 50) return "#194a91";
+        return "#10255f";
+      }
+
+      const models = [
+        { name: "ECMWF IFS HRES", model: "ecmwf_ifs025", res: "9 km" },
+        { name: "ECMWF AIFS", model: "ecmwf_aifs025_single", res: "~28 km" },
+        { name: "GFS", model: "gfs_global", res: "~25 km" },
+        { name: "GEM", model: "gem_global", res: "~25 km" },
+        { name: "ICON", model: "icon_global", res: "~13 km" },
+        { name: "JMA", model: "jma_gsm", res: "~55 km" },
+        {
+          name: "UK Met",
+          model: "ukmo_global_deterministic_10km",
+          res: "~10 km",
+        },
+      ];
+
+      const E = {
+        ecmwf_ifs025: {
+          name: "ECMWF IFS 0.25° Ensemble",
+          api: "ecmwf_ifs025_ensemble",
+          mean: "ecmwf_ifs025_ensemble_mean",
+          meanLabel: "ECMWF IFS Ensemble Mean",
+          members: 51,
+          res: "0.25° (~25 km)",
+        },
+        ecmwf_aifs025: {
+          name: "ECMWF AIFS 0.25° Ensemble",
+          api: "ecmwf_aifs025_ensemble",
+          mean: "ecmwf_aifs025_ensemble_mean",
+          meanLabel: "ECMWF AIFS Ensemble Mean",
+          members: 51,
+          res: "0.25° (~28 km)",
+        },
+        gfs025: {
+          name: "GFS Ensemble 0.25°",
+          api: "ncep_gefs025",
+          mean: "ncep_gefs025_ensemble_mean",
+          meanLabel: "GFS Ensemble Mean",
+          members: 31,
+          res: "~25 km",
+        },
+        dwd_icon_seamless_eps: {
+          name: "DWD ICON EPS Seamless",
+          api: "dwd_icon_seamless_eps",
+          mean: "dwd_icon_eps_ensemble_mean_seamless",
+          meanLabel: "DWD ICON EPS Ensemble Mean",
+          members: 40,
+          res: "~26 km",
+        },
+        google_weathernext2: {
+          name: "Google WeatherNext 2 Ensemble",
+          api: "google_weathernext2_ensemble",
+          mean: "google_weathernext2_ensemble_mean",
+          meanLabel: "Google WeatherNext 2 Ensemble Mean",
+          members: 64,
+          res: "0.25° (~25 km)",
+          weatherNext: true,
+        },
+        ukmo_global_ensemble_20km: {
+          name: "UK MetOffice Global 20km",
+          api: "ukmo_global_ensemble_20km",
+          mean: "ukmo_global_ensemble_mean_20km",
+          meanLabel: "UK MetOffice Ensemble Mean",
+          members: 18,
+          res: "~20 km",
+        },
+        gem_global: {
+          name: "GEM Global Ensemble",
+          api: "cmc_gem_geps",
+          mean: "cmc_gem_geps_ensemble_mean",
+          meanLabel: "GEM Ensemble Mean",
+          members: 21,
+          res: "~25 km",
+        },
+      };
+
+      const TEMP_COLORS = ["#2f9ee8", "#7b61ff", "#27ae60", "#ff8a2b"];
+
+      function setForecastStatus(message, state) {
+        const el = document.getElementById("forecastStatus");
+        if (!el) return;
+        el.className = "forecast-status" + (state ? " " + state : "");
+        el.innerHTML = message;
+      }
+
+      function updateHQHeadings() {
+        const h = typeof loc === "function" && loc().name ? loc().name : "";
+        ["multiHQ", "hourlyHQ", "ensHQ", "ec46HQ", "seasonalHQ"].forEach(
+          (id) => {
+            const e = document.getElementById(id);
+            if (e) e.textContent = h ? " — " + h : "";
+          },
+        );
+      }
+
+      function activeLocationKey() {
+        if (!currentLocation) return "";
+        if (currentLocation.source === "hq") return `hq:${current}`;
+        return `map:${Number(currentLocation.lat).toFixed(5)},${Number(currentLocation.lon).toFixed(5)}`;
+      }
+
+      function forecastCacheKey(tab) {
+        const h = activeLocationKey();
+        if (tab === "ens") {
+          const m = (document.getElementById("ensModel") || {}).value || "";
+          return `${h}|${tab}|${m}`;
+        }
+        return `${h}|${tab}`;
+      }
+
+      async function forecastDaily(model, days = 7) {
+        const start = todayIST();
+        const end = new Date(start + "T00:00:00+05:30");
+        end.setDate(end.getDate() + days - 1);
+        const endDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(end);
+        const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&longitude=${loc().lon}&daily=precipitation_sum&hourly=temperature_2m&start_date=${start}&end_date=${endDate}&models=${model}&timezone=Asia%2FKolkata`;
+        const r = await fetch(u);
+        if (!r.ok) throw Error("Forecast API HTTP " + r.status);
+        return await r.json();
+      }
+
+      async function forecastHourly(model) {
+        const start = todayIST();
+        const end = new Date(start + "T00:00:00+05:30");
+        end.setDate(end.getDate() + 6);
+        const endDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(end);
+        const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc().lat}&longitude=${loc().lon}&hourly=precipitation&start_date=${start}&end_date=${endDate}&models=${model}&timezone=Asia%2FKolkata`;
+        const r = await fetch(u);
+        if (!r.ok) throw Error("Forecast API HTTP " + r.status);
+        return await r.json();
+      }
+
+      async function fetchMultiModelData() {
+        const results = await Promise.all(
+          models.map(async (m) => {
+            try {
+              const data = await forecastDaily(m.model, 7);
+              return { ...m, data };
+            } catch (e) {
+              return { ...m, data: null, error: e?.message || String(e) };
+            }
+          }),
+        );
+        return { results, fetchedAt: Date.now() };
+      }
+
+      function renderMultiModel(data) {
+        const heat = document.getElementById("heat");
+        if (!heat) return;
+        const rr = data?.results || [];
+        let dates = [],
+          map = {};
+
+        rr.forEach((r) => {
+          if (!r.data?.daily) return;
+          map[r.name] = {};
+          r.data.daily.time.forEach((x, i) => {
+            if (x >= todayIST())
+              map[r.name][x] = r.data.daily.precipitation_sum[i];
+          });
+          Object.keys(map[r.name]).forEach((x) => {
+            if (!dates.includes(x)) dates.push(x);
+          });
+        });
+
+        dates.sort();
+        dates = dates.slice(0, 7);
+        if (!dates.length) {
+          heat.innerHTML =
+            '<div class="error">7-day multi-model forecast unavailable.</div>';
+          return;
+        }
+
+        let h =
+          '<div class="heatwrap"><table class="heat"><thead><tr><th>Model</th>' +
+          dates.map((x) => `<th>${fmtDate(x)}</th>`).join("") +
+          "</tr></thead><tbody>";
+        const av = dates.map(() => []);
+
+        rr.forEach((r) => {
+          h += `<tr><td class="model">${esc(r.name)}</td>`;
+          dates.forEach((d, i) => {
+            const v = map[r.name]?.[d];
+            if (typeof v === "number") av[i].push(v);
+            h += `<td class="cell" style="background:${color(v)};color:${typeof v === "number" && v >= 10 ? "#fff" : "#17233a"}">${typeof v === "number" ? v.toFixed(1) : "—"}</td>`;
+          });
+          h += "</tr>";
+        });
+
+        h += '<tr class="avg"><td class="model">Average</td>';
+        av.forEach((a) => {
+          const v = a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+          h += `<td class="cell" style="background:${color(v)};color:${typeof v === "number" && v >= 10 ? "#fff" : "#17233a"}">${v == null ? "—" : v.toFixed(1)}</td>`;
+        });
+        h +=
+          '</tr></tbody></table></div><div class="legend"><b>Rainfall</b><i class="box" style="background:#fffbdc"></i>0–1 <i class="box" style="background:#c8e8b4"></i>3–5 <i class="box" style="background:#4bb0c0"></i>10–15 <i class="box" style="background:#194a91"></i>25–50 <i class="box" style="background:#10255f"></i>&gt;50 mm</div>';
+
+        heat.innerHTML = h;
+        buildMultiTemperatureChart(rr);
+      }
+
+      function buildMultiTemperatureChart(results) {
+        const sec = document.getElementById("multiTempSection");
+        if (!sec) return;
+        if (!currentLocation || currentLocation.source !== "hq") {
+          sec.style.display = "none";
+          return;
+        }
+        const valid = results.filter(
+          (r) =>
+            r.data?.hourly?.time && Array.isArray(r.data.hourly.temperature_2m),
+        );
+        if (!valid.length) {
+          sec.style.display = "none";
+          return;
+        }
+
+        const labels = valid[0].data.hourly.time;
+        const datasets = valid.map((r, i) => ({
+          label: r.name,
+          data: r.data.hourly.temperature_2m,
+          borderColor: TEMP_COLORS[i % TEMP_COLORS.length],
+          backgroundColor: TEMP_COLORS[i % TEMP_COLORS.length],
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.18,
+        }));
+
+        if (multiTempChart) multiTempChart.destroy();
+        multiTempChart = new Chart(
+          document.getElementById("multiTempChart").getContext("2d"),
+          {
+            type: "line",
+            data: { labels, datasets },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: { legend: { position: "top" } },
+              scales: {
+                x: { offset: true, ticks: { maxTicksLimit: 14 } },
+                y: { title: { display: true, text: "Temperature (°C)" } },
+              },
+            },
+          },
+        );
+        sec.style.display = "block";
+      }
+
+      function destroyTemperatureCharts() {
+        if (multiTempChart) {
+          multiTempChart.destroy();
+          multiTempChart = null;
+        }
+        const a = document.getElementById("multiTempSection");
+        if (a) a.style.display = "none";
+      }
+
+      function dailyFromHourly(h, key, cutoff, days = 7) {
+        let out = {};
+        h.time.forEach((t, i) => {
+          let d = t.slice(0, 10);
+          if (d < cutoff) return;
+          if (!out[d]) out[d] = 0;
+          let v = h[key]?.[i];
+          if (typeof v === "number") out[d] += v;
+        });
+        let ds = Object.keys(out).sort().slice(0, days);
+        return { dates: ds, values: ds.map((d) => out[d]) };
+      }
+
+      function memberKeys(h) {
+        return Object.keys(h).filter((k) =>
+          /^precipitation_member\d+$/.test(k),
+        );
+      }
+      function qsorted(v, q) {
+        if (!v.length) return null;
+        const p = q * (v.length - 1),
+          lo = Math.floor(p),
+          hi = Math.ceil(p);
+        return lo === hi ? v[lo] : v[lo] + (v[hi] - v[lo]) * (p - lo);
+      }
+      function stats(members, dates) {
+        return dates.map((_, i) => {
+          let v = members
+            .map((x) => x[i])
+            .filter((x) => typeof x === "number" && Number.isFinite(x))
+            .sort((a, b) => a - b);
+          if (!v.length) return { min: null, max: null, p75: null, p90: null };
+          return {
+            min: v[0],
+            max: v[v.length - 1],
+            p75: qsorted(v, 0.75),
+            p90: qsorted(v, 0.9),
+          };
+        });
+      }
+
+      function buildEnsembleChart(state, showMembers) {
+        if (ensChart) ensChart.destroy();
+        const datasets = state.base.map((x) => ({ ...x }));
+        if (showMembers) {
+          state.members.forEach((v, i) =>
+            datasets.push({
+              label: "Member " + String(i).padStart(2, "0"),
+              data: v,
+              borderWidth: 1,
+              borderColor: "rgba(100,100,100,.15)",
+              pointRadius: 0,
+              order: 20,
+            }),
+          );
+        }
+        ensChart = new Chart(
+          document.getElementById("ensChart").getContext("2d"),
+          {
+            type: "line",
+            data: { labels: state.labels, datasets },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: {
+                  position: "top",
+                  labels: { filter: (i) => !i.text.startsWith("Member ") },
+                },
+              },
+              scales: {
+                x: { offset: true },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Daily Precipitation (mm)" },
+                },
+              },
+            },
+          },
+        );
+      }
+
+      function buildEC46Chart(state, showMembers) {
+        if (ec46Chart) ec46Chart.destroy();
+        const ds = state.base.map((x) => ({ ...x }));
+        if (showMembers)
+          state.members.forEach((v, i) =>
+            ds.unshift({
+              label: "Member " + String(i).padStart(2, "0"),
+              data: v,
+              borderWidth: 1,
+              borderColor: "rgba(100,100,100,.14)",
+              pointRadius: 0,
+              order: 20,
+            }),
+          );
+        ec46Chart = new Chart(
+          document.getElementById("ec46Chart").getContext("2d"),
+          {
+            type: "line",
+            data: { labels: state.labels, datasets: ds },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: {
+                  position: "top",
+                  labels: { filter: (i) => !i.text.startsWith("Member ") },
+                },
+              },
+              scales: {
+                x: { offset: true },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Daily Precipitation (mm)" },
+                },
+              },
+            },
+          },
+        );
+      }
+
+      function buildSeasonalChart(state, showMembers) {
+        if (seasonChart) seasonChart.destroy();
+        const ds = state.base.map((x) => ({ ...x }));
+        if (showMembers)
+          state.members.forEach((v, i) =>
+            ds.unshift({
+              label: "Member " + String(i).padStart(2, "0"),
+              data: v,
+              borderWidth: 1,
+              borderColor: "rgba(100,100,100,.12)",
+              pointRadius: 0,
+              order: 20,
+            }),
+          );
+        seasonChart = new Chart(
+          document.getElementById("seasonChart").getContext("2d"),
+          {
+            type: "line",
+            data: { labels: state.labels, datasets: ds },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: {
+                  position: "top",
+                  labels: { filter: (i) => !i.text.startsWith("Member ") },
+                },
+              },
+              scales: {
+                x: { offset: true, ticks: { maxTicksLimit: 12 } },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Daily Precipitation (mm)" },
+                },
+              },
+            },
+          },
+        );
+      }
+
+      async function loadMultiFromAPI() {
+        document.getElementById("heat").innerHTML =
+          '<div class="loading">Loading today\'s 7-day model forecasts…</div>';
+        const data = await fetchMultiModelData();
+        renderMultiModel(data);
+        return data;
+      }
+
+      async function loadHourlyFromAPI() {
+        const arr = await Promise.all(
+          models.slice(0, 2).map(async (m) => {
+            let data = null;
+            try {
+              data = await forecastHourly(m.model);
+            } catch (e) {}
+            return { ...m, data };
+          }),
+        );
+        document.getElementById("hourRuns").innerHTML = "";
+        let valid = arr.filter((x) => x.data?.hourly);
+        if (!valid.length) {
+          document.getElementById("hourLoad").innerHTML =
+            '<div class="error">Hourly forecast unavailable.</div>';
+          throw Error("Hourly forecast unavailable.");
+        }
+        const labels = valid[0].data.hourly.time;
+        let ds = valid.map((x) => ({
+          label: x.name,
+          data: x.data.hourly.precipitation,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.2,
+        }));
+        if (hourChart) hourChart.destroy();
+        hourChart = new Chart(
+          document.getElementById("hourChart").getContext("2d"),
+          {
+            type: "line",
+            data: { labels, datasets: ds },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              scales: {
+                x: { offset: true, ticks: { maxTicksLimit: 14 } },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Hourly precipitation (mm)" },
+                },
+              },
+            },
+          },
+        );
+        document.getElementById("hourLoad").style.display = "none";
+        document.getElementById("hourBox").style.display = "block";
+      }
+
+      async function loadEnsembleFromAPI() {
+        const key = document.getElementById("ensModel").value,
+          m = E[key];
+        const ensLoad = document.getElementById("ensLoad");
+        const ensBox = document.getElementById("ensBox");
+        const ensRuns = document.getElementById("ensRuns");
+
+        ensLoad.innerHTML =
+          '<div class="loading">Loading ensemble mean and members…</div>';
+        ensLoad.style.display = "block";
+        ensBox.style.display = "none";
+        ensRuns.innerHTML = "";
+
+        const base = `latitude=${loc().lat}&longitude=${loc().lon}&forecast_days=7&timezone=Asia%2FKolkata`;
+        try {
+          const [meanR, memR] = await Promise.all([
+            fetch(
+              `https://ensemble-api.open-meteo.com/v1/ensemble?${base}&hourly=precipitation&models=${m.mean}`,
+            ),
+            fetch(
+              `https://ensemble-api.open-meteo.com/v1/ensemble?${base}&hourly=precipitation&models=${m.api || key}`,
+            ),
+          ]);
+          if (!meanR.ok)
+            throw Error(`${m.name}: Mean API HTTP ${meanR.status}`);
+          if (!memR.ok)
+            throw Error(`${m.name}: Member API HTTP ${memR.status}`);
+
+          const mean = await meanR.json(),
+            mem = await memR.json();
+          const md = dailyFromHourly(mean.hourly, "precipitation", todayIST());
+          let mk = memberKeys(mem.hourly);
+          if (m.weatherNext && mk.length === 0) {
+            mk = Object.keys(mem.hourly)
+              .filter((k) => /^precipitation(?:_member\d+)?$/.test(k))
+              .sort((a, b) => {
+                const na =
+                  a === "precipitation"
+                    ? 0
+                    : Number((a.match(/member(\d+)/) || [, 999])[1]);
+                const nb =
+                  b === "precipitation"
+                    ? 0
+                    : Number((b.match(/member(\d+)/) || [, 999])[1]);
+                return na - nb;
+              });
+          }
+
+          const memberDaily = mk.map(
+            (k) => dailyFromHourly(mem.hourly, k, todayIST()).values,
+          );
+          const s = stats(memberDaily, md.dates);
+
+          const state = {
+            labels: md.dates,
+            base: [
+              {
+                label: m.meanLabel,
+                data: md.values,
+                borderWidth: 4,
+                pointRadius: 2,
+                tension: 0.2,
+              },
+              {
+                label: "P75",
+                data: s.map((x) => x.p75),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "P90",
+                data: s.map((x) => x.p90),
+                borderWidth: 2,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "Maximum",
+                data: s.map((x) => x.max),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "Minimum",
+                data: s.map((x) => x.min),
+                borderWidth: 2,
+                borderDash: [2, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+            ],
+            members: memberDaily,
+          };
+          ensembleChartStates[forecastCacheKey("ens")] = state;
+          buildEnsembleChart(
+            state,
+            document.getElementById("ensMembers").checked,
+          );
+
+          ensRuns.innerHTML = `<div class="run-strip"><div class="run-card"><div class="lab">Model</div><div class="val">${esc(m.name)}</div></div><div class="run-card"><div class="lab">Members</div><div class="val">${m.members}</div></div><div class="run-card"><div class="lab">Resolution</div><div class="val">${m.res}</div></div><div class="run-card"><div class="lab">Forecast</div><div class="val">7 days</div></div></div>`;
+          ensLoad.style.display = "none";
+          ensBox.style.display = "block";
+        } catch (e) {
+          ensLoad.innerHTML = '<div class="error">' + esc(e.message) + "</div>";
+          throw e;
+        }
+      }
+
+      async function loadEC46FromAPI() {
+        const { lat, lon } = loc();
+        const ec46Load = document.getElementById("ec46Load");
+        const ec46Box = document.getElementById("ec46Box");
+        const ec46Runs = document.getElementById("ec46Runs");
+
+        ec46Load.innerHTML =
+          '<div class="loading">Loading EC46 official mean + members…</div>';
+        ec46Load.style.display = "block";
+        ec46Box.style.display = "none";
+        try {
+          const q = `latitude=${lat}&longitude=${lon}&daily=precipitation_sum&forecast_days=46&timezone=Asia%2FKolkata`;
+          const [a, b] = await Promise.all([
+            fetch(
+              `https://seasonal-api.open-meteo.com/v1/seasonal?${q}&models=ecmwf_ec46_ensemble_mean`,
+            ),
+            fetch(
+              `https://seasonal-api.open-meteo.com/v1/seasonal?${q}&models=ecmwf_ec46`,
+            ),
+          ]);
+          if (!a.ok || !b.ok) throw Error("EC46 API failed");
+          const mean = (await a.json()).daily,
+            mem = (await b.json()).daily;
+          const keys = [
+            "precipitation_sum",
+            ...Array.from(
+              { length: 50 },
+              (_, i) =>
+                "precipitation_sum_member" + String(i + 1).padStart(2, "0"),
+            ).filter((k) => mem[k]),
+          ];
+          const vals = keys.map((k) => mem[k]);
+          const st = stats(vals, mean.time);
+
+          ec46ChartState = {
+            labels: mean.time,
+            base: [
+              {
+                label: "ECMWF EC46 Ensemble Mean",
+                data: mean.precipitation_sum,
+                borderWidth: 4,
+                pointRadius: 2,
+                tension: 0.2,
+              },
+              {
+                label: "P75",
+                data: st.map((x) => x.p75),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "P90",
+                data: st.map((x) => x.p90),
+                borderWidth: 2,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "Maximum",
+                data: st.map((x) => x.max),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+              {
+                label: "Minimum",
+                data: st.map((x) => x.min),
+                borderWidth: 2,
+                borderDash: [2, 4],
+                pointRadius: 0,
+                tension: 0.2,
+              },
+            ],
+            members: vals,
+          };
+          buildEC46Chart(
+            ec46ChartState,
+            document.getElementById("ec46Members").checked,
+          );
+          ec46Runs.innerHTML =
+            '<div class="run-strip"><div class="run-card"><div class="lab">Product</div><div class="val">ECMWF EC46</div></div><div class="run-card"><div class="lab">Update</div><div class="val">Daily · ~20:30 UTC</div></div><div class="run-card"><div class="lab">Ensemble</div><div class="val">51 members</div></div><div class="run-card"><div class="lab">Horizon</div><div class="val">46 days</div></div></div>';
+          ec46Load.style.display = "none";
+          ec46Box.style.display = "block";
+        } catch (e) {
+          ec46Load.innerHTML =
+            '<div class="error">' + esc(e.message) + "</div>";
+        }
+      }
+
+      async function loadSeasonalFromAPI() {
+        const { lat, lon } = loc();
+        const seasonLoad = document.getElementById("seasonLoad");
+        const seasonContent = document.getElementById("seasonContent");
+
+        seasonLoad.innerHTML =
+          '<div class="loading">Loading SEAS5 official mean, anomaly and 51-member daily precipitation…</div>';
+        seasonLoad.style.display = "block";
+        seasonContent.style.display = "none";
+        try {
+          const q = `latitude=${lat}&longitude=${lon}&forecast_days=180&timezone=Asia%2FKolkata`;
+          const [meanR, memR, anomR] = await Promise.all([
+            fetch(
+              `https://seasonal-api.open-meteo.com/v1/seasonal?${q}&daily=precipitation_sum&models=ecmwf_seas5_ensemble_mean`,
+            ),
+            fetch(
+              `https://seasonal-api.open-meteo.com/v1/seasonal?${q}&daily=precipitation_sum&models=ecmwf_seas5`,
+            ),
+            fetch(
+              `https://seasonal-api.open-meteo.com/v1/seasonal?${q}&monthly=precipitation_mean,precipitation_anomaly&models=ecmwf_seas5_ensemble_mean`,
+            ),
+          ]);
+          if (!meanR.ok || !memR.ok || !anomR.ok)
+            throw Error("SEAS5 API failed");
+
+          const mean = (await meanR.json()).daily,
+            mem = (await memR.json()).daily,
+            anom = (await anomR.json()).monthly;
+          const keys = [
+            "precipitation_sum",
+            ...Array.from(
+              { length: 50 },
+              (_, i) =>
+                "precipitation_sum_member" + String(i + 1).padStart(2, "0"),
+            ).filter((k) => mem[k]),
+          ];
+          const vals = keys.map((k) => mem[k]);
+          const st = stats(vals, mean.time);
+
+          seasonalChartState = {
+            labels: mean.time,
+            base: [
+              {
+                label: "ECMWF SEAS5 Ensemble Mean",
+                data: mean.precipitation_sum,
+                borderWidth: 4,
+                pointRadius: 1.5,
+                tension: 0.15,
+              },
+              {
+                label: "P75",
+                data: st.map((x) => x.p75),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.15,
+              },
+              {
+                label: "P90",
+                data: st.map((x) => x.p90),
+                borderWidth: 2,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                tension: 0.15,
+              },
+              {
+                label: "Maximum",
+                data: st.map((x) => x.max),
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 0,
+                tension: 0.15,
+              },
+              {
+                label: "Minimum",
+                data: st.map((x) => x.min),
+                borderWidth: 2,
+                borderDash: [2, 4],
+                pointRadius: 0,
+                tension: 0.15,
+              },
+            ],
+            members: vals,
+          };
+          buildSeasonalChart(
+            seasonalChartState,
+            document.getElementById("seasonMembers").checked,
+          );
+
+          let months = anom.time || [];
+          document.getElementById("monthly").innerHTML =
+            '<table class="tbl"><thead><tr><th>Month</th><th>Forecast mean</th><th>Anomaly</th></tr></thead><tbody>' +
+            months
+              .map(
+                (m, i) =>
+                  `<tr><td>${m}</td><td>${Number(anom.precipitation_mean?.[i] ?? 0).toFixed(1)} mm</td><td>${Number(anom.precipitation_anomaly?.[i] ?? 0).toFixed(1)} mm</td></tr>`,
+              )
+              .join("") +
+            "</tbody></table>";
+
+          if (anomChart) anomChart.destroy();
+          anomChart = new Chart(
+            document.getElementById("anomChart").getContext("2d"),
+            {
+              type: "bar",
+              data: {
+                labels: months,
+                datasets: [
+                  {
+                    label: "Precipitation anomaly (mm)",
+                    data: anom.precipitation_anomaly,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { title: { display: true, text: "Anomaly (mm)" } },
+                },
+              },
+            },
+          );
+
+          const seasons = {
+            SWM: [5, 6, 7, 8],
+            NEM: [9, 10, 11],
+            Winter: [0, 1],
+          };
+          let cards = "";
+          for (const [name, ms] of Object.entries(seasons)) {
+            let total = 0,
+              n = 0;
+            mean.time.forEach((d, i) => {
+              let mo = Number(d.slice(5, 7)) - 1;
+              if (
+                ms.includes(mo) &&
+                typeof mean.precipitation_sum[i] === "number"
+              ) {
+                total += mean.precipitation_sum[i];
+                n++;
+              }
+            });
+            if (n)
+              cards += `<div class="season-card"><h3>${name}</h3><div class="metric">${total.toFixed(1)} mm</div><div class="sub">SEAS5 ensemble-mean accumulation covered by this forecast</div></div>`;
+          }
+          document.getElementById("seasonCards").innerHTML = cards;
+          document.getElementById("seasonRuns").innerHTML =
+            '<div class="run-strip"><div class="run-card"><div class="lab">Product</div><div class="val">ECMWF SEAS5</div></div><div class="run-card"><div class="lab">Update</div><div class="val">Monthly · 5th</div></div><div class="run-card"><div class="lab">Ensemble</div><div class="val">51 members</div></div><div class="run-card"><div class="lab">Horizon</div><div class="val">6 months</div></div></div>';
+          seasonLoad.style.display = "none";
+          seasonContent.style.display = "block";
+        } catch (e) {
+          seasonLoad.innerHTML =
+            '<div class="error">' + esc(e.message) + "</div>";
+        }
+      }
+
+      async function refreshEnsembleData() {
+        if (!currentLocation) return;
+        const key = forecastCacheKey("ens");
+        if (!key || key.startsWith("|")) return;
+
+        const btn = document.getElementById("ensRefresh");
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "⟳";
+        }
+
+        delete forecastTabCache[key];
+        delete ensembleChartStates[key];
+
+        try {
+          if (ensChart) {
+            ensChart.destroy();
+            ensChart = null;
+          }
+          document.getElementById("ensBox").style.display = "none";
+          document.getElementById("ensRuns").innerHTML = "";
+          document.getElementById("ensLoad").style.display = "block";
+          document.getElementById("ensLoad").innerHTML =
+            '<div class="loading">Refreshing 7-day ensemble data…</div>';
+          await cachedTabLoad("ens");
+        } catch (e) {
+          document.getElementById("ensLoad").style.display = "block";
+          document.getElementById("ensLoad").innerHTML =
+            '<div class="error">' + esc(e.message || String(e)) + "</div>";
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "↻";
+          }
+        }
+      }
+
+      function clearForecastCache() {
+        forecastTabCache = {};
+      }
+
+      async function cachedTabLoad(tab) {
+        const key = forecastCacheKey(tab);
+        if (!key || key.startsWith("|")) return;
+
+        if (Object.prototype.hasOwnProperty.call(forecastTabCache, key)) {
+          const cached = await forecastTabCache[key];
+          if (tab === "multi") renderMultiModel(cached);
+          else if (tab === "ens") {
+            const ensState = ensembleChartStates[key];
+            if (ensState)
+              buildEnsembleChart(
+                ensState,
+                document.getElementById("ensMembers").checked,
+              );
+          }
+          return cached;
+        }
+
+        let p;
+        if (tab === "multi") p = loadMultiFromAPI();
+        else if (tab === "hourly") p = loadHourlyFromAPI();
+        else if (tab === "ens") p = loadEnsembleFromAPI();
+        else if (tab === "ec46") p = loadEC46FromAPI();
+        else if (tab === "seasonal") p = loadSeasonalFromAPI();
+        else return;
+
+        const promise = Promise.resolve(p)
+          .then((result) => {
+            forecastTabCache[key] = Promise.resolve(result);
+            return result;
+          })
+          .catch((err) => {
+            delete forecastTabCache[key];
+            throw err;
+          });
+        forecastTabCache[key] = promise;
+        return promise;
+      }
+
+      function clearForecastPanelsForHQChange() {
+        destroyTemperatureCharts();
+        const multi = document.getElementById("heat"),
+          hourLoad = document.getElementById("hourLoad"),
+          hourBox = document.getElementById("hourBox"),
+          hourRuns = document.getElementById("hourRuns");
+        const ensLoad = document.getElementById("ensLoad"),
+          ensBox = document.getElementById("ensBox"),
+          ensRuns = document.getElementById("ensRuns");
+        const ec46Load = document.getElementById("ec46Load"),
+          ec46Box = document.getElementById("ec46Box"),
+          ec46Runs = document.getElementById("ec46Runs");
+        const seasonLoad = document.getElementById("seasonLoad"),
+          seasonContent = document.getElementById("seasonContent"),
+          seasonRuns = document.getElementById("seasonRuns");
+
+        if (multi)
+          multi.innerHTML =
+            '<div class="loading">Select Load Forecast to load the latest forecast for this district.</div>';
+        if (hourRuns) hourRuns.innerHTML = "";
+        if (hourBox) hourBox.style.display = "none";
+        if (hourLoad) {
+          hourLoad.style.display = "block";
+          hourLoad.innerHTML =
+            "Loading latest hourly forecast when this tab is selected…";
+        }
+        if (ensRuns) ensRuns.innerHTML = "";
+        if (ensBox) ensBox.style.display = "none";
+        if (ensLoad) {
+          ensLoad.style.display = "block";
+          ensLoad.innerHTML =
+            "Loading latest ensemble forecast when this tab is selected…";
+        }
+        if (ec46Runs) ec46Runs.innerHTML = "";
+        if (ec46Box) ec46Box.style.display = "none";
+        if (ec46Load) {
+          ec46Load.style.display = "block";
+          ec46Load.innerHTML =
+            "Loading latest ECMWF EC46 forecast when this tab is selected…";
+        }
+        if (seasonRuns) seasonRuns.innerHTML = "";
+        if (seasonContent) seasonContent.style.display = "none";
+        if (seasonLoad) {
+          seasonLoad.style.display = "block";
+          seasonLoad.innerHTML =
+            "Loading latest ECMWF SEAS5 forecast when this tab is selected…";
+        }
+      }
+
+      let tabLoading = false;
+      async function loadTabData(tab) {
+        if (!currentLocation) return;
+        if (tabLoading) {
+          const key = forecastCacheKey(tab);
+          if (
+            key &&
+            Object.prototype.hasOwnProperty.call(forecastTabCache, key)
+          ) {
+            await cachedTabLoad(tab);
+            return;
+          }
+          return;
+        }
+        tabLoading = true;
+        try {
+          await cachedTabLoad(tab);
+        } catch (e) {
+          const ids = {
+            multi: "heat",
+            hourly: "hourLoad",
+            ens: "ensLoad",
+            ec46: "ec46Load",
+            seasonal: "seasonLoad",
+          };
+          const el = document.getElementById(ids[tab]);
+          if (el) {
+            el.style.display = "block";
+            el.innerHTML =
+              '<div class="error">' +
+              esc(e.message || "Unable to load the latest forecast.") +
+              "</div>";
+          }
+        } finally {
+          tabLoading = false;
+        }
+      }
+
+      function show(tab) {
+        updateHQHeadings();
+        document.querySelectorAll(".tab").forEach((b) => {
+          b.classList.toggle("active", b.dataset.tab === tab);
+        });
+        ["multi", "hourly", "ens", "ec46", "seasonal"].forEach((x) => {
+          const el = document.getElementById(x);
+          if (el) el.style.display = x === tab ? "block" : "none";
+        });
+        if (currentLocation) setTimeout(() => loadTabData(tab), 0);
+      }
+
+      // Event Listeners
+      document.querySelectorAll(".tab").forEach((b) => {
+        b.onclick = () => show(b.dataset.tab);
+      });
+
+      document.getElementById("load").onclick = async () => {
+        if (!district.value) return;
+        current = district.value;
+        currentLocation = {
+          source: "hq",
+          name: D[current][0],
+          lat: D[current][1],
+          lon: D[current][2],
+        };
+        clearForecastCache();
+        ensembleChartStates = {};
+        ec46ChartState = null;
+        seasonalChartState = null;
+        document.getElementById("title").textContent =
+          `${current} — ${D[current][0]}`;
+        updateHQHeadings();
+        setForecastStatus(
+          `Loading latest forecast for <b>${D[current][0]}</b>…`,
+          "loading",
+        );
+        show("multi");
+        try {
+          await loadTabData("multi");
+          setForecastStatus(
+            `Latest forecast loaded for <b>${D[current][0]}</b>.`,
+            "success",
+          );
+        } catch (e) {
+          setForecastStatus(
+            `Unable to load the forecast for <b>${D[current][0]}</b>. Please try again.`,
+            "error",
+          );
+        }
+      };
+
+      if (document.getElementById("ec46Members"))
+        document.getElementById("ec46Members").onchange = () => {
+          if (ec46ChartState)
+            buildEC46Chart(
+              ec46ChartState,
+              document.getElementById("ec46Members").checked,
+            );
+        };
+      if (document.getElementById("seasonMembers"))
+        document.getElementById("seasonMembers").onchange = () => {
+          if (seasonalChartState)
+            buildSeasonalChart(
+              seasonalChartState,
+              document.getElementById("seasonMembers").checked,
+            );
+        };
+      if (document.getElementById("ensMembers"))
+        document.getElementById("ensMembers").onchange = () => {
+          const key = forecastCacheKey("ens");
+          if (ensembleChartStates[key])
+            buildEnsembleChart(
+              ensembleChartStates[key],
+              document.getElementById("ensMembers").checked,
+            );
+        };
+
+      district.onchange = () => {
+        current = "";
+        currentLocation = null;
+        clearForecastCache();
+        ensembleChartStates = {};
+        ec46ChartState = null;
+        seasonalChartState = null;
+        document.getElementById("title").textContent = "Select District HQ";
+        updateHQHeadings();
+        clearForecastPanelsForHQChange();
+        setForecastStatus(
+          "District HQ selected. Click <b>Load Forecast</b> to load the latest forecast.",
+          "loading",
+        );
+      };
+
+      const ensModelSelect = document.getElementById("ensModel");
+      if (ensModelSelect) {
+        ensModelSelect.addEventListener("change", async function () {
+          if (!currentLocation) return;
+          const loadBox = document.getElementById("ensLoad");
+          if (loadBox) {
+            loadBox.style.display = "block";
+            loadBox.innerHTML =
+              '<div class="loading">Loading the selected ensemble model…</div>';
+          }
+          document.getElementById("ensBox").style.display = "none";
+          document.getElementById("ensRuns").innerHTML = "";
+          try {
+            await loadTabData("ens");
+          } catch (e) {}
+        });
+      }
+
+      function setForecastLocalTheme(mode) {
+        document.body.classList.toggle("forecast-dark", mode === "dark");
+        const light = document.getElementById("forecastLightBtn"),
+          dark = document.getElementById("forecastDarkBtn");
+        if (light) light.classList.toggle("active", mode !== "dark");
+        if (dark) dark.classList.toggle("active", mode === "dark");
+        try {
+          localStorage.setItem("tnForecastTheme", mode);
+        } catch (e) {}
+        if (typeof Chart !== "undefined") {
+          Chart.defaults.color = mode === "dark" ? "#d9e3ef" : "#526579";
+          Chart.defaults.borderColor = mode === "dark" ? "#3b4b61" : "#d9e0e8";
+        }
+        try {
+          [
+            ensChart,
+            hourChart,
+            ec46Chart,
+            seasonChart,
+            anomChart,
+            multiTempChart,
+          ].forEach((c) => {
+            if (c && typeof c.update === "function") c.update();
+          });
+        } catch (e) {}
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        let mode = "light";
+        try {
+          mode = localStorage.getItem("tnForecastTheme") || "light";
+        } catch (e) {}
+        setForecastLocalTheme(mode);
+      });
+
+      // Map Logic
+      let forecastMap = null,
+        mapMarker = null,
+        pendingMapLocation = null,
+        mapConfirmBusy = false,
+        forecastZoomControl = null;
+      function openLocationMap() {
+        const panel = document.getElementById("mapPanel");
+        panel.classList.add("map-open");
+        panel.setAttribute("aria-hidden", "false");
+        if (!forecastZoomControl)
+          forecastZoomControl = L.control.zoom({ position: "topleft" });
+        if (!forecastMap) {
+          forecastMap = L.map("forecastMap", {
+            zoomControl: false,
+            attributionControl: true,
+          }).setView([11.0, 78.5], 7);
+          forecastZoomControl.addTo(forecastMap);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap",
+            crossOrigin: true,
+          }).addTo(forecastMap);
+          forecastMap.on("click", (e) => {
+            pendingMapLocation = { lat: e.latlng.lat, lon: e.latlng.lng };
+            if (mapMarker) mapMarker.setLatLng(e.latlng);
+            else
+              mapMarker = L.marker(e.latlng, { draggable: false }).addTo(
+                forecastMap,
+              );
+            document.getElementById("mapCoords").textContent =
+              `Selected: ${e.latlng.lat.toFixed(5)}° N, ${e.latlng.lng.toFixed(5)}° E`;
+            document.getElementById("mapConfirm").disabled = false;
+          });
+        }
+        setTimeout(() => {
+          forecastMap.invalidateSize(true);
+          forecastMap.setView([11.0, 78.5], 7);
+        }, 100);
+      }
+
+      function closeLocationMap() {
+        const panel = document.getElementById("mapPanel");
+        panel.classList.remove("map-open");
+        panel.setAttribute("aria-hidden", "true");
+        document.getElementById("mapLoading").textContent = "";
+      }
+
+      async function confirmMapLocation() {
+        if (!pendingMapLocation || mapConfirmBusy) return;
+        mapConfirmBusy = true;
+        document.getElementById("mapConfirm").disabled = true;
+        document.getElementById("mapCancel").disabled = true;
+        document.getElementById("mapClose").disabled = true;
+        document.getElementById("mapLoading").textContent =
+          "Preparing forecast…";
+        setForecastStatus("Location selected. Preparing forecast…", "loading");
+
+        await new Promise((resolve) => setTimeout(resolve, 1500)); // Buffer
+
+        current = "";
+        currentLocation = {
+          source: "map",
+          name: "Selected Location",
+          lat: pendingMapLocation.lat,
+          lon: pendingMapLocation.lon,
+        };
+        clearForecastCache();
+        ensembleChartStates = {};
+        ec46ChartState = null;
+        seasonalChartState = null;
+        document.getElementById("title").textContent =
+          "Forecast — Selected Location";
+        updateHQHeadings();
+        district.value = "";
+        clearForecastPanelsForHQChange();
+        closeLocationMap();
+        setForecastStatus(
+          `Loading forecast for <b>Selected Location</b> — ${currentLocation.lat.toFixed(4)}°N, ${currentLocation.lon.toFixed(4)}°E…`,
+          "loading",
+        );
+        show("multi");
+
+        try {
+          await loadTabData("multi");
+          setForecastStatus(
+            `Latest forecast loaded for <b>Selected Location</b> — ${currentLocation.lat.toFixed(4)}°N, ${currentLocation.lon.toFixed(4)}°E.`,
+            "success",
+          );
+        } catch (e) {
+          setForecastStatus(
+            "Unable to load the forecast for the selected location. Please try again.",
+            "error",
+          );
+        } finally {
+          mapConfirmBusy = false;
+          document.getElementById("mapCancel").disabled = false;
+          document.getElementById("mapClose").disabled = false;
+          document.getElementById("mapLoading").textContent = "";
+        }
+      }
+
+      document
+        .getElementById("mapChoose")
+        .addEventListener("click", openLocationMap);
+      document
+        .getElementById("mapCancel")
+        .addEventListener("click", closeLocationMap);
+      document
+        .getElementById("mapClose")
+        .addEventListener("click", closeLocationMap);
+      document
+        .getElementById("mapConfirm")
+        .addEventListener("click", confirmMapLocation);
+
+      (function () {
+        const C = {
+          mean: "#2f9ee8",
+          p75: "#ff5b7d",
+          p90: "#ff8a2b",
+          max: "#ffbd32",
+          min: "#28b8b8",
+          hres: "#2f9ee8",
+          aifs: "#ff8a2b",
+          gfs: "#7b61ff",
+          gem: "#27ae60",
+          icon: "#8e63ce",
+          jma: "#e05a5a",
+          uk: "#00a6a6",
+          anomaly: "#2f9ee8",
+        };
+        function pick(label) {
+          const s = String(label || "").toLowerCase();
+          if (s.includes("p75")) return C.p75;
+          if (s.includes("p90")) return C.p90;
+          if (s.includes("maximum") || s.includes(" max")) return C.max;
+          if (s.includes("minimum") || s.includes(" min")) return C.min;
+          if (s.includes("anomaly")) return C.anomaly;
+          if (s.includes("ifs hres")) return C.hres;
+          if (s.includes("aifs")) return C.aifs;
+          if (s.startsWith("gfs") || s.includes("gfs ensemble")) return C.gfs;
+          if (s.startsWith("gem") || s.includes("gem ensemble")) return C.gem;
+          if (s.includes("icon")) return C.icon;
+          if (s.includes("jma")) return C.jma;
+          if (s.includes("uk met")) return C.uk;
+          if (s.includes("ensemble mean") || s.includes(" mean")) return C.mean;
+          return null;
+        }
+        function install() {
+          if (typeof Chart === "undefined") {
+            setTimeout(install, 50);
+            return;
+          }
+          if (Chart.registry?.plugins?.get("forecastAllColors")) return;
+          Chart.register({
+            id: "forecastAllColors",
+            beforeUpdate(chart) {
+              if (!chart?.data?.datasets) return;
+              chart.data.datasets.forEach((ds) => {
+                const c = pick(ds.label);
+                if (c) {
+                  ds.borderColor = c;
+                  ds.backgroundColor = c;
+                }
+              });
+            },
+          });
+        }
+        install();
+      })();
+    </script>
+    <!-- ==============================================
+     SITE FOOTER & AUTHOR CREDITS
+     ============================================== -->
+    <footer class="forecast-author" id="forecastAuthor">
+      <div class="author-name">Vidhyapathi · Haiyan</div>
+      <div class="author-desc">
+        Comprehensive rainfall analytics and multi-model forecast guidance for
+        Tamil Nadu.
+      </div>
+      <div class="social-links" style="margin-top: 8px">
+        <a
+          href="https://x.com/HaiyanTip"
+          target="_blank"
+          rel="noopener noreferrer"
+          >𝕏 @HaiyanTip</a
+        >
+        <span style="color: #50617a; margin: 0 4px; font-weight: bold">·</span>
+        <a
+          href="https://www.instagram.com/haiyan_clicks/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Instagram · @haiyan_clicks</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>
