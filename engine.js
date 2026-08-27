@@ -97,8 +97,9 @@ const map = L.map('map', {
     zoomControl: false
 });
 L.control.zoom({ position: 'topleft' }).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
+L.maplibreGL({
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Tiles &copy; <a href="https://openfreemap.org/">OpenFreeMap</a>'
 }).addTo(map);
 setTimeout(() => { map.invalidateSize(); }, 500);
 
