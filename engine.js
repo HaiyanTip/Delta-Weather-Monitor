@@ -1047,8 +1047,24 @@ function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex 
         return;
     }
 
-    const customScale300 = { thresholds: [0, 25, 50, 75, 100, 150, 200, 250, 300], colors: ["#ffffff", "#ffd1b3", "#ff9f43", "#ffe66d", "#9be564", "#2e8b57", "#21d4d8", "#7ec8ff", "#246bce"], overflow: "#ff00ff" };
-    const customScale500 = { thresholds: [0, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 500], colors: ["#ffffff", "#ffd1b3", "#ff9f43", "#ffe66d", "#9be564", "#2e8b57", "#21d4d8", "#7ec8ff", "#246bce", "#4b3f9f", "#7a2fa3", "#9b59b6"], overflow: "#ff00ff" };
+   const customScale300 = { 
+        thresholds: [0, 25, 50, 75, 100, 150, 200, 250, 300], 
+        colors: [
+            "#a30000", "#ff5500", "#ffcc00", "#66cc00", 
+            "#00cc66", "#00cccc", "#0066cc", "#000080", "#800080"
+        ], 
+        overflow: "#ff00ff" 
+    };
+
+    const customScale500 = { 
+        thresholds: [0, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 500], 
+        colors: [
+            "#a30000", "#ff5500", "#ff7700", "#ffcc00", 
+            "#66cc00", "#00cc66", "#00cccc", "#0066cc", 
+            "#000080", "#8A2BE2", "#4B0082", "#800080"
+        ], 
+        overflow: "#ff00ff"
+    };
 
     const monthlyMax = (metric === 'monthly' && monthIndex === 10) ? 1000 : 500;
     const monthlyStep = 50;
