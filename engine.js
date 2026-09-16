@@ -997,7 +997,7 @@ function generateIdwPreview() {
     } else if (isCustom) {
         mappedCustomDates = [...idwCustomDates];
         const labels = mappedCustomDates.map(v => new Date(v + 'T00:00:00').toLocaleDateString('en-US', {day:'numeric', month:'short'}));
-        prettyDate = `${labels.join(', ')} — Cumulative`;
+       prettyDate = `${labels.join(', ')}`;
     } else {
         prettyDate = `${datasetActiveYear} - ${metric.toUpperCase()} Total`;
     }
@@ -1142,7 +1142,7 @@ function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex 
         L.geoJSON(pointsCollection, { pane: 'pointsPane', pointToLayer: function (feature, latlng) { return L.circleMarker(latlng, { radius: 0.8, fillColor: "var(--exp-text)", color: "transparent", fillOpacity: 0.7 }); } }).addTo(exportIdwMapInstance);
     }
 
-    document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : (metric === 'custom' ? "Custom Multi-Date Spatial Distribution" : "Spatial Rainfall Distribution");
+    document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : (metric === 'custom' ? "CUMULATIVE RAINFALL DISTRIBUTION");
     document.getElementById('idwExportSubtitle').innerText = prettyDate;
 
     if (isDaily) {
