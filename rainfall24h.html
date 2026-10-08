@@ -1,0 +1,2177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last 24h Rainfall — TN SMART · Delta Monitor</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232f6690' d='M12 2C8 8 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-4-8-8-14z'/%3E%3C/svg%3E">
+
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- MapLibre GL Vector Tiles -->
+    <link href="https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+    <!-- PapaParse CSV Parser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HTML2Canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* ============================================================
+           DESIGN TOKENS  (mirrors main site variables for consistency)
+           ============================================================ */
+        :root {
+            --bg:          #f4f6fa;
+            --card:        #ffffff;
+            --text:        #1c2942;
+            --text-muted:  #66748c;
+            --border:      #dde3ed;
+            --hover:       #eaf1f8;
+            --head-bg:     #16233a;
+            --head-text:   #eef2f8;
+            --input-bg:    #ffffff;
+            --accent:      #2f6690;
+            --accent-dark: #244f6e;
+            --shadow:      0 1px 3px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.08);
+            --radius:      14px;
+            --radius-sm:   8px;
+
+            /* IMD palette */
+            --imd-zero:    #ffffff;
+            --imd-trace:   #b0b0b0;
+            --imd-light:   #98fb98;
+            --imd-mod:     #2ecc71;
+            --imd-heavy:   #f1c40f;
+            --imd-vheavy:  #e67e22;
+            --imd-extreme: #e74c3c;
+
+            /* category accent colours for KPI cards */
+            --kpi-rain:    #2980b9;
+            --kpi-max:     #e74c3c;
+            --kpi-heavy:   #f1c40f;
+            --kpi-dry:     #95a5a6;
+        }
+        [data-theme="dark"] {
+            --bg:          #0a0f1a;
+            --card:        #121a2b;
+            --text:        #dde3ee;
+            --text-muted:  #8595ad;
+            --border:      #253048;
+            --hover:       #1c2846;
+            --head-bg:     #080d18;
+            --head-text:   #dde3ee;
+            --input-bg:    #17213a;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg); color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            transition: background .3s, color .3s;
+        }
+        a { color: inherit; text-decoration: none; }
+
+        /* ---- NAV HEADER ---- */
+        .r24-header {
+            position: sticky; top: 0; z-index: 900;
+            background: rgba(11,18,32,.94);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            color: #eef2f8; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .r24-brand { display: flex; align-items: center; gap: 10px; }
+        .r24-brand-mark {
+            width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto;
+            background: linear-gradient(155deg, #2f6690, #6d4bb8);
+            display: flex; align-items: center; justify-content: center; font-size: 17px;
+        }
+        .r24-title  { font-size: 16px; font-weight: 700; line-height: 1.2; }
+        .r24-sub    { font-size: 11px; color: #a8b4c8; font-weight: 500; margin-top: 2px; }
+        .r24-nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn-back {
+            border: 1px solid rgba(255,255,255,.22); border-radius: 7px; padding: 7px 13px;
+            background: rgba(255,255,255,.08); color: #fff; cursor: pointer; font-size: 13px;
+            font-weight: 600; transition: background .2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,.16); }
+        .btn-theme {
+            background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+            border-radius: 7px; padding: 7px 10px; color: #fff; cursor: pointer;
+            font-size: 14px; transition: background .2s;
+        }
+        .btn-theme:hover { background: rgba(255,255,255,.2); }
+        #r24-live-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(46,204,113,.15); border: 1px solid rgba(46,204,113,.3);
+            border-radius: 99px; padding: 4px 10px; font-size: 11px; font-weight: 700;
+            color: #2ecc71;
+        }
+        .live-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #2ecc71; animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity: 1; }
+            50%      { opacity: .35; }
+        }
+
+        /* ---- MAIN LAYOUT ---- */
+        .r24-page { max-width: 1440px; margin: 0 auto; padding: 20px 18px 50px; }
+
+        /* ---- DATE SELECTOR BAR ---- */
+        .r24-datebar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 18px;
+            box-shadow: var(--shadow); margin-bottom: 18px;
+        }
+        .r24-datebar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .r24-datebar h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+        .r24-datebar-meta { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+        .input-modern {
+            padding: 8px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--input-bg);
+            color: var(--text); font-size: 13px; font-weight: 600; outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .input-modern:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,102,144,.15); }
+        .btn-load {
+            border: none; border-radius: var(--radius-sm); padding: 9px 18px;
+            background: var(--accent); color: #fff; font-weight: 700; cursor: pointer;
+            font-size: 13px; transition: background .2s, transform .15s;
+        }
+        .btn-load:hover { background: var(--accent-dark); transform: translateY(-1px); }
+        .btn-load:active { transform: translateY(0); }
+
+        /* ---- KPI SUMMARY CARDS ---- */
+        .r24-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px; margin-bottom: 18px;
+        }
+        .kpi-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px 18px;
+            box-shadow: var(--shadow); position: relative; overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px; border-radius: 99px 0 0 99px;
+        }
+        .kpi-card[data-accent="blue"]::before   { background: #2980b9; }
+        .kpi-card[data-accent="red"]::before    { background: #e74c3c; }
+        .kpi-card[data-accent="orange"]::before { background: #e67e22; }
+        .kpi-card[data-accent="yellow"]::before { background: #f1c40f; }
+        .kpi-card[data-accent="green"]::before  { background: #2ecc71; }
+        .kpi-card[data-accent="gray"]::before   { background: #95a5a6; }
+        .kpi-card[data-accent="purple"]::before { background: #9b59b6; }
+        .kpi-card[data-accent="teal"]::before   { background: #00b894; }
+        .kpi-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: .6px; color: var(--text-muted); margin-bottom: 6px; }
+        .kpi-value { font-size: 26px; font-weight: 800; line-height: 1; color: var(--text); }
+        .kpi-unit  { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
+        .kpi-sub   { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-weight: 500; }
+
+        /* ---- IMD CLASSIFICATION BANNER ---- */
+        .imd-banner {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 18px;
+            box-shadow: var(--shadow); margin-bottom: 18px;
+        }
+        .imd-banner-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .6px; color: var(--text-muted); margin-bottom: 10px;
+        }
+        .imd-classes {
+            display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .imd-chip {
+            display: flex; align-items: center; gap: 7px;
+            border-radius: 99px; padding: 5px 12px; font-size: 12px; font-weight: 700;
+            border: 1.5px solid transparent; cursor: pointer;
+            transition: transform .15s, opacity .15s, box-shadow .2s;
+        }
+        .imd-chip:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+        .imd-chip.active { box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+        .imd-chip input[type=checkbox] { display: none; }
+        .imd-chip-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+        .imd-chip-count {
+            background: rgba(0,0,0,.2); border-radius: 99px;
+            padding: 1px 7px; font-size: 10px; font-weight: 800;
+        }
+
+        /* chip colours */
+        .chip-zero    { background: #ebebeb; color: #444; border-color: #ccc; }
+        .chip-trace   { background: #c8c8c8; color: #222; border-color: #aaa; }
+        .chip-light   { background: #98fb98; color: #145a2e; border-color: #5cb87a; }
+        .chip-mod     { background: #2ecc71; color: #fff;    border-color: #27ae60; }
+        .chip-heavy   { background: #f1c40f; color: #3d2800; border-color: #d4ac0d; }
+        .chip-vheavy  { background: #e67e22; color: #fff;    border-color: #ca6f1e; }
+        .chip-extreme { background: #e74c3c; color: #fff;    border-color: #c0392b; }
+        .chip-severe  { background: #9b59b6; color: #fff;    border-color: #8e44ad; }
+        .chip-catast  { background: #8e44ad; color: #fff;    border-color: #732d91; }
+        .chip-epic    { background: #4a235a; color: #fff;    border-color: #2c0e38; }
+
+        [data-theme="dark"] .chip-zero  { background: #2c2c2c; color: #ccc; border-color: #555; }
+        [data-theme="dark"] .chip-trace { background: #3a3a3a; color: #ddd; border-color: #666; }
+
+        /* ---- MIDDLE SECTION: MAP + CHART ---- */
+        .r24-mid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 18px; margin-bottom: 18px;
+            height: 55vh; min-height: 460px;
+        }
+        .r24-map-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            overflow: hidden; position: relative;
+        }
+        #r24map { height: 100%; width: 100%; }
+
+        .r24-chart-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            padding: 18px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .r24-chart-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+        .r24-chart-sub   { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; }
+        .r24-chart-wrap  { flex: 1; position: relative; min-height: 0; }
+
+        /* ---- STATION TABLE ---- */
+        .r24-table-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        .r24-table-header {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
+        }
+        .r24-table-title {
+            font-size: 16px; font-weight: 700;
+            border-bottom: 2px solid var(--accent); padding-bottom: 4px;
+            display: inline-block;
+        }
+        .r24-search {
+            padding: 8px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--input-bg);
+            color: var(--text); font-size: 13px; font-weight: 500; outline: none;
+            width: 220px; transition: border-color .2s;
+        }
+        .r24-search:focus { border-color: var(--accent); }
+        .r24-table-wrap  { overflow-x: auto; max-height: 520px; overflow-y: auto;
+                            border: 1px solid var(--border); border-radius: var(--radius-sm); }
+        table.r24-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px;
+                         text-align: right; color: var(--text); min-width: 700px;
+                         font-variant-numeric: tabular-nums; }
+        table.r24-tbl th {
+            background: var(--head-bg); color: var(--head-text);
+            padding: 11px 8px; position: sticky; top: 0; z-index: 10;
+            font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px;
+            cursor: pointer; user-select: none;
+        }
+        table.r24-tbl th:hover { color: #ffd166; }
+        table.r24-tbl th:first-child,
+        table.r24-tbl td:first-child { text-align: center; }
+        table.r24-tbl td:nth-child(2),
+        table.r24-tbl td:nth-child(3) { text-align: left; }
+        table.r24-tbl td {
+            padding: 9px 8px; border-bottom: 1px solid var(--border);
+        }
+        table.r24-tbl tbody tr:nth-child(even) { background: rgba(0,0,0,.02); }
+        [data-theme="dark"] table.r24-tbl tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+        table.r24-tbl tbody tr:hover { background: var(--hover) !important; }
+        .sort-icon { display: inline-block; width: 12px; font-size: 10px;
+                     margin-left: 2px; color: #ffd166; }
+
+        /* IMD colour pills in table */
+        .rain-val {
+            display: inline-block; padding: 2px 10px; border-radius: 99px;
+            font-weight: 800; font-size: 12px; min-width: 64px; text-align: center;
+        }
+        .imd-class-badge {
+            font-size: 10px; font-weight: 700; border-radius: 5px;
+            padding: 2px 7px; white-space: nowrap;
+        }
+
+        /* ---- DISTRICT PILLS FILTER ---- */
+        .r24-district-filter {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-bottom: 12px;
+        }
+        .dist-pill {
+            border: 1.5px solid var(--border); border-radius: 99px;
+            padding: 4px 12px; font-size: 11px; font-weight: 700;
+            cursor: pointer; background: var(--card); color: var(--text-muted);
+            transition: all .15s;
+        }
+        .dist-pill:hover { border-color: var(--accent); color: var(--accent); }
+        .dist-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        /* ---- TOP STATIONS PODIUM ---- */
+        .podium-row {
+            display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap;
+        }
+        .podium-card {
+            flex: 1 1 160px; background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .podium-rank  { font-size: 24px; font-weight: 900; }
+        .podium-name  { font-size: 13px; font-weight: 700; color: var(--text); }
+        .podium-dist  { font-size: 11px; color: var(--text-muted); }
+        .podium-rain  { font-size: 22px; font-weight: 900; margin-top: 4px; }
+        .podium-class { font-size: 10px; font-weight: 700; border-radius: 5px;
+                        padding: 2px 8px; display: inline-block; margin-top: 2px; }
+
+        /* ---- LOADING ---- */
+        #r24-loading {
+            position: fixed; inset: 0; background: rgba(10,15,26,.75);
+            z-index: 9999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 16px;
+            color: #fff; font-size: 15px; font-weight: 600;
+            backdrop-filter: blur(4px);
+        }
+        #r24-loading.hidden { display: none; }
+        .spinner {
+            width: 46px; height: 46px; border-radius: 50%;
+            border: 4px solid rgba(255,255,255,.15);
+            border-top-color: #2f6690;
+            animation: spin .9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- EMPTY STATE ---- */
+        .r24-empty {
+            text-align: center; padding: 60px 20px; color: var(--text-muted);
+            font-size: 14px; font-weight: 500;
+        }
+        .r24-empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+        /* ---- FOOTER ---- */
+        .r24-footer {
+            text-align: center; margin-top: 30px; padding-top: 18px;
+            border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);
+        }
+        .r24-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+        .r24-footer a:hover { text-decoration: underline; }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 1024px) {
+            .r24-mid { grid-template-columns: 1fr; height: auto; }
+            .r24-map-card { height: 55vw; min-height: 320px; }
+        }
+        @media (max-width: 600px) {
+            .r24-kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .r24-search   { width: 100%; }
+            .r24-datebar  { flex-direction: column; align-items: flex-start; }
+        }
+        /* ---- MULTI-DATE PANEL ---- */
+        .accumulate-panel {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            margin-bottom: 18px; overflow: hidden;
+            max-height: 0; transition: max-height .35s ease, padding .35s ease;
+            padding: 0 20px;
+        }
+        .accumulate-panel.open { max-height: 600px; padding: 18px 20px; }
+        .acc-panel-head {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .acc-panel-title { font-size: 14px; font-weight: 700; }
+        .acc-panel-desc  { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+        .acc-quick-btns  { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .acc-quick-btn {
+            border: 1.5px solid var(--accent); border-radius: 6px; padding: 5px 12px;
+            background: transparent; color: var(--accent); font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all .15s;
+        }
+        .acc-quick-btn:hover { background: var(--accent); color: #fff; }
+        .acc-calendar {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 4px; margin-bottom: 14px; max-width: 380px;
+        }
+        .acc-cal-header { font-size: 10px; font-weight: 700; color: var(--text-muted);
+                          text-align: center; padding: 4px 0; }
+        .acc-cal-day {
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+            border: 1.5px solid transparent; transition: all .12s; position: relative;
+            background: var(--hover); color: var(--text-muted);
+        }
+        .acc-cal-day:hover { border-color: var(--accent); color: var(--accent); }
+        .acc-cal-day.has-data { color: var(--text); background: rgba(47,102,144,.1); }
+        .acc-cal-day.selected { background: var(--accent); color: #fff !important; border-color: var(--accent-dark); }
+        .acc-cal-day.empty { background: transparent; cursor: default; border-color: transparent; }
+        .acc-cal-nav {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+        }
+        .acc-cal-nav-btn {
+            background: var(--hover); border: 1px solid var(--border); border-radius: 6px;
+            width: 28px; height: 28px; cursor: pointer; font-size: 14px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; color: var(--text);
+            transition: background .15s;
+        }
+        .acc-cal-nav-btn:hover { background: var(--accent); color: #fff; }
+        .acc-cal-month-label { font-size: 14px; font-weight: 800; min-width: 120px; }
+        .acc-selected-info {
+            font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
+            min-height: 18px;
+        }
+        .acc-selected-info strong { color: var(--accent); }
+        .acc-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .acc-mode-badge {
+            display: none; align-items: center; gap: 6px;
+            background: rgba(109,75,184,.15); border: 1px solid rgba(109,75,184,.4);
+            border-radius: 99px; padding: 4px 10px; font-size: 11px; font-weight: 700;
+            color: #8a5fd4; margin-left: 8px;
+        }
+        .acc-mode-badge.visible { display: inline-flex; }
+    </style>
+</head>
+<body>
+
+    <!-- Loading overlay -->
+    <div id="r24-loading">
+        <div class="spinner"></div>
+        <span id="r24-loading-msg">Loading rainfall data…</span>
+    </div>
+
+    <!-- ─────────────── HEADER ─────────────── -->
+    <header class="r24-header">
+        <div class="r24-brand">
+            <div class="r24-brand-mark">🌧️</div>
+            <div>
+                <div class="r24-title">Last 24h Rainfall — Tamil Nadu</div>
+                <div class="r24-sub">Station data · Source: TNSMART · IMD Classification</div>
+            </div>
+        </div>
+        <div class="r24-nav-actions">
+            <span id="r24-live-badge"><span class="live-dot"></span> LIVE DATA</span>
+            <button class="btn-back" onclick="window.location.href='index.html'">← Back to Dashboard</button>
+            <button class="btn-theme" onclick="toggleTheme()">🌙/☀️</button>
+        </div>
+    </header>
+
+    <!-- ─────────────── PAGE BODY ─────────────── -->
+    <main class="r24-page">
+
+        <!-- DATE SELECTOR -->
+        <div class="r24-datebar">
+            <div class="r24-datebar-left">
+                <h2>📅 Select Date</h2>
+                <input type="date" id="r24-date-input" class="input-modern">
+                <button class="btn-load" onclick="loadDay()">View Rainfall</button>
+                <button class="acc-quick-btn" onclick="resetToLatestDay()" style="background:#e74c3c; color:white; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-left: 8px;">&#11118; Reset (Latest 24h)</button>
+                <span class="acc-mode-badge" id="acc-mode-badge">🗓️ Multi-Day Mode</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <span class="r24-datebar-meta" id="r24-meta-text">Select a date to view 24h station totals.</span>
+                <button class="acc-quick-btn" onclick="toggleAccPanel()" id="acc-toggle-btn" style="white-space:nowrap;">➕ Accumulate Days</button>
+            </div>
+        </div>
+
+        <!-- MULTI-DATE ACCUMULATION PANEL -->
+        <div class="accumulate-panel" id="acc-panel">
+            <div class="acc-panel-head">
+                <div>
+                    <div class="acc-panel-title">📊 Multi-Date Accumulation</div>
+                    <div class="acc-panel-desc">Click dates to select. All selected days will be summed per station.</div>
+                </div>
+                <button class="acc-cal-nav-btn" onclick="toggleAccPanel()" style="font-size:16px;">✕</button>
+            </div>
+
+            <!-- Quick Picks -->
+            <div class="acc-quick-btns">
+                <span style="font-size:11px; font-weight:700; color:var(--text-muted); align-self:center;">Quick Pick:</span>
+                <button class="acc-quick-btn" onclick="accQuickPick(3)">Last 3 Days</button>
+                <button class="acc-quick-btn" onclick="accQuickPick(5)">Last 5 Days</button>
+                <button class="acc-quick-btn" onclick="accQuickPick(7)">Last 7 Days</button>
+                <button class="acc-quick-btn" onclick="accQuickPickMonth()">Current Month</button>
+                <button class="acc-quick-btn" onclick="accQuickPickSeason()">Current Season</button>
+            </div>
+
+            <!-- Calendar Nav -->
+            <div class="acc-cal-nav">
+                <button class="acc-cal-nav-btn" onclick="accCalPrevMonth()">‹</button>
+                <div class="acc-cal-month-label" id="acc-cal-label"></div>
+                <button class="acc-cal-nav-btn" onclick="accCalNextMonth()">›</button>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="acc-calendar" id="acc-calendar-grid"></div>
+
+            <!-- Selected Summary -->
+            <div class="acc-selected-info" id="acc-selected-info">No dates selected.</div>
+
+            <!-- Action Buttons -->
+            <div class="acc-actions">
+                <button class="btn-load" onclick="loadAccumulated()" id="acc-load-btn" disabled style="opacity:.5;">📊 Load Accumulated Rainfall</button>
+                <button class="btn-load" style="background:var(--text-muted);" onclick="clearAccSelection()">✕ Clear</button>
+                <button class="acc-quick-btn" onclick="loadDay(); closeAccPanel();">↩ Back to Single Day</button>
+            </div>
+        </div>
+
+        <!-- IMD CLASSIFICATION CHIPS (clickable filter) -->
+        <div class="imd-banner">
+            <div class="imd-banner-title">🏷️ IMD Rainfall Classification — click to filter</div>
+            <div class="imd-classes" id="imd-chips">
+                <!-- built by JS -->
+            </div>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="r24-kpi-row" id="r24-kpi-row">
+            <!-- built by JS -->
+        </div>
+
+        <!-- TOP 3 PODIUM -->
+        <div class="podium-row" id="r24-podium">
+            <!-- built by JS -->
+        </div>
+
+        <!-- MAP + DISTRICT CHART -->
+        <div class="r24-mid">
+            <div class="r24-map-card">
+                <div id="r24map"></div>
+            </div>
+            <div class="r24-chart-card">
+                <div class="r24-chart-title">District-wise Average Rainfall</div>
+                <div class="r24-chart-sub" id="r24-chart-sub">Sorted highest → lowest</div>
+                <div class="r24-chart-wrap">
+                    <canvas id="r24-bar-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATION TABLE -->
+        <div class="r24-table-card">
+            <div class="r24-table-header">
+                <span class="r24-table-title">Station Readings</span>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <button class="btn-load" style="background:var(--kpi-dry); color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer;" onclick="exportCSV()">&#11015;&#65039; Export CSV</button> <button class="btn-load" style="background:#8e44ad; color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer;" onclick="exportTablePNG()">&#128444;&#65039; Export PNG</button> <select id="bulletin-style" class="input-modern" title="Bulletin map style" style="padding:6px 8px; font-size:12px; margin-left:6px;"><option value="choro">Bulletin: District map</option><option value="points">Bulletin: Station map</option><option value="both">Bulletin: District + stations</option></select> <select id="bulletin-min" class="input-modern" title="Bulletin: show stations at or above this class (station map)" style="padding:6px 8px; font-size:12px;"><option value="0">All stations</option></select> <button class="btn-load" id="bulletin-btn" style="background:var(--accent); color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer; font-weight:700;" onclick="downloadBulletin()">&#128196; Download Bulletin</button>
+                    <input type="text" class="r24-search" id="r24-search" placeholder="🔍 Search station or district…" oninput="renderTable()">
+                    <select class="input-modern" id="r24-sort-sel" onchange="renderTable()">
+                        <option value="rain-desc">Sort: Highest Rain ↓</option>
+                        <option value="rain-asc">Sort: Lowest Rain ↑</option>
+                        <option value="season-desc">Sort: Highest Season ↓</option>
+                        <option value="name-asc">Sort: Station A→Z</option>
+                        <option value="district-asc">Sort: District A→Z</option>
+                    </select>
+                </div>
+            </div>
+            <!-- District filter pills -->
+            <div class="r24-district-filter" id="r24-dist-pills">
+                <!-- built by JS -->
+            </div>
+            <div class="r24-table-wrap">
+                <table class="r24-tbl" id="r24-tbl">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th style="text-align:left; padding-left:8px;">District</th>
+                            <th style="text-align:left; padding-left:8px;">Station</th>
+                            <th id="th-rain">24h Rain (mm)</th>
+                            <th id="th-class">IMD Class</th>
+                            <th id="th-season" title="Season accumulation up to selected date">⛅ Current Season<br><span style="font-weight:400;font-size:9px;letter-spacing:0;" id="th-season-sub">(mm)</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="r24-tbody">
+                        <tr><td colspan="6" class="r24-empty">
+                            <div class="empty-icon">🌤️</div>
+                            Select a date above to load station data.
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:10px; font-size:11px; color:var(--text-muted);" id="r24-row-count"></div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="r24-footer">
+            Data: <strong>TNSMART</strong> (Tamil Nadu Smart Meteorological Alert &amp; Rainfall Tracker) ·
+            Designed by <strong>Vidhyapathi · Haiyan</strong> ·
+            <a href="https://x.com/HaiyanTip" target="_blank" rel="noopener">𝕏 @HaiyanTip</a> ·
+            <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener">IG @haiyan_clicks</a>
+        </div>
+    </main>
+
+    <script>
+    /* ==================================================================
+       CONSTANTS & IMD DEFINITIONS
+       ================================================================== */
+
+    const RAINFALL_CSV   = 'thanjavur_stations_rainfall_2026.csv';
+    const STATIONS_CSV   = 'Stations.csv';
+    const DATASET_YEAR   = 2026;
+
+    /**
+     * IMD Rainfall Classification (India Meteorological Department official)
+     * Reference: IMD Colour Code / Warning System for Rainfall Intensity
+     */
+    const IMD = [
+        { key:'zero',    label:'No Rain',        min:0,     max:0,      color:'#e0e0e0', textColor:'#444',    chipClass:'chip-zero',    icon:'🔵', desc:'0 mm' },
+        { key:'trace',   label:'Very Light Rain', min:0.1,  max:2.4,    color:'#b0b0b0', textColor:'#222',    chipClass:'chip-trace',   icon:'🩶', desc:'0.1 – 2.4 mm' },
+        { key:'light',   label:'Light Rain',      min:2.5,  max:15.5,   color:'#98fb98', textColor:'#145a2e', chipClass:'chip-light',   icon:'🟢', desc:'2.5 – 15.5 mm' },
+        { key:'mod',     label:'Moderate Rain',   min:15.6, max:64.4,   color:'#2ecc71', textColor:'#fff',    chipClass:'chip-mod',     icon:'🟡', desc:'15.6 – 64.4 mm' },
+        { key:'heavy',   label:'Heavy Rain',      min:64.5, max:115.4,  color:'#f1c40f', textColor:'#3d2800', chipClass:'chip-heavy',   icon:'🟠', desc:'64.5 – 115.4 mm' },
+        { key:'vheavy',  label:'Very Heavy Rain', min:115.5,max:204.4,  color:'#e67e22', textColor:'#fff',    chipClass:'chip-vheavy',  icon:'🔴', desc:'115.5 – 204.4 mm' },
+        { key:'extreme', label:'Extremely Heavy', min:204.5,max:Infinity,color:'#e74c3c', textColor:'#fff',   chipClass:'chip-extreme', icon:'⛈️', desc:'> 204.4 mm' },
+    ];
+
+    function classifyIMD(mm) {
+        if (mm === 0)         return IMD[0];
+        if (mm <= 2.4)        return IMD[1];
+        if (mm <= 15.5)       return IMD[2];
+        if (mm <= 64.4)       return IMD[3];
+        if (mm <= 115.4)      return IMD[4];
+        if (mm <= 204.4)      return IMD[5];
+        return IMD[6];
+    }
+
+    /**
+     * Multi-Day Rainfall Scale
+     * Used exclusively when accumulating multiple days, as IMD daily definitions no longer apply.
+     */
+    const MULTI_DAY_SCALE = [
+        { key:'zero',    label:'0 mm',           min:0,   max:0,    color:'#e0e0e0', textColor:'#444',    chipClass:'chip-zero',    icon:'⚪', desc:'No Rain' },
+        { key:'light',   label:'0.1 – 25 mm',    min:0.1, max:25,   color:'#98fb98', textColor:'#145a2e', chipClass:'chip-light',   icon:'🟢', desc:'Light Accumulation' },
+        { key:'mod',     label:'25.1 – 50 mm',   min:25.1,max:50,   color:'#2ecc71', textColor:'#fff',    chipClass:'chip-mod',     icon:'🟡', desc:'Moderate Accumulation' },
+        { key:'heavy',   label:'50.1 – 100 mm',  min:50.1,max:100,  color:'#f1c40f', textColor:'#3d2800', chipClass:'chip-heavy',   icon:'🟠', desc:'Heavy Accumulation' },
+        { key:'vheavy',  label:'100.1 – 150 mm', min:100.1,max:150, color:'#e67e22', textColor:'#fff',    chipClass:'chip-vheavy',  icon:'🔴', desc:'Very Heavy Accumulation' },
+        { key:'extreme', label:'150.1 – 200 mm', min:150.1,max:200, color:'#e74c3c', textColor:'#fff',    chipClass:'chip-extreme', icon:'⛈️', desc:'Extreme Accumulation' },
+        { key:'severe',  label:'200.1 – 300 mm', min:200.1,max:300, color:'#9b59b6', textColor:'#fff',    chipClass:'chip-severe',  icon:'🟣', desc:'Severe Accumulation' },
+        { key:'catast',  label:'300.1 – 400 mm', min:300.1,max:400, color:'#8e44ad', textColor:'#fff',    chipClass:'chip-catast',  icon:'⚠️', desc:'Catastrophic Accumulation' },
+        { key:'epic',    label:'> 400 mm',       min:400.1,max:Infinity,color:'#4a235a', textColor:'#fff', chipClass:'chip-epic',    icon:'🆘', desc:'Epic Accumulation' }
+    ];
+
+    function getIMDFromScale(mm, scaleArr) {
+        for (let i = 0; i < scaleArr.length; i++) {
+            if (mm >= scaleArr[i].min && mm <= scaleArr[i].max) return scaleArr[i];
+        }
+        return scaleArr[scaleArr.length - 1];
+    }
+
+    function classifyMultiDay(mm) {
+        if (mm === 0)   return MULTI_DAY_SCALE[0];
+        if (mm <= 25)   return MULTI_DAY_SCALE[1];
+        if (mm <= 50)   return MULTI_DAY_SCALE[2];
+        if (mm <= 100)  return MULTI_DAY_SCALE[3];
+        if (mm <= 150)  return MULTI_DAY_SCALE[4];
+        if (mm <= 200)  return MULTI_DAY_SCALE[5];
+        if (mm <= 300)  return MULTI_DAY_SCALE[6];
+        if (mm <= 400)  return MULTI_DAY_SCALE[7];
+        return MULTI_DAY_SCALE[8];
+    }
+
+    /* ==================================================================
+       GLOBAL STATE
+       ================================================================== */
+    let allRainData  = [];   // raw CSV rows
+    let stationsLookup = {}; // cleaned station name → {lat, lon, district}
+    let dayStations  = [];   // processed for selected day: [{name, district, rain, lat, lon, imd}]
+    let seasonalTotals = {}; // ukey → {winter, preMon, swm, nem} — computed from full CSV up to selected date
+    let activeIMDFilter = new Set(['zero','trace','light','mod','heavy','vheavy','extreme']); // all on (rebuilt per view)
+    let activeDistrict  = 'ALL';
+    let viewMode = 'day';   // 'day' = single-day 24h/IMD view, 'range' = multi-date accumulation (custom/month/season)
+    let bulletinSubtitle = '';  // set by loadDay / loadAccumulated, used by the bulletin
+    function isRangeMode() { return viewMode === 'range'; }
+    // The scale in force for the current view (single source of truth for chips, filter, map, chart)
+    function getCurrentScale() { return isRangeMode() ? (activeDynamicScale || MULTI_DAY_SCALE) : IMD; }
+    function classifyCurrent(mm) { return getIMDFromScale(mm, getCurrentScale()); }
+    let barChartInst    = null;
+    let r24Map = null;
+    let markerLayer = null;
+    let dataLoaded = false;
+
+    /* ==================================================================
+       EXPORT TO PNG
+       ================================================================== */
+    function exportTablePNG() {
+        if (typeof html2canvas === 'undefined') {
+            alert('html2canvas library is still loading. Please try again in a moment.');
+            return;
+        }
+        
+        const table = document.querySelector('#r24-tbl');
+        
+        // Disable sticky headers temporarily as html2canvas struggles with position: sticky
+        const ths = table.querySelectorAll('th');
+        ths.forEach(th => th.style.position = 'static');
+
+        setTimeout(() => {
+            html2canvas(table, {
+                scale: 2, // High resolution
+                backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#121a2b' : '#ffffff', // Match table card bg
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // Restore sticky headers
+                ths.forEach(th => th.style.position = '');
+                
+                // Trigger download
+                let link = document.createElement('a');
+                const isMultiDate = isRangeMode();
+                const suffix = isMultiDate ? 'Accumulated' : (document.getElementById('r24-date-input').value || 'Snapshot');
+                link.download = `Rainfall_Table_${suffix}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            }).catch(err => {
+                console.error("Error capturing table:", err);
+                ths.forEach(th => th.style.position = '');
+                alert("Failed to export PNG. Error: " + (err.message || err));
+            });
+        }, 100);
+    }
+
+    /* ==================================================================
+       EXPORT TO CSV
+       ================================================================== */
+    function exportCSV() {
+        const data = getFiltered();
+        if (!data.length) return alert('No data to export.');
+        let csv = (isRangeMode() ? 'District,Station,Accumulated Rain (mm),Intensity Class,Season Acc (mm),Selected-period Rain (mm)\n' : 'District,Station,24h Rain (mm),IMD Class,Season Acc (mm),48h Rain (mm)\n');
+        data.forEach(s => {
+            const cleanName = s.name.replace(/"/g, '""');
+            csv += `"${s.district}","${cleanName}",${s.rain},"${s.imd.label}",${s.seasonAcc},${s.rain48h || 0}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const dateStr = document.getElementById('r24-date-input').value;
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Rainfall_${activeDistrict.replace('_','')}_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /* ==================================================================
+       MULTI-DATE ACCUMULATION PANEL
+       ================================================================== */
+    let accSelectedDates = new Set();
+    let accModeType = 'custom'; // Set of 'YYYY-MM-DD' strings
+    let accCalYear  = new Date().getFullYear();
+    let accCalMonth = new Date().getMonth(); // 0-based
+    let availableDates = new Set(); // dates that have data in the CSV
+
+    function toggleAccPanel() {
+        const panel = document.getElementById('acc-panel');
+        if (panel.classList.contains('open')) {
+            closeAccPanel();
+        } else {
+            panel.classList.add('open');
+            document.getElementById('acc-toggle-btn').textContent = '✕ Close Panel';
+            // initialise calendar to the currently selected single date or today
+            const inp = document.getElementById('r24-date-input').value;
+            if (inp) {
+                const d = new Date(inp);
+                accCalYear  = d.getFullYear();
+                accCalMonth = d.getMonth();
+            }
+            buildAccCalendar();
+        }
+    }
+
+    function closeAccPanel() {
+        document.getElementById('acc-panel').classList.remove('open');
+        document.getElementById('acc-toggle-btn').textContent = '➕ Accumulate Days';
+    }
+
+    function buildAccCalendar() {
+        const label = document.getElementById('acc-cal-label');
+        const grid  = document.getElementById('acc-calendar-grid');
+        const monthNames = ['January','February','March','April','May','June',
+                            'July','August','September','October','November','December'];
+        label.textContent = monthNames[accCalMonth] + ' ' + accCalYear;
+
+        // Day-of-week headers
+        const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        let html = days.map(d => `<div class="acc-cal-header">${d}</div>`).join('');
+
+        // First day of month (convert Sunday=0 → Mon-based)
+        const firstDay = new Date(accCalYear, accCalMonth, 1).getDay();
+        const offset   = (firstDay === 0) ? 6 : firstDay - 1;
+        const daysInMonth = new Date(accCalYear, accCalMonth + 1, 0).getDate();
+
+        // Leading blanks
+        for (let i = 0; i < offset; i++) {
+            html += `<div class="acc-cal-day empty"></div>`;
+        }
+
+        // Day cells
+        for (let d = 1; d <= daysInMonth; d++) {
+            const key = accCalYear + '-'
+                + String(accCalMonth + 1).padStart(2,'0') + '-'
+                + String(d).padStart(2,'0');
+            const isSelected  = accSelectedDates.has(key) ? 'selected' : '';
+            const hasData     = availableDates.has(key)   ? 'has-data'  : '';
+            const title       = hasData ? 'Has rainfall data' : '';
+            html += `<div class="acc-cal-day ${isSelected} ${hasData}"
+                         data-key="${key}" title="${title}"
+                         onclick="accToggleDate('${key}')">${d}</div>`;
+        }
+        grid.innerHTML = html;
+        updateAccSelectionInfo();
+    }
+
+    function accCalPrevMonth() {
+        accCalMonth--;
+        if (accCalMonth < 0) { accCalMonth = 11; accCalYear--; }
+        buildAccCalendar();
+    }
+    function accCalNextMonth() {
+        accCalMonth++;
+        if (accCalMonth > 11) { accCalMonth = 0; accCalYear++; }
+        buildAccCalendar();
+    }
+
+    function accToggleDate(key) {
+        accModeType = 'custom';
+        if (accSelectedDates.has(key)) accSelectedDates.delete(key);
+        else accSelectedDates.add(key);
+        buildAccCalendar();
+    }
+
+    function updateAccSelectionInfo() {
+        const info = document.getElementById('acc-selected-info');
+        const btn  = document.getElementById('acc-load-btn');
+        const n = accSelectedDates.size;
+        if (n === 0) {
+            info.innerHTML = 'No dates selected.';
+            btn.disabled = true; btn.style.opacity = '.5';
+        } else {
+            const sorted = [...accSelectedDates].sort();
+            const labels = sorted.map(k => {
+                const d = new Date(k + 'T00:00:00');
+                return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+            });
+            info.innerHTML = `<strong>${n} day${n>1?'s':''} selected:</strong> ${labels.join(', ')}`;
+            btn.disabled = false; btn.style.opacity = '1';
+        }
+    }
+
+    function clearAccSelection() {
+        accModeType = 'custom';
+        accSelectedDates.clear();
+        buildAccCalendar();
+    }
+
+    function accQuickPick(n) {
+        accModeType = 'custom';
+        accSelectedDates.clear();
+        // pick n most recent dates that have data
+        const sorted = [...availableDates].sort().reverse().slice(0, n);
+        sorted.forEach(k => accSelectedDates.add(k));
+        // navigate calendar to most recent selected month
+        if (sorted.length) {
+            const d = new Date(sorted[0] + 'T00:00:00');
+            accCalYear = d.getFullYear();
+            accCalMonth = d.getMonth();
+        }
+        buildAccCalendar();
+    }
+
+    function accQuickPickSeason() {
+        accModeType = 'season';
+        accSelectedDates.clear();
+        // Detect current season from today
+        const anchor = getLatestDate() || new Date();
+        const season = getSeason(anchor);
+        const aKey = anchor.getFullYear() + '-' + String(anchor.getMonth()+1).padStart(2,'0') + '-' + String(anchor.getDate()).padStart(2,'0');
+        availableDates.forEach(k => {
+            const d = new Date(k + 'T00:00:00');
+            const m = d.getMonth() + 1;
+            if (d.getFullYear() === anchor.getFullYear() && season.months.includes(m) && k <= aKey) accSelectedDates.add(k);
+        });
+        accCalYear = anchor.getFullYear(); accCalMonth = anchor.getMonth();
+        buildAccCalendar();
+    }
+
+    function accQuickPickMonth() {
+        accModeType = 'month';
+        accSelectedDates.clear();
+        const anchor = getLatestDate() || new Date();
+        const curYear = anchor.getFullYear();
+        const curMonth = anchor.getMonth() + 1;
+        const aKey = curYear + '-' + String(curMonth).padStart(2,'0') + '-' + String(anchor.getDate()).padStart(2,'0');
+        availableDates.forEach(k => {
+            const d = new Date(k + 'T00:00:00');
+            if (d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && k <= aKey) {
+                accSelectedDates.add(k);
+            }
+        });
+        accCalYear = curYear; accCalMonth = anchor.getMonth();
+        buildAccCalendar();
+    }
+
+    /* ==================================================================
+       DYNAMIC SCALE GENERATION (For Season / Month matches IDW Maps)
+       ================================================================== */
+    const idwMasterPalette = [
+        "#d7191c", "#fdae61", "#ffee00", "#a6d96a", "#1a9641", 
+        "#4eb3d3", "#2b8cbe", "#0868ac", "#084081", "#4a1486", "#ff00ff"
+    ];
+
+    function blendHexColors(c1, c2, ratio) {
+        const hex = x => { const h = Math.round(x).toString(16); return h.length === 1 ? '0'+h : h; };
+        const r1 = parseInt(c1.substring(1,3), 16), g1 = parseInt(c1.substring(3,5), 16), b1 = parseInt(c1.substring(5,7), 16);
+        const r2 = parseInt(c2.substring(1,3), 16), g2 = parseInt(c2.substring(3,5), 16), b2 = parseInt(c2.substring(5,7), 16);
+        return '#' + hex(r1 + (r2 - r1) * ratio) + hex(g1 + (g2 - g1) * ratio) + hex(b1 + (b2 - b1) * ratio);
+    }
+
+    function getIdwColor(binIdx, totalBins) {
+        if (totalBins <= 1) return idwMasterPalette[0];
+        let exactIdx = (binIdx / (totalBins - 1)) * (idwMasterPalette.length - 2);
+        let idx1 = Math.floor(exactIdx);
+        let idx2 = Math.min(idx1 + 1, idwMasterPalette.length - 2);
+        let ratio = exactIdx - idx1;
+        return blendHexColors(idwMasterPalette[idx1], idwMasterPalette[idx2], ratio);
+    }
+
+    function getTextColor(hexColor) {
+        let h = hexColor.replace('#', '');
+        if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+        const r = parseInt(h.substring(0,2),16);
+        const g = parseInt(h.substring(2,4),16);
+        const b = parseInt(h.substring(4,6),16);
+        const yiq = ((r*299)+(g*587)+(b*114))/1000;
+        return (yiq >= 128) ? '#1a1a2e' : '#ffffff';
+    }
+
+    function generateDynamicScale(maxRain, step) {
+        const scale = [];
+        let numBins = Math.round(maxRain / step);
+        
+        for (let i = 0; i < numBins; i++) {
+            let bottom = i * step;
+            let top = (i + 1) * step;
+            let c = getIdwColor(i, numBins);
+            scale.push({
+                key: 'dyn_' + i,
+                label: i === 0 ? `0.1 \u2014 ${top} mm` : `${bottom}.1 \u2014 ${top} mm`,
+                min: i === 0 ? 0.1 : bottom + 0.1,
+                max: top + 0.1,
+                color: c,
+                textColor: getTextColor(c),
+                icon: '🌧️',
+                chipClass: 'chip-dynamic'
+            });
+        }
+        let overflowC = idwMasterPalette[idwMasterPalette.length - 1];
+        scale.push({
+            key: 'dyn_overflow',
+            label: `> ${maxRain} mm`,
+            min: maxRain + 0.1,
+            max: 99999,
+            color: overflowC,
+            textColor: getTextColor(overflowC),
+            icon: '⚠️',
+            chipClass: 'chip-dynamic'
+        });
+        // We still need the 'zero' chip for formatting
+        let zeroBg = document.body.getAttribute('data-theme') === 'dark' ? '#2c2c2c' : '#ffffff';
+        scale.unshift({ key: 'zero', label: '0 mm', min: 0, max: 0, color: zeroBg, textColor: getTextColor(zeroBg), icon: '☀️', chipClass: 'chip-dynamic' });
+        return scale;
+    }
+
+    let activeDynamicScale = null;
+
+    /* ==================================================================
+       LOAD ACCUMULATED (multi-date)
+       ================================================================== */
+    function loadAccumulated() {
+        if (!accSelectedDates.size) return;
+        if (!dataLoaded) { alert('Data still loading.'); return; }
+
+        viewMode = 'range';
+        const sortedDates = [...accSelectedDates].sort();
+        const dmyKeys = new Set(sortedDates.map(k => {
+            const d = new Date(k + 'T00:00:00');
+            return formatDateDMY(d);
+        }));
+
+        // Season context from the latest selected date
+        const latestDate = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00');
+        const curSeason  = getSeason(latestDate);
+        const selYear    = latestDate.getFullYear();
+
+        // Update season header
+        const thEl  = document.getElementById('th-season');
+        const subEl = document.getElementById('th-season-sub');
+        if (thEl)  thEl.childNodes[0].textContent = curSeason.label + ' ';
+        if (subEl) subEl.textContent = curSeason.sub;
+
+        // Determine if we should generate a dynamic scale
+        activeDynamicScale = null;
+        if (accModeType === 'season') {
+            if (curSeason.key === 'swm' || curSeason.key === 'nem') {
+                activeDynamicScale = generateDynamicScale(1200, 100);
+            } else {
+                activeDynamicScale = generateDynamicScale(600, 50);
+            }
+        } else if (accModeType === 'month') {
+            activeDynamicScale = generateDynamicScale(600, 50);
+        }
+
+        // Update 24h Rain header → "Accumulated (mm)"
+        const thRain = document.getElementById('th-rain');
+        if (thRain) thRain.textContent = `Accum. (mm) [${sortedDates.length}d]`;
+        const thImd = document.getElementById('th-class');
+        if (thImd) thImd.textContent = 'Intensity Class';
+
+        // ── Season accumulation: UP TO latest selected date ──
+        const seasonMap = {};
+        allRainData.forEach(row => {
+            const d = parseDateDMY(row.Date);
+            if (!d || d.getFullYear() !== selYear) return;
+            const m = d.getMonth() + 1;
+            if (!curSeason.months.includes(m)) return;
+            if (d > latestDate) return;
+            const rawName = (row.Station_Name || row['Name of the station'] || '').trim();
+            const rawDist = (row.District || '').trim();
+            const lat     = parseFloat(row.Latitude) || 0;
+            const lon     = parseFloat(row.Longitude) || 0;
+            const meta    = resolveStationMeta(rawName, rawDist, lat, lon);
+            const mm      = parseFloat(row.Rainfall_mm) || 0;
+            seasonMap[meta.uniqueKey] = (seasonMap[meta.uniqueKey] || 0) + mm;
+        });
+
+        // ── Accumulate selected dates ──
+        const stMap = {};
+        allRainData.forEach(row => {
+            const d = parseDateDMY(row.Date);
+            if (!d) return;
+            const dmy = formatDateDMY(d);
+            if (!dmyKeys.has(dmy)) return;
+
+            const rawName = (row.Station_Name || row['Name of the station'] || '').trim();
+            const rawDist = (row.District || '').trim();
+            const rLat    = parseFloat(row.Latitude) || 0;
+            const rLon    = parseFloat(row.Longitude) || 0;
+            const mm      = parseFloat(row.Rainfall_mm) || 0;
+            const meta    = resolveStationMeta(rawName, rawDist, rLat, rLon);
+
+            if (!stMap[meta.uniqueKey]) {
+                stMap[meta.uniqueKey] = {
+                    name: meta.name, district: meta.district,
+                    lat: meta.lat, lon: meta.lon, rain: 0, rain48h: 0,
+                    ukey: meta.uniqueKey
+                };
+            }
+            stMap[meta.uniqueKey].rain += mm;
+        });
+
+        const currentScale = activeDynamicScale ? activeDynamicScale : MULTI_DAY_SCALE;
+
+        activeIMDFilter = new Set(currentScale.map(c => c.key));
+
+        dayStations = Object.values(stMap).map(s => {
+            const mmRain = Math.round(s.rain * 10) / 10;
+            return {
+                ...s,
+                rain: mmRain,
+                rain48h: mmRain,
+                imd: getIMDFromScale(mmRain, currentScale),
+                seasonAcc: Math.round((seasonMap[s.ukey] || 0) * 10) / 10,
+                seasonLabel: curSeason.label,
+                isHeavy48h: false
+            };
+        });
+
+        // Show multi-day badge
+        document.getElementById('acc-mode-badge').classList.add('visible');
+
+        // reset filters -> ALL chips of the scale actually in use (dynamic for month/season)
+        activeIMDFilter = new Set(currentScale.map(c => c.key));
+        activeDistrict  = 'ALL';
+        document.getElementById('r24-search').value = '';
+
+        // Update Banner Title for Multi-Day Scale
+        const bannerTitle = document.querySelector('.imd-banner-title');
+        if (bannerTitle) bannerTitle.innerHTML = (accModeType === 'month' ? '🏷️ Monthly Accumulation Scale' : accModeType === 'season' ? '🏷️ Seasonal Accumulation Scale' : '🏷️ Multi-Day Intensity Scale') + ' — click to filter';
+
+        // Date summary label
+        const d0 = new Date(sortedDates[0] + 'T00:00:00');
+        const d1 = new Date(sortedDates[sortedDates.length-1] + 'T00:00:00');
+        const fmt = d => d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+        const label = sortedDates.length === 1
+            ? fmt(d0)
+            : `${fmt(d0)} to ${fmt(d1)} (${sortedDates.length} days)`;
+
+        const modeName = accModeType === 'month' ? 'Monthly accumulation' : accModeType === 'season' ? 'Seasonal accumulation · ' + curSeason.sub : 'Multi-day accumulation';
+        bulletinSubtitle = modeName + ' · ' + label;
+
+        const total = dayStations.length;
+        const withRain = dayStations.filter(s => s.rain > 0).length;
+        document.getElementById('r24-meta-text').textContent =
+            `📊 Accumulated: ${label} · ${total} stations · ${withRain} with rain`;
+
+        closeAccPanel();
+        buildIMDChips(); // Rebuild chips for MULTI_DAY_SCALE
+        if (typeof refreshBulletinOptions === 'function') refreshBulletinOptions();
+        buildDistrictPills();
+        syncIMDChips();
+        renderKPI();
+        renderPodium();
+        renderChart();
+        refreshMap();
+        renderTable();
+    }
+
+    /* ==================================================================
+       THEME TOGGLE
+       ================================================================== */
+    function toggleTheme() {
+        const body = document.body;
+        body.getAttribute('data-theme') === 'dark'
+            ? body.removeAttribute('data-theme')
+            : body.setAttribute('data-theme', 'dark');
+    }
+
+    /* ==================================================================
+       UTILITY
+       ================================================================== */
+    function cleanStr(s) { return s ? s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : ''; }
+
+    function parseDateDMY(str) {
+        // supports DD-MM-YYYY and YYYY-MM-DD
+        if (!str) return null;
+        if (str.includes('-')) {
+            const p = str.split('-');
+            if (p[0].length === 4) return new Date(+p[0], +p[1]-1, +p[2]);   // YYYY-MM-DD
+            return new Date(+p[2], +p[1]-1, +p[0]);                           // DD-MM-YYYY
+        }
+        return null;
+    }
+
+    function formatDateDMY(d) {
+        return String(d.getDate()).padStart(2,'0') + '-'
+             + String(d.getMonth()+1).padStart(2,'0') + '-'
+             + d.getFullYear();
+    }
+
+    function prettyDate(d) {
+        return d.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    }
+
+    /* ==================================================================
+       MAP SETUP
+       ================================================================== */
+    function initMap() {
+        r24Map = L.map('r24map', { center:[10.80, 79.35], zoom:7.5, zoomControl:true });
+        L.maplibreGL({
+            style: 'https://tiles.openfreemap.org/styles/positron',
+            attribution: '© OpenStreetMap | OpenFreeMap'
+        }).addTo(r24Map);
+        markerLayer = L.layerGroup().addTo(r24Map);
+        setTimeout(() => r24Map.invalidateSize(), 300);
+    }
+
+    function refreshMap() {
+        if (!r24Map) return;
+        markerLayer.clearLayers();
+        const visible = getFiltered();
+        visible.forEach(s => {
+            if (!s.lat || !s.lon || isNaN(s.lat) || isNaN(s.lon)) return;
+            const imd = s.imd;
+            const sc = getCurrentScale();
+            const bin = Math.max(0, sc.findIndex(c => c.key === imd.key));
+            const radius = s.rain === 0 ? 5 : 6 + Math.round((bin / Math.max(1, sc.length - 1)) * 9);
+            const circle = L.circleMarker([s.lat, s.lon], {
+                radius: radius,
+                fillColor: imd.color,
+                color: s.rain === 0 ? '#aaa' : '#fff',
+                weight: (isRangeMode() ? s.rain >= 100 : s.rain >= 64.5) ? 2 : 1.2,
+                opacity: 1,
+                fillOpacity: s.rain === 0 ? 0.55 : 0.88
+            }).addTo(markerLayer);
+
+            circle.bindTooltip(
+                `<b>${s.name}</b> (${s.district})<br>
+                 <span style="color:${imd.color};font-weight:800;">${s.rain.toFixed(1)} mm</span>
+                 — ${imd.label}`,
+                { sticky: true }
+            );
+            circle.bindPopup(buildPopup(s), { maxWidth: 280 });
+        });
+    }
+
+    function buildPopup(s) {
+        // If in range mode, s.imd is already assigned the new multi-day scale class in loadAccumulated()
+        const imd = s.imd;
+        const isRange = isRangeMode();
+        const rainLabel = isRange ? 'Accumulated Rain' : 'Rainfall (24h)';
+        const classLabel = isRange ? 'Intensity Class' : 'IMD Class';
+
+        return `
+        <div style="min-width:220px; font-family:-apple-system,sans-serif;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:2px;">${s.name}</div>
+            <div style="font-size:11px;color:#888;margin-bottom:10px;">${s.district} District</div>
+            <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                <tr style="background:${imd.color};color:${imd.textColor};">
+                    <td style="padding:6px 8px;font-weight:700;">${rainLabel}</td>
+                    <td style="padding:6px 8px;font-weight:900;text-align:right;">${s.rain.toFixed(1)} mm</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px 8px;color:#666;">${classLabel}</td>
+                    <td style="padding:5px 8px;text-align:right;font-weight:700;">${imd.icon} ${imd.label}</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px 8px;color:#666;">Range</td>
+                    <td style="padding:5px 8px;text-align:right;color:#555;">${imd.desc}</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px 8px;color:#666;">Coords</td>
+                    <td style="padding:5px 8px;text-align:right;color:#555;font-size:10px;">${s.lat.toFixed(4)}°N, ${s.lon.toFixed(4)}°E</td>
+                </tr>
+            </table>
+        </div>`;
+    }
+
+    /* ==================================================================
+       DATA LOADING
+       ================================================================== */
+    function showLoading(msg = 'Loading rainfall data…') {
+        document.getElementById('r24-loading').classList.remove('hidden');
+        document.getElementById('r24-loading-msg').textContent = msg;
+    }
+    function hideLoading() {
+        document.getElementById('r24-loading').classList.add('hidden');
+    }
+
+    function getLatestDate() {
+        // scan CSV for latest date in dataset year
+        let latestDoy = 0; let latestDate = null;
+        allRainData.forEach(row => {
+            const d = parseDateDMY(row.Date);
+            if (!d || d.getFullYear() !== DATASET_YEAR) return;
+            const doy = Math.floor((d - new Date(DATASET_YEAR,0,0)) / 86400000);
+            if (doy > latestDoy) { latestDoy = doy; latestDate = d; }
+        });
+        return latestDate;
+    }
+
+    let fallbackStations = {}; // clean name → { district, lat, lon }
+
+    // Initial bootstrap: load both CSVs
+    showLoading('Loading station & rainfall data…');
+    Papa.parse(STATIONS_CSV, {
+        download: true, header: true, skipEmptyLines: true,
+        complete(res) {
+            res.data.forEach(row => {
+                const rawName = row['Name of the station'] || '';
+                const key     = cleanStr(rawName);
+                const dist    = (row.District || 'Unknown').trim();
+                const distKey = cleanStr(dist);
+                const lat     = parseFloat(row.Latitude) || 0;
+                const lon     = parseFloat(row.Longitude) || 0;
+                
+                if (key) {
+                    const compositeKey = distKey + '_' + key;
+                    const stObj = { district: dist, lat, lon };
+                    stationsLookup[compositeKey] = stObj;
+                    
+                    if (key.includes("papanasam")) {
+                        if (lat > 10.0 || distKey.includes("thanjavur")) {
+                            stationsLookup["thanjavur_papanasam"] = { district: "Thanjavur", lat: 10.92, lon: 79.27 };
+                        }
+                    } else {
+                        if (!fallbackStations[key]) fallbackStations[key] = stObj;
+                    }
+                }
+            });
+            loadRainCSV();
+        },
+        error() { loadRainCSV(); }
+    });
+
+    function resolveStationMeta(rawName, rawDist, rLat, rLon) {
+        const cName = cleanStr(rawName);
+        const cDist = cleanStr(rawDist);
+        if (cName.includes("papanasam")) {
+            const lat = rLat || 0; const lon = rLon || 0;
+            if (lat > 10.0 || lon > 78.5 || cDist.includes("thanjavur") || cDist.includes("tanjore")) {
+                return { uniqueKey: "thanjavur_papanasam", district: "Thanjavur", name: "Papanasam", lat: lat > 0 ? lat : 10.92, lon: lon > 0 ? lon : 79.27 };
+            }
+            if (lat > 0 && lat < 9.5) {
+                return { uniqueKey: "tirunelveli_papanasam", district: "Tirunelveli", name: "Papanasam (TNV)", lat: lat, lon: lon };
+            }
+        }
+        const meta = stationsLookup[cDist + "_" + cName] || fallbackStations[cName] || {};
+        const district = rawDist ? rawDist.trim() : (meta.district && meta.district !== "Unknown" ? meta.district : "Unknown");
+        const lat = !isNaN(meta.lat) && meta.lat !== 0 ? meta.lat : rLat;
+        const lon = !isNaN(meta.lon) && meta.lon !== 0 ? meta.lon : rLon;
+        return { uniqueKey: cleanStr(district) + "_" + cName, district: district, name: rawName ? rawName.trim() : "Unknown", lat: lat, lon: lon };
+    }
+
+    function loadRainCSV() {
+        Papa.parse(RAINFALL_CSV, {
+            download: true, header: true, skipEmptyLines: true,
+            complete(res) {
+                allRainData = res.data;
+                dataLoaded  = true;
+
+                // Build available dates set for the accumulation calendar
+                allRainData.forEach(row => {
+                    const d = parseDateDMY(row.Date);
+                    if (d) {
+                        const key = d.getFullYear() + '-'
+                            + String(d.getMonth()+1).padStart(2,'0') + '-'
+                            + String(d.getDate()).padStart(2,'0');
+                        availableDates.add(key);
+                    }
+                });
+
+                // Pre-set date to latest available
+                const latest = getLatestDate();
+                if (latest) {
+                    document.getElementById('r24-date-input').value =
+                        latest.getFullYear() + '-'
+                        + String(latest.getMonth()+1).padStart(2,'0') + '-'
+                        + String(latest.getDate()).padStart(2,'0');
+                }
+                buildIMDChips();
+                buildMap();
+                hideLoading();
+                loadDay(); // auto-load latest
+            }
+        });
+    }
+
+    /* ==================================================================
+       BUILD MAP (called once)
+       ================================================================== */
+    function buildMap() {
+        if (!r24Map) initMap();
+    }
+
+    /* ==================================================================
+       SEASON DETECTION
+       ================================================================== */
+    /**
+     * Returns season metadata for a given JS Date.
+     * JF  = Winter       (Jan–Feb,  months 1-2)
+     * MAM = Pre-Monsoon  (Mar–May,  months 3-5)
+     * JJAS= SWM          (Jun–Sep,  months 6-9)
+     * OND = NEM          (Oct–Dec,  months 10-12)
+     */
+    function getSeason(date) {
+        const m = date.getMonth() + 1; // 1-based
+        if (m <= 2)  return { key:'winter', label:'❄️ Winter',       sub:'JF — Jan–Feb',        months:[1,2]  };
+        if (m <= 5)  return { key:'premon', label:'🌸 Pre-Monsoon',  sub:'MAM — Mar–May',       months:[3,4,5]};
+        if (m <= 9)  return { key:'swm',    label:'☁️ SWM',          sub:'JJAS — Jun–Sep',      months:[6,7,8,9]};
+        return              { key:'nem',    label:'☔ NEM',           sub:'OND — Oct–Dec',       months:[10,11,12]};
+    }
+
+    /* ==================================================================
+       LOAD SELECTED DAY
+       ================================================================== */
+    function resetToLatestDay() {
+        const latest = getLatestDate();
+        if (latest) {
+            document.getElementById('r24-date-input').value = latest.getFullYear() + '-' + String(latest.getMonth()+1).padStart(2,'0') + '-' + String(latest.getDate()).padStart(2,'0');
+        }
+        closeAccPanel();
+        clearAccSelection();
+        loadDay();
+    }
+
+    function loadDay() {
+        const inputVal = document.getElementById('r24-date-input').value;
+        if (!inputVal) { alert('Please select a date.'); return; }
+        if (!dataLoaded) { alert('Data still loading. Please wait.'); return; }
+
+        // Reset multi-day mode badge + table header
+        document.getElementById('acc-mode-badge').classList.remove('visible');
+        const thRain = document.getElementById('th-rain');
+        if (thRain) thRain.textContent = '24h Rain (mm)';
+        const thImd = document.getElementById('th-class');
+        if (thImd) thImd.textContent = 'IMD Class';
+
+        const selDate  = new Date(inputVal);
+        const selYear  = selDate.getFullYear();
+        const dmyKey   = formatDateDMY(selDate); // DD-MM-YYYY for CSV lookup
+
+        // Detect current season
+        const curSeason = getSeason(selDate);
+
+        // Update column header in table
+        const thEl  = document.getElementById('th-season');
+        const subEl = document.getElementById('th-season-sub');
+        if (thEl)  thEl.childNodes[0].textContent = curSeason.label + ' ';
+        if (subEl) subEl.textContent = curSeason.sub;
+
+        // Single-day view: drop any accumulation state so every widget uses the IMD scale
+        viewMode = 'day';
+        activeDynamicScale = null;
+        accModeType = 'custom';
+        accSelectedDates.clear();
+        updateAccSelectionInfo();
+
+        // ── Pass 1: Season accumulation (all rows in this season UP TO selDate) ──
+        const seasonMap = {}; // ukey → season total mm
+        allRainData.forEach(row => {
+            const d = parseDateDMY(row.Date);
+            if (!d || d.getFullYear() !== selYear) return;
+            const m = d.getMonth() + 1;
+            if (!curSeason.months.includes(m)) return;
+            // Only up to and including the selected date
+            if (d > selDate) return;
+
+            const rawName = (row.Station_Name || row['Name of the station'] || '').trim();
+            const rawDist = (row.District || '').trim();
+            const lat     = parseFloat(row.Latitude) || 0;
+            const lon     = parseFloat(row.Longitude) || 0;
+            const meta    = resolveStationMeta(rawName, rawDist, lat, lon);
+            const mm      = parseFloat(row.Rainfall_mm) || 0;
+            
+            seasonMap[meta.uniqueKey] = (seasonMap[meta.uniqueKey] || 0) + mm;
+        });
+
+        // ── Pass 2: Today's & Yesterday's readings (for 48h accumulation) ──
+        const yesterdayDate = new Date(selDate);
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yDmyKey = formatDateDMY(yesterdayDate);
+
+        const dayRows = allRainData.filter(row => {
+            const d = parseDateDMY(row.Date);
+            if (!d) return false;
+            const dmy = formatDateDMY(d);
+            return dmy === dmyKey || dmy === yDmyKey;
+        });
+
+        const stMap = {};
+        dayRows.forEach(row => {
+            const rawName = (row.Station_Name || row['Name of the station'] || '').trim();
+            const rawDist = (row.District || '').trim();
+            const rLat    = parseFloat(row.Latitude) || 0;
+            const rLon    = parseFloat(row.Longitude) || 0;
+            const mm      = parseFloat(row.Rainfall_mm) || 0;
+
+            const meta = resolveStationMeta(rawName, rawDist, rLat, rLon);
+
+            if (!stMap[meta.uniqueKey]) {
+                stMap[meta.uniqueKey] = { 
+                    name: meta.name, 
+                    district: meta.district, 
+                    lat: meta.lat, 
+                    lon: meta.lon, 
+                    rain: 0,       // strictly today
+                    rain48h: 0,    // today + yesterday
+                    ukey: meta.uniqueKey 
+                };
+            }
+            
+            const rowDmy = formatDateDMY(parseDateDMY(row.Date));
+            if (rowDmy === dmyKey) {
+                stMap[meta.uniqueKey].rain += mm;
+            }
+            stMap[meta.uniqueKey].rain48h += mm;
+        });
+
+        dayStations = Object.values(stMap).map(s => ({
+            ...s,
+            rain:       Math.round(s.rain * 10) / 10,
+            rain48h:    Math.round(s.rain48h * 10) / 10,
+            imd:        classifyIMD(s.rain),
+            seasonAcc:  Math.round((seasonMap[s.ukey] || 0) * 10) / 10,
+            seasonLabel: curSeason.label,
+            isHeavy48h: (Math.round(s.rain48h * 10) / 10) >= 100
+        }));
+
+        // reset filters
+        activeIMDFilter = new Set(IMD.map(c => c.key));
+        activeDistrict  = 'ALL';
+        document.getElementById('r24-search').value = '';
+
+        // Reset Banner Title for IMD
+        const bannerTitle = document.querySelector('.imd-banner-title');
+        if (bannerTitle) bannerTitle.innerHTML = '🏷️ IMD Rainfall Classification — click to filter';
+
+        bulletinSubtitle = '24-hour rainfall · ' + prettyDate(selDate);
+
+        // meta text
+        const total = dayStations.length;
+        const withRain = dayStations.filter(s => s.rain > 0).length;
+        document.getElementById('r24-meta-text').textContent =
+            `${prettyDate(selDate)} · ${total} stations · ${withRain} with rain · Season: ${curSeason.sub}`;
+
+        buildIMDChips(); // Rebuild chips for IMD scale
+        if (typeof refreshBulletinOptions === 'function') refreshBulletinOptions();
+        buildDistrictPills();
+        syncIMDChips();
+        renderKPI();
+        renderPodium();
+        renderChart();
+        refreshMap();
+        renderTable();
+    }
+
+    /* ==================================================================
+       FILTERED DATA HELPER
+       ================================================================== */
+    const CDZ_CORE_LIST = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
+    const CDZ_EXT_LIST  = [...CDZ_CORE_LIST, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
+
+    function isDistrictInGroup(dist, group) {
+        if (group === 'ALL') return true;
+        const cDist = cleanStr(dist);
+        if (group === 'CDZ_CORE') return CDZ_CORE_LIST.some(d => cDist.includes(d));
+        if (group === 'CDZ_EXT')  return CDZ_EXT_LIST.some(d => cDist.includes(d));
+        return dist === group;
+    }
+
+    function getFiltered() {
+        const q = (document.getElementById('r24-search')?.value || '').toLowerCase().trim();
+        return dayStations.filter(s => {
+            const imdOk  = activeIMDFilter.has(s.imd.key);
+            const distOk = isDistrictInGroup(s.district, activeDistrict);
+            const qOk    = !q || s.name.toLowerCase().includes(q) || s.district.toLowerCase().includes(q);
+            return imdOk && distOk && qOk;
+        });
+    }
+
+    /* ==================================================================
+       IMD CHIPS
+       ================================================================== */
+    function buildIMDChips() {
+        const container = document.getElementById('imd-chips');
+        container.innerHTML = '';
+        
+        const isRange = isRangeMode();
+        const currentScale = getCurrentScale();
+
+        currentScale.forEach(cat => {
+            const chip = document.createElement('label');
+            chip.className = `imd-chip ${cat.chipClass}`;
+            if (cat.chipClass === "chip-dynamic") {
+                chip.style.background = cat.color;
+                chip.style.color = cat.textColor;
+                chip.style.borderColor = "rgba(0,0,0,0.1)";
+            }
+            chip.dataset.key = cat.key;
+            chip.innerHTML = `
+                <span class="imd-chip-dot" style="background:${cat.color};"></span>
+                ${cat.icon} ${cat.label}
+                <span class="imd-chip-count" id="chip-count-${cat.key}">0</span>`;
+            chip.title = isRange ? `Intensity: ${cat.desc}` : `IMD: ${cat.desc}`;
+            chip.style.cursor = 'pointer';
+            chip.addEventListener('click', () => {
+                if (activeIMDFilter.has(cat.key)) activeIMDFilter.delete(cat.key);
+                else activeIMDFilter.add(cat.key);
+                syncIMDChips();
+                refreshMap();
+                renderTable();
+            });
+            container.appendChild(chip);
+        });
+    }
+
+    function syncIMDChips() {
+        // Count stations per category
+        const counts = {};
+        const isRange = isRangeMode();
+        const currentScale = getCurrentScale();
+
+        currentScale.forEach(c => counts[c.key] = 0);
+        dayStations.forEach(s => {
+            if (counts[s.imd.key] !== undefined) {
+                counts[s.imd.key]++;
+            }
+        });
+
+        currentScale.forEach(cat => {
+            const chip  = document.querySelector(`.imd-chip[data-key="${cat.key}"]`);
+            const badge = document.getElementById(`chip-count-${cat.key}`);
+            if (!chip) return;
+            const isActive = activeIMDFilter.has(cat.key);
+            chip.style.opacity  = isActive ? '1' : '0.38';
+            chip.style.transform = isActive ? '' : 'none';
+            if (badge) badge.textContent = counts[cat.key];
+        });
+    }
+
+    /* ==================================================================
+       DISTRICT PILLS
+       ================================================================== */
+    function buildDistrictPills() {
+        const container = document.getElementById('r24-dist-pills');
+        const districts = [...new Set(dayStations.map(s => s.district).filter(d => d !== 'Unknown'))].sort();
+
+        let html = `<span class="dist-pill active" data-d="ALL" onclick="setDistrict('ALL',this)">All TN</span>`;
+        
+        // Add CDZ special groups
+        html += `<span class="dist-pill" style="background:#e8f4f8; border-color:#8fc8f2; color:#2980b9;" data-d="CDZ_CORE" onclick="setDistrict('CDZ_CORE',this)">CDZ Core</span>`;
+        html += `<span class="dist-pill" style="background:#e8f4f8; border-color:#8fc8f2; color:#2980b9;" data-d="CDZ_EXT" onclick="setDistrict('CDZ_EXT',this)">CDZ Extended</span>`;
+
+        districts.forEach(d => {
+            html += `<span class="dist-pill" data-d="${d}" onclick="setDistrict('${d}',this)">${d}</span>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function setDistrict(name, el) {
+        activeDistrict = name;
+        document.querySelectorAll('.dist-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        refreshMap();
+        renderTable();
+        renderPodium();
+    }
+
+    /* ==================================================================
+       KPI CARDS
+       ================================================================== */
+    function renderKPI() {
+        const s = dayStations;
+        if (!s.length) return;
+
+        const isRange = isRangeMode();
+
+        const withRain    = s.filter(x => x.rain > 0);
+        const total       = s.length;
+        const rainy       = withRain.length;
+        const dry         = total - rainy;
+        const maxS        = s.reduce((a,b) => b.rain > a.rain ? b : a, s[0]);
+        const avgRainy    = rainy ? withRain.reduce((a,b)=>a+b.rain,0)/rainy : 0;
+        
+        // Dynamic thresholds based on mode
+        const t1 = isRange ? 100 : 64.5;
+        const t2 = isRange ? 200 : 115.5;
+        const t3 = isRange ? 300 : 204.5;
+        
+        const heavy       = s.filter(x => x.rain >= t1).length;
+        const vheavy      = s.filter(x => x.rain >= t2).length;
+        const extreme     = s.filter(x => x.rain >= t3).length;
+
+        const kpis = [
+            { label:'Total Stations',   value: total,             unit:'stations',   accent:'blue',   sub:'' },
+            { label:'Stations with Rain',value: rainy,            unit:`/ ${total}`, accent:'green',  sub:`${((rainy/total)*100).toFixed(0)}% of stations` },
+            { label:'Dry Stations',     value: dry,               unit:'stations',   accent:'gray',   sub:'No rainfall recorded' },
+            { label:'Highest Single',   value: maxS.rain.toFixed(1), unit:'mm',     accent:'red',    sub:maxS.name + ' · ' + maxS.district },
+            { label:'Avg (rainy stns)', value: avgRainy.toFixed(1),  unit:'mm',     accent:'teal',   sub:'Avg of stations with > 0 mm' },
+            { label: isRange ? '100mm+ Stations' : 'Heavy+ Stations',  value: heavy,             unit:'stations',   accent:'orange', sub: isRange ? '≥ 100 mm' : '≥ 64.5 mm (Heavy & above)' },
+            { label: isRange ? '200mm+ Stations' : 'Very Heavy+',      value: vheavy,            unit:'stations',   accent:'yellow', sub: isRange ? '≥ 200 mm' : '≥ 115.5 mm' },
+            { label: isRange ? '300mm+ Stations' : 'Extremely Heavy',  value: extreme,           unit:'stations',   accent:'red',    sub: isRange ? '≥ 300 mm' : '> 204.4 mm' },
+        ];
+
+        const row = document.getElementById('r24-kpi-row');
+        row.innerHTML = kpis.map(k => `
+            <div class="kpi-card" data-accent="${k.accent}">
+                <div class="kpi-label">${k.label}</div>
+                <div class="kpi-value">${k.value}</div>
+                <div class="kpi-unit">${k.unit}</div>
+                ${k.sub ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+            </div>`).join('');
+    }
+
+    /* ==================================================================
+       PODIUM (TOP 5 STATIONS)
+       ================================================================== */
+    function renderPodium() {
+        const pool = dayStations
+            .filter(s => isDistrictInGroup(s.district, activeDistrict))
+            .filter(s => s.rain > 0)
+            .sort((a,b) => b.rain - a.rain)
+            .slice(0, 5);
+
+        const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+        const container = document.getElementById('r24-podium');
+
+        if (!pool.length) { container.innerHTML = ''; return; }
+
+        container.innerHTML = pool.map((s,i) => {
+            const imd = s.imd;
+            return `
+            <div class="podium-card" style="border-left: 4px solid ${imd.color};">
+                <div class="podium-rank">${medals[i]}</div>
+                <div class="podium-name">${s.name}</div>
+                <div class="podium-dist">📍 ${s.district}</div>
+                <div class="podium-rain" style="color:${imd.color};">${s.rain.toFixed(1)} mm</div>
+                <span class="podium-class" style="background:${imd.color};color:${imd.textColor};">${imd.icon} ${imd.label}</span>
+            </div>`;
+        }).join('');
+    }
+
+    /* ==================================================================
+       DISTRICT BAR CHART
+       ================================================================== */
+    function renderChart() {
+        const distMap = {};
+        dayStations.forEach(s => {
+            if (!distMap[s.district]) distMap[s.district] = { sum:0, count:0 };
+            distMap[s.district].sum   += s.rain;
+            distMap[s.district].count += 1;
+        });
+
+        const entries = Object.entries(distMap)
+            .map(([k,v]) => ({ district: k, avg: v.count ? v.sum/v.count : 0 }))
+            .filter(d => d.district !== 'Unknown')
+            .sort((a,b) => b.avg - a.avg);
+
+        const labels = entries.map(d => d.district);
+        const vals   = entries.map(d => +d.avg.toFixed(1));
+        const colors = vals.map(v => classifyCurrent(v).color);
+
+        document.getElementById('r24-chart-sub').textContent =
+            `${entries.length} districts · average mm per station`;
+
+        const ctx = document.getElementById('r24-bar-chart');
+        if (barChartInst) barChartInst.destroy();
+
+        barChartInst = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Avg Rainfall (mm)',
+                    data: vals,
+                    backgroundColor: colors,
+                    borderRadius: 4,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',   // horizontal bars (easier to read with many districts)
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(ctx) {
+                                const v = ctx.parsed.x;
+                                return ` ${v} mm  — ${classifyCurrent(v).label}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: isRangeMode() ? 'Avg Accumulated Rainfall (mm)' : 'Avg Rainfall (mm)', font:{ size:11 } },
+                        grid: { color: 'rgba(128,128,128,.12)' }
+                    },
+                    y: {
+                        ticks: { font:{ size:10 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    /* ==================================================================
+       STATION TABLE
+       ================================================================== */
+    function renderTable() {
+        let data = getFiltered();
+
+        // Sort
+        const sortVal = document.getElementById('r24-sort-sel').value;
+        if (sortVal === 'rain-desc')    data.sort((a,b) => b.rain - a.rain);
+        else if (sortVal === 'rain-asc')  data.sort((a,b) => a.rain - b.rain);
+        else if (sortVal === 'name-asc')  data.sort((a,b) => a.name.localeCompare(b.name));
+        else if (sortVal === 'district-asc') data.sort((a,b) => a.district.localeCompare(b.district));
+        else if (sortVal === 'season-desc') data.sort((a,b) => b.seasonAcc - a.seasonAcc);
+
+        const tbody = document.getElementById('r24-tbody');
+        if (!data.length) {
+            tbody.innerHTML = `<tr><td colspan="6">
+                <div class="r24-empty">
+                    <div class="empty-icon">☔</div>
+                    No stations match the current filters.
+                </div>
+            </td></tr>`;
+            document.getElementById('r24-row-count').textContent = '';
+            return;
+        }
+
+        tbody.innerHTML = data.map((s, i) => {
+            const imd = s.imd;
+            const rainStyle = s.rain > 0
+                ? `background:${imd.color};color:${imd.textColor};`
+                : `background:#ebebeb;color:#666;`;
+            const badgeStyle = `background:${imd.color};color:${imd.textColor};`;
+
+            // Season accumulation — use standard dark colour, no IMD scale
+            const sAcc     = s.seasonAcc || 0;
+            const accStyle = sAcc > 0
+                ? `color:var(--text); font-weight:800;`
+                : `color:var(--text-muted);`;
+
+            const heavyBadge = s.isHeavy48h
+                ? `<span style="background:#e74c3c; color:white; font-size:9px; padding:2px 5px; border-radius:3px; margin-left:6px; font-weight:bold; vertical-align:middle; white-space:nowrap;" title="${s.rain48h.toFixed(1)} mm accumulated over the last 48 hours">⚠️ 100mm+ in 48h</span>`
+                : '';
+
+            return `<tr>
+                <td style="color:var(--text-muted);font-weight:700;">${i+1}</td>
+                <td style="font-weight:600; text-align:left; padding-left:8px;">${s.district}</td>
+                <td style="font-weight:600; text-align:left; padding-left:8px;">${s.name} ${heavyBadge}</td>
+                <td>
+                    <span class="rain-val" style="${rainStyle}">${s.rain.toFixed(1)}</span>
+                </td>
+                <td>
+                    <span class="imd-class-badge" style="${badgeStyle}">${imd.icon} ${imd.label}</span>
+                </td>
+                <td style="${accStyle}">${sAcc > 0 ? sAcc.toFixed(1) : '—'}</td>
+            </tr>`;
+        }).join('');
+
+        const allCount = dayStations.length;
+        document.getElementById('r24-row-count').textContent =
+            `Showing ${data.length} of ${allCount} stations`;
+    }
+
+    /* ==================================================================
+       INIT
+       ================================================================== */
+    // (data loading starts automatically via Papa.parse above)
+
+    </script>
+
+<script>
+/* Tamil Nadu district outlines — simplified from tn_districts.geojson (projected, SVG path data) */
+const BULLETIN_GEO = {"W":404.0,"H":548.7,"lon0":76.23298312565383,"latmax":13.564628197689208,"kx":0.982218,"K":100,"d":{"Ariyalur":{"d":"M316.8,241.4L317.3,239.4L319.1,238.7L321.1,236.1L321.9,233.6L320.4,231.6L321.4,230L320.7,225.1L318.3,225.1L315.8,222.9L314.8,223.1L314.1,221.9L314.7,220.7L313.6,219.8L310.6,221.1L310.4,216.2L309.1,215.4L308.9,216.3L309.6,216.5L308.6,216.7L308.1,214.8L303.4,214.5L300.5,215.2L300.9,218.5L297.2,217.6L295.5,219.5L295.1,217.6L294,217.3L289.5,219L288.3,218.6L286.6,220.1L287.2,222.6L284.6,223.4L284.1,225.4L285.6,225.5L285.5,227.5L284.6,226.7L282.7,227.6L282.5,229.4L283.8,230.1L283.8,231.6L282.5,232L282.7,233.4L281.5,233.4L281,236.5L278.3,236L278.4,237.6L279.5,238.4L278.6,238.8L278.9,240.5L277.6,241.2L277.2,243.5L278.2,243.8L278.6,245.6L277.1,248L275,248.1L274.2,249.7L272.4,250.6L273,255.5L271,256.3L270,258.9L270.5,259.8L266.6,258.8L266.7,260.5L269.6,262.1L270.1,264.3L270.8,263.6L272,264.2L272.3,267.1L275,267.8L277.2,267.4L280.1,263.8L282.6,264L285.7,262.4L291.7,261.6L292.6,262.4L300.4,255L302.4,254.7L311,249.8Z","bb":[266.6,214.5,321.9,267.8],"c":[297.2,241.2]},"Chengalpattu":{"d":"M384.2,54L383.7,51.9L382.1,53.1L378.1,52.3L377.9,54.8L375.7,55.7L376.3,57.7L375.2,58.2L374.7,60L376.4,60.6L377.9,59.2L378.3,60.3L380.2,61.1L375.9,66.5L375.1,68.3L376,70.1L375,72.6L373.9,72.5L370.9,75.5L366.8,75.1L365.8,73.9L366.4,75.5L365.7,77.4L364.1,77.4L364,78.1L362.8,76.6L361.2,76.5L360.3,78L357.9,78.5L359.3,79.1L358.5,79.8L362.8,81.9L365.3,85.4L365.4,86.5L361.9,86.8L363,92.7L359.9,92.3L359,93.4L355.1,93.3L352.7,94.4L350.9,93.6L352.5,99.5L350,99.6L347.7,101.4L345.8,100.3L345.9,102.1L344.9,103.3L346,105.3L345.4,106.2L342.6,106.4L345.2,108L345.4,110.8L343.8,111.1L344.1,113.6L342.3,112.5L341.1,113.3L341.3,115L339.7,114.4L340.3,116.2L337,117.7L337,119.7L334.7,122L336.7,124.2L338.7,124.9L341.1,123L345.5,124L348.3,122.6L350.3,122.7L353.1,125.2L354.4,128.5L357.6,132.2L360.3,133.5L362.6,133.3L362.3,131.5L365.6,133.6L367.4,133.1L368.8,131.3L370.9,131L375.1,123.8L384.8,111L386.5,103L395.1,78.1L394.5,70.8L391.6,71.2L390.9,70.4L391.4,65.4L389.5,65.4L389.6,63.1L388.5,62.7L389.7,60.6L386.6,58.4L386.2,56Z","bb":[334.7,51.9,395.1,133.6],"c":[376.5,92.7]},"Chennai":{"d":"M402.6,32.9L399.8,35.2L397,33.5L396.6,36.1L391.9,36.5L391.2,39.2L389.6,38.3L388.7,39.6L389.1,41.1L387.3,41.7L387.4,42.5L384.3,42.5L383.8,46.6L385.9,48.3L385.8,52L384.3,52.5L385.1,51.5L384.6,50L383.2,52L384.3,52.7L384.2,54L389.7,53.6L389.5,54.8L390.7,55.6L390.1,58.2L391.7,60L393.9,58.1L396.3,59L398.2,50L400.5,45.6L399.5,47.3L399,47.2L400,45.5L399.3,42.7Z","bb":[383.2,32.9,402.6,60.0],"c":[391.6,46.4]},"Coimbatore":{"d":"M89.8,222.8L88,221L87.9,218.6L86.4,218.4L86.2,215.8L84.3,216.1L84.3,217.1L82.3,217.9L82.3,216.2L79.8,216.2L78.5,218L77.6,217.7L77.3,219.4L72,217.8L68.8,218.8L68.4,219.7L70.4,219.9L68.7,220.8L68.7,220.2L65.8,221.4L65.8,220.3L64.8,219.9L64,221.3L63.4,220.6L62,221.2L62.5,221.9L60.4,222.5L61.6,224L61,226.9L59.9,227.7L56.4,226.5L54.7,228.6L52.7,227.5L52.5,230L51.1,231.7L50.2,231.1L49.1,232L46.5,230.1L45.9,230.6L46,231.9L49,235.1L48,236.1L48.7,237.4L45.9,238.3L44.9,240.5L46.5,242.3L47.7,241.7L48.7,243.4L50.6,242.9L50.5,245.3L49.7,246L51.2,248L49.9,249.2L50.4,251L53.5,252.3L55.8,251.1L54.9,252.7L52.4,253.6L46.9,252.6L45.3,254.3L44.5,257.5L41.5,262.6L43.6,264.7L47.3,265.6L49.9,267.4L53.9,267.4L58.5,269.3L61,272.6L60.1,273.9L60.6,274.7L65.6,275.7L66.3,278.7L64.4,283.2L64.8,284.3L63.8,284.7L62.2,287.9L63.4,289L63.8,292.5L61.7,293.2L57.1,292.9L56.7,294L57.4,296.1L59.5,296.8L59.1,301.9L59.9,302.7L57.3,314.1L59,315.7L58,317L60.5,319.6L58.5,325.7L60.5,327.9L62.9,326.6L62.9,328.8L65.3,330.2L66.7,332.9L69.4,332.6L73.6,334.5L76.8,331.9L79.3,331.2L80.5,329.2L79.5,328.1L84.3,325.1L83,322.7L84.2,321.4L83.9,318.7L79.4,313.8L82.5,310.5L81.1,308.6L83,306.2L82.5,301.9L83.7,298.6L85.4,297.9L90.9,298L92.1,296.5L93.1,292.1L89.6,290.5L88.5,281.4L92.2,276.2L96.5,276.1L96.4,277.9L100.3,278.8L103.2,277.8L102.7,276.2L104.7,275L103.7,271.7L100.7,269.5L99.7,266L96.1,266.2L94.9,264.4L93.2,264.4L90.4,256.6L92.6,254.9L92.9,252.8L91.9,249.7L101.3,245.4L99.1,242.7L97.4,244L94,241.4L92.3,242.6L93.2,240.3L91.1,239.7L90.9,236.7L89.6,235.7L91.6,232L92,228.1L90.4,228.6L89.5,227.7L89,228.5L86.8,227L87.7,225.7L90.1,225.8Z","bb":[41.5,215.8,104.7,334.5],"c":[83.4,275.1]},"Cuddalore":{"d":"M351.6,214.2L350.1,210.1L348.1,207.6L348,207.1L348.3,206.3L348.3,205.8L347.5,205.1L348.2,206.3L347.7,206.4L347.2,205.4L347.8,206L346.7,203.5L346.1,200.8L346.5,194L350,177.9L347.6,178.2L347,177.3L345.9,178.9L341.8,177.3L342.8,176.8L342.9,175.4L344,175.5L343.4,172.8L344.3,172.8L344.1,172L346.9,173.1L347.4,174.2L348.2,173.3L350.1,174L349.8,173.1L351.1,173.1L351.2,171.9L350.4,170.9L348.6,170.9L348,172.6L347.2,172.6L346.8,168.8L345.6,171.6L344.8,171.6L344.4,170L342.6,170.2L342.4,171.1L341.3,169.6L341.5,167.5L339,167.9L340.8,173.3L339.1,173.3L339.6,175.8L338.7,176.8L337.4,175.4L334.3,176.4L329.8,172.3L327.3,172.5L323.8,170.8L316.5,169.3L316.1,171.6L319,172.7L319.2,175.3L317.8,176.5L317.6,175.7L315.3,175.5L314.1,178.6L314.9,179.8L317.3,179.7L317.2,182.1L313.9,183.3L315.4,189.9L308.8,188.6L307.3,189.2L307.1,190.5L304.4,190.4L302.1,193.2L300.4,191.7L296.2,191.2L294.9,193.5L293.3,192.6L292.4,193.1L292.6,194.5L289.8,197.9L287.2,196.6L285.1,197.6L280,193L278.4,193.4L278.2,195.3L279.3,195.7L279.4,196.8L276.6,197.9L276,197.7L276.7,196.9L273.6,195.8L272.2,199L264.3,199.8L262.4,205.9L259.8,205.7L268.1,215.9L271.5,215.7L275,217.1L277,216.2L282.2,216.3L289.1,219.1L294.4,217.3L295.5,219.5L297.2,217.6L300.9,218.5L300.5,215.2L302.5,214.6L308,214.7L308.9,215.3L308.8,216.7L309.6,215.5L310.5,216.3L310.6,221.1L313.6,219.8L314.7,220.7L314.1,221.9L314.8,223.1L315.8,222.9L318.3,225.1L320.7,225.1L321.4,230L320.4,231.6L321.9,233.6L321.1,236.1L319.1,238.7L317.3,239.4L316.8,241.4L327,235.6L330.6,234.6L332.3,230.9L335.3,231.5L334.9,228.1L335.7,226.5L338.9,225.3L342.9,221.9L346.4,221.2L346.9,218.3L349.5,219.2L350.7,218.4ZM340.3,169.1L340.4,170.3L340.1,170.4ZM339.8,175.1L340.7,174.2L341,175.1ZM350,166.7L347.3,166.4L347.7,168.9L348.4,168.7L348.2,170.1L348.9,170.2ZM349.5,166.9L349.3,167L349.3,166.9ZM349.7,168.1L349.5,168L349.7,168Z","bb":[259.8,166.4,351.6,241.4],"c":[305.0,204.4]},"Dharmapuri":{"d":"M237.2,140.2L233.7,138.2L230.8,140.2L229.7,137.1L228,138.4L224.3,138.7L223.3,142.2L219.3,141.8L219.9,139.2L217.4,137.4L213.7,136.8L212,137.9L210.3,136.9L213,135.1L213.2,134.1L208.4,133.9L208.2,131.7L203.2,129.1L199.8,130.1L198.9,127L196.4,126.2L196.1,124.7L197.9,123.2L196.8,121.7L193.7,123.5L190.6,122.7L189.6,121.4L189.9,120.2L186.8,118.3L186.1,116.2L187.6,113.7L184.8,111.9L185.2,111L183.2,111.9L181.4,111.6L181.2,110.1L179.4,110L178.4,108.9L176.2,110.5L174.7,106.2L172.9,106.4L172.2,105.5L169.5,108.1L167.9,105.1L165.8,106L164.6,105.2L163.7,106.6L164.3,107.5L165.9,107.4L167.1,109.5L166.2,110.4L166.5,111.9L168.2,111.5L170.7,115.2L170.4,117L168.6,119L168.5,122.8L166.4,124L161.7,122.9L160.5,123.4L161.3,126.1L160.6,129.9L160,131L158.4,130.2L155.3,133L153.3,141.7L151.6,140.7L151.2,139.3L148.7,140.9L149,142.6L151.6,145.2L149.6,148.5L146.8,150.3L145,152.9L141.6,161.1L143.2,162.3L147.9,162.5L150.2,165.5L154.6,165.6L158.6,167L160.5,164.9L164.2,166.4L170.6,166.9L174.7,164.3L176.2,164.4L177.4,162.8L180.8,162.7L183.4,160.9L187.8,159.6L196.6,158.5L198.4,161.4L196.7,164.7L198.8,162.4L200.4,162.7L198.9,165.2L200.6,163.3L202.1,163.3L200,166.4L201.1,166.5L203.3,164.2L205.4,163.5L206.1,164.2L205.6,166.5L203.9,168.3L208.9,165.5L208.2,167L209.5,167.3L209.7,168.4L207.7,171.6L208,173.1L204.5,178.4L205.8,178.9L208.1,177.2L214.3,168.4L216.9,169.6L216.3,171L218.3,173.8L227.3,175.8L232.1,174.2L233.5,171.2L235.8,169L235.9,167.6L237.9,167.9L238.5,166.9L241.3,166.1L241.8,167L243.1,166.7L244.7,164.5L242.7,162.5L244,158.1L242.1,157.2L244.6,147.6L246.8,144.1L246,143.1L238.5,146.2L238.1,144L235.5,143.6Z","bb":[141.6,105.1,246.8,178.9],"c":[184.7,142.0]},"Dindigul":{"d":"M193.2,301.8L192.1,300.5L190.3,301L187.2,300.2L186.6,299L186.9,296.8L189.8,295.1L189.6,291.6L187.9,291.5L187.8,288.8L188.5,282.4L190.2,276.6L191.8,274.5L191.9,273.2L191,274.2L190.8,272.9L188.5,273.8L188.2,276.1L183.9,276L183.2,279.8L180.4,278.9L179.2,280.1L179,279.1L176.3,278.3L176,279.3L173.4,279L173.1,280.3L171.9,280.5L167.6,279.6L166.8,282.8L173.4,282.2L173.4,283.5L174.6,283.4L175,284.5L174.1,288.9L170.6,289.2L171.4,292.5L165.1,291.6L164.6,290.8L163.3,291.9L161.4,291.9L161,293.3L158.4,292.6L156.9,293.2L155.2,291.6L155.7,288.5L152.8,287.9L149.6,289.3L148.7,292.4L146.1,293.3L146.4,292.4L143.9,290.2L144.9,287.8L143.6,282.9L140.6,284.8L139.7,289.1L137.9,289.6L132.3,288.6L131.5,290.7L129.3,292.6L128.7,295.5L125.3,295.8L126,295.2L124.9,292.2L122.7,291.5L116.4,293.9L113.4,296.8L111.5,301.6L112.5,303.9L115.2,304.3L114.8,306.6L112.5,307.1L113.2,311.6L110.4,312L108.3,311L107.1,311.6L106.3,320.9L108.4,321L107.4,324.4L109.8,329.1L109.5,330.1L107.3,329.5L105.8,331.8L104.5,331.2L101.5,344.5L103.1,344.7L105,342.9L107.1,343.7L107.7,342.2L108.9,342.9L110.7,341.4L111.9,342.5L114.2,340.2L117.3,342.9L121.1,343.6L122.7,341.1L123.2,341.7L125.6,340.4L128.2,337.7L129,338.2L129.2,336.1L131,336.9L131.3,338.3L136.6,334.6L140.6,337.6L142.3,336.3L143.4,336.8L144.7,334.9L144.2,336.9L145.3,339.5L147,340.6L147,343.3L144.9,343.6L143.3,341.9L141.8,342L141,344.2L144.3,346.2L143.8,347.8L144.9,348.3L144.7,352.7L145.8,354.7L150.3,350.9L152,351.4L154.5,349.7L158.6,348.9L160.2,349L161.3,350.3L162.9,348.7L165.7,349.3L166.2,347.4L168.3,348.1L168.3,347.4L166.8,347.4L167,345.1L169.8,342.7L172,342.8L173.3,340.4L174.9,340.1L175.5,338L186.4,337.7L189.4,341L189.8,344.1L188.9,345.7L190.7,346.6L190.3,347.2L193.6,348.5L193.5,349.8L199.1,347.9L200.4,345L200.1,343.5L201.1,343.5L201.5,341.6L201.2,339.8L199.3,340.6L200,341.3L199.1,341L199.1,340.3L200.3,339.3L200,338.2L202.2,336.1L204.3,335.6L203.9,335L205,335.1L205.8,333.6L205.2,331.7L206.2,331L205.6,327.9L206.9,327.6L206.8,326.6L205.9,326.7L206.7,323.9L201,319.2L200.8,318.1L201.8,316.3L203.7,315.2L204.5,312.5L197.8,309.7L194.9,309.8L192.4,306.4L190.6,306.1Z","bb":[101.5,272.9,206.9,354.7],"c":[155.5,313.8]},"Erode":{"d":"M117.3,180.4L114.1,177.7L111.2,177.4L110.7,178.5L108.3,179.3L104.2,175.6L103.6,176.4L99.9,175.2L98.8,177L86.2,179.1L86.9,184.4L85.7,183.2L83.2,182.9L80.9,179.5L82.2,178.3L81.5,177.4L79.9,177.7L78.8,179.5L78.2,179L79.1,177.1L76.6,175L73.6,175.3L72.4,178.8L70.8,177.3L66.3,176.9L64.4,183.1L61.8,185.4L59.1,190.9L59.1,192.5L61.4,195.1L60.3,198.3L58.7,199.3L61.9,202.1L62.2,204.5L66.9,204L68.2,203.1L68.1,204L69.9,204.5L68.8,205.8L69,208.2L72.6,209.7L74.5,208.3L75.3,208.9L76.5,212.4L76.1,213L73.7,212.4L73.5,216.3L71.2,218.4L72.5,217.8L76.7,219.6L79.8,216.2L82.3,216.2L82.3,217.9L86.2,215.8L86.4,218.4L88.2,218.9L88.9,222.5L90.9,223.2L91.8,224.7L93.3,225.1L92.9,222.3L94.6,222.6L98.3,221.3L97.1,222.4L98.4,223.4L98.6,225.1L95.4,225.5L95.3,226.5L99.1,225.9L98.7,224.2L99.8,223.5L100.3,225.4L103.6,223.1L103.7,222.1L103.5,227.2L106.2,228.3L104.4,229.2L107.9,230.8L109.6,227.9L108.1,225L111.3,224.7L111,222.3L116.3,225.4L117.2,224.5L118.9,225.9L120,225.8L119.8,225.1L121.4,229.5L121,231.2L124.5,233.8L124.4,235.9L125.5,236.6L126.1,235.9L125.7,238.2L122.1,238L121.5,240L123,240.4L122.8,242.5L124.3,241.8L124.8,245.8L130,245.6L132.7,244.3L134.1,245.3L136.5,243.8L139.6,244.8L140.3,246.1L144.4,247.1L145.4,248.6L147.1,248.8L147.8,247.9L151.5,250.6L155.7,249.4L156.9,251.7L159,251.9L159.2,253.3L160.7,254.1L165.7,251.8L167,249.4L163.3,248.8L162.5,247.6L162.2,240.9L160,237.9L160.9,235L160.3,232.2L157.9,230.4L154.7,229.7L149.1,221L142.5,214.5L144,208.8L147.3,205.3L146.5,202.8L148.6,199.4L147.6,196.3L151.6,186.9L148.6,191L145.6,191.5L144.6,193L143.6,192.5L143.2,184.6L146.3,177L145.1,176.7L143.8,180.4L141.4,183.2L141.7,183.9L139.1,186L137.6,190.1L136.1,188.8L136.5,190L135.3,191.2L133.2,188L132.1,187.9L132,191.2L130.8,190.4L128.1,194.5L127.3,197.8L125.7,197.3L126.1,198.5L123,201.5L119,200.3L120.4,195.8L119,194.6L118.3,192L119.9,189.9L118.5,189.1L118.1,186.2L118.9,184.8L118,184.9L118.1,183.3L116.5,183.6L116.1,182.5ZM70.9,201.6L70.3,201.3L70.6,200.9ZM75.5,205.1L75.8,204.8L75.7,205.1ZM127.6,171.6L126.9,172L127.9,173.9L127.1,175.3L127.5,178.6L122.5,182.5L121,182.2L119.5,186.8L120.3,188.7L121.7,187.1L121.7,184.7L122.1,185.1L125.4,181.1L127.2,181.3L128.3,182.5L129.1,182L128.4,181.2L130.1,179.8L131.5,185.3L133.9,181.5L132.8,180.7L133.4,179.1L135.6,179.8L136.3,182.7L137.4,183.5L137.7,181.1L135.9,177.9L131.5,177.9L131.7,176.3L128.6,176.3L129.3,175.6L128.8,172.8Z","bb":[58.7,171.6,167.0,254.1],"c":[107.8,214.6]},"Kallakurichi":{"d":"M288.7,153.4L286.3,152.1L284.1,154.6L279.5,153.3L279.3,152L280.4,152.2L281.5,149.9L280.2,148.4L278,149.5L278.5,151.2L276.9,152.8L274,151.5L274.9,150L271.3,149.7L270.6,151L269.9,149.9L267.8,149.6L266,151.4L266.8,152.4L266.2,153.6L263.1,155.9L255,155.7L252.6,154.5L250.2,155.7L248,155.3L245.9,157.7L244.1,157.7L242.7,162.5L244.7,164.5L243.1,166.7L241.8,167L241.3,166.1L238.5,166.9L237.9,167.9L235.9,167.6L235.2,169.4L241.8,171.3L241.6,176.1L238.9,176.8L238.6,178.5L236.7,179.6L236.2,184.3L237.7,184.9L237,190.4L238.4,190.3L238.3,191.7L240.4,192.1L240.1,189.3L241.6,187.5L244.1,188.1L250.2,186.1L252.7,187.8L252.8,190.3L249.5,192.8L250.8,192.3L251.1,193.6L249.7,195.9L255,198.6L253.7,200.3L253.7,202.2L255.5,202.5L256.5,204.3L261.9,206L263.6,203.6L264.3,199.8L272.2,199L273.6,195.8L277.2,197.8L279.4,196.8L279.3,195.7L278.2,195.3L278.4,193.4L280,193L285.1,197.6L287.2,196.6L289.8,197.9L292.6,194.5L292.4,193.1L293.3,192.6L294.9,193.5L296.2,191.2L300.4,191.7L302.1,193.2L304.4,190.4L307.1,190.5L307.3,189.2L308.8,188.6L315.4,189.9L313.9,183.3L317.2,182.1L317.3,179.7L314.9,179.8L314.1,178.6L315.3,175.5L317.6,175.7L317.8,176.5L319.2,175.3L319,172.7L316.1,171.6L316.5,169.3L315.1,169.2L312.5,166.6L308.6,164.5L306,163.9L302,164.4L300.5,162.1L295.1,161.2L292.3,159L289.9,159.2L290.1,157.9L288.3,157.2Z","bb":[235.2,148.4,319.2,206.0],"c":[276.8,177.3]},"Kanniyakumari":{"d":"M133.2,542.3L132.7,541L129,540.7L128.1,539.5L129.6,537.3L128.7,535.9L129.3,534.5L128.4,534.3L128.9,532.4L132,532L130.2,529.5L130.6,528.9L129.7,528.8L130.8,528.6L127.5,524.6L127.7,522.9L128.6,522.9L127.8,517.4L123.6,518.6L121.8,516.7L121.8,514.8L120.7,513.6L121.7,510.9L121.1,509.6L119.1,509L119.5,507.7L118.4,505.7L113.6,504.1L112.1,504.7L109.8,501.8L101.8,498.5L103.2,501.8L101.1,505.8L98.9,506.8L96.4,505.2L95.2,506.3L97.7,511.7L95.6,512L93.2,516.9L91.9,518.1L90.2,518L91.2,519.1L90.4,520.9L92.5,520.6L91.7,522.2L93.1,524.1L92.4,524.5L92,523.2L89.1,523.5L87,524.4L87.4,525.6L85.3,525.8L84.8,527.1L98.9,538.8L104.6,541.7L106.4,544.3L108.2,543.9L119,547L129.5,548.7L130.8,547.2L130.2,544.5Z","bb":[84.8,498.5,133.2,548.7],"c":[110.2,523.6]},"Karur":{"d":"M189.8,255.1L183.6,248.9L178.9,249.1L173.2,246.8L168.8,249.8L167,249.4L165.7,251.8L161.9,254L159.3,253.4L159,251.9L156.9,251.7L155.7,249.4L151.9,250.2L152.9,254.6L152.1,256.6L149,258.8L149.3,259.9L151,260.3L150.1,266.3L151.1,267.1L151.5,269.3L152.8,267.9L153.6,269.9L156,270.7L157.5,272.9L159.5,271.5L160.5,272.1L160.9,276.9L162.7,277.1L163,278.3L163,279.1L160.9,279.3L153.8,275.9L153.3,277.4L151.7,277.5L151.1,279.7L153.6,281.2L155.2,280.6L156.6,281.5L156.3,285L154.7,287.1L154.7,288.4L155.7,288.5L155.2,291.6L156.4,292.8L161,293.3L161.4,291.9L163.3,291.9L164.6,290.8L165.1,291.6L171.4,292.5L170.6,289.2L174.1,288.9L175,284.5L174.6,283.4L173.4,283.5L173.4,282.2L166.8,282.8L167.6,279.6L171.9,280.5L173.1,280.3L173.4,279L176,279.3L176.3,278.3L179,279.1L179.2,280.1L180.4,278.9L183.2,279.8L183.9,276L188.2,276.1L188.5,273.8L190.7,272.9L191,274.2L191.9,273.2L191.8,274.5L190.2,276.6L188.5,282.4L187.8,288.8L187.9,291.5L189.6,291.6L189.8,295.1L186.9,296.8L186.6,299L187.2,300.2L190.3,301L191.3,300.5L193.2,301.8L196.2,301.5L199.4,298.6L198.7,296.3L201.4,281.9L202.3,282.9L202.3,286.3L207.1,285.9L207.4,284.3L210.7,283.9L210.3,284.6L212.8,286.8L213.2,288.8L215,289.3L216.6,287.5L219.8,287.5L219.8,286.1L224,287L224.7,285.4L229.1,283L228.8,280L229.7,279L227.1,276.9L228,275.1L230.2,275.7L231.3,273.6L229.8,272.9L230.3,271.2L227.6,268.7L221.7,267L221.2,267.9L219.8,267.8L220.3,265.8L221.6,265.8L219.1,265L219.6,264.3L213,260.3L198.1,259.6L193.4,260.5Z","bb":[149.0,246.8,231.3,301.8],"c":[211.3,274.3]},"Madurai":{"d":"M210.8,325.5L209.2,327.1L208,326.5L205.9,326.6L206.8,326.6L206.9,327.6L205.5,328.1L206.2,331L205.1,332.1L205.8,333.6L205,335.1L203.9,335L204.3,335.6L202.2,336.1L200,338.2L200.3,339.3L199.1,340.3L199.1,341L200,341.3L199.3,340.6L201.2,339.8L201.5,341.6L201.1,343.5L200.1,343.5L200.4,345L199.1,347.9L193.5,349.8L193.6,348.5L190.3,347.2L190.7,346.6L188.9,345.7L189.8,344.1L189.4,341L186.4,337.7L175.5,338L174.9,340.1L173.3,340.4L172,342.8L169.8,342.7L167,345.1L166.8,347.4L168.3,347.4L168.3,348.1L166.2,347.4L165.7,349.3L162.9,348.7L161.3,350.3L159.9,348.9L154.5,349.7L152,351.4L150.3,350.9L145.8,354.7L145.3,353.9L143.9,354.7L143.3,359.6L141.5,360.3L142,363.2L140.9,365.1L139.6,364.6L138.7,367.6L136.1,370.6L136,372.6L136.8,373L135.5,376.5L131,381.7L127.9,389L124.8,391.4L125.1,392.6L121.5,397.4L120.9,398.6L122,400.2L124.3,398.9L124.4,396.8L128.1,390.5L129.1,390.6L128.7,391.9L129.5,392L131.9,389.6L132.9,389.8L134.8,387L137.1,386L138.6,385.8L139.8,388.5L142.2,388.8L143.5,386.7L144.9,387.4L145.1,385.9L150,388.2L151.6,392.4L153,392.6L153.4,391.6L158,392.9L158.7,391.4L162.9,392.2L163.8,393.8L167.1,391.6L169.9,391.8L170,393.1L171.1,393.5L173.6,391.4L175,392.5L177.5,388.6L179.6,389.4L179.4,390.3L181.2,390.4L182.2,388.1L181.1,386.8L180.6,382.9L179.6,382.3L180.2,381.2L183.5,380.9L183.8,379.6L182.2,378.6L183.8,377.8L187,380.3L187.9,377.5L187.4,375.5L190.5,376.8L189.3,379L190.8,379.2L192.6,375.8L190.2,373.4L188.5,373.7L187.5,375.2L186.1,375L185.8,371L188.4,371.2L188.4,369L191.3,369.7L194.1,368.9L195.7,370.4L198,370.4L197.1,371.9L198.9,373L199.8,370.8L198.1,369.1L204,369.9L204.7,363.8L207.5,362.5L209.9,363L210.1,360.2L211.8,361.2L218.4,359.6L217.5,357.8L218.4,357.2L218.4,354.7L217.1,353L215.9,352.9L215.6,351.2L218,350.6L218.9,349.3L218.4,346.5L220.1,344.3L217.9,344.6L216.1,343L215.4,344.3L215.3,343.1L213,342.6L214.1,340.4L212.3,339.1L214.1,335.2L212.1,332.3L215.3,330.6L215.2,329.4L211.5,329.4L211,327.1L211.4,327.5L211.9,326.2Z","bb":[120.9,325.5,220.1,400.2],"c":[174.3,362.8]},"The Nilgiris":{"d":"M60.3,197L57.9,195.7L51.5,194.6L37.4,195.7L35.3,194.6L33.8,195L32.1,194.2L31.2,189L27.3,186L24.4,187.2L22.1,190L19.5,189.8L20.7,191.7L19.6,193.3L15.2,193.5L14.2,196.3L11.9,197.5L10.6,197.7L10.1,196.9L6.8,199.3L6.2,197.4L4.5,196.4L0,199.5L1.8,202.7L1.7,203.7L0.5,203.8L1.9,206.5L1.4,209.6L5.1,208.2L5.9,209.9L7.1,209.7L9.1,211.1L10.7,209.7L16.2,213L18.2,212.3L17.9,214.2L22.5,217.7L28,219.3L27,221.1L30.9,220.6L31.1,223.4L29.9,225.1L30.7,226.4L28.8,227.6L28.4,229.3L21.6,232.5L21.2,235.9L20.2,236.6L21.5,236.5L22.1,237.7L23.6,237L23.5,235.6L27.3,235.3L29.6,236.8L36.1,235.8L39,237L43.7,234.4L44.3,233.1L46.6,232.6L45.9,231.3L46.4,230.1L49.5,232L50.1,231.1L51.3,231.6L51,231L52.5,230.1L52.7,227.5L54.7,228.6L56.4,226.5L59.9,227.7L61.6,226.1L60.6,222.2L62.4,222L61.8,221.3L63.2,220.6L64,221.3L64.5,219.9L65.7,220.2L66.1,221.4L70.4,219.9L68.3,219.6L73.5,216.3L73.7,212.4L76.3,212.6L76.5,211.3L74.6,208.4L72.6,209.7L69,208.2L68.8,205.8L69.9,204.5L68.1,204L68.2,203.1L66.9,204L62.2,204.5L61.9,202.1L58.7,199.3L60.3,198.3Z","bb":[0.0,186.0,76.5,237.7],"c":[45.6,211.9]},"Namakkal":{"d":"M218.9,219.4L221.7,215L215.5,218L217.3,216.2L217.6,213.4L218.5,212.6L217.3,212.5L216.6,210L215.4,209.4L216.1,206.9L218.5,206.2L218.9,207L220.1,204.5L218.9,203.5L219.4,202.7L218.2,202.2L218.8,200.3L217.6,199.9L217.9,196.8L216.7,196.7L211.5,197.8L211.2,198.9L210.3,197.6L207.5,202.3L205.8,203.3L204,202.3L205.3,202.2L205.9,200.6L203.7,200L204.9,198.6L203.3,197.6L200.3,198.6L199.5,199.8L200.8,199.9L199.7,200.5L197.5,201.2L193.9,200L193.3,201.2L189.9,201.6L189.3,202.6L185.3,202.6L184.4,200.9L182.4,201.9L181.7,201.1L181.3,204.1L180.5,203.7L179.3,204.9L179,204.2L178.9,205.1L177,203.6L171.4,203.4L170.8,209.6L168.5,209.1L167.8,210.5L166,210.4L166.1,211.3L165.3,210.6L164.8,214.2L161.8,214.1L161.4,215.1L160.3,214.1L159.1,215L158.8,213L155.9,211.8L157.3,210.8L157,209.6L154.7,209.6L155.5,209.7L155.3,210.7L153.5,211.7L152.4,211.4L153.1,209.9L151.2,208.2L150.1,211.4L148.2,211.9L144.9,211.5L145.3,210.1L143.8,210L142.4,214.2L145.8,218.6L149.1,221L154.7,229.7L157.9,230.4L160.3,232.2L160.9,235L160,237.9L162.2,240.9L162,244.2L163.1,248.7L168.4,249.9L173.1,246.8L178.9,249.1L183.6,248.9L190.3,255.2L192.7,254.3L192.9,252.1L189.6,251.6L193.4,248.9L196,251L196.8,249.8L196.1,247L198.1,247.3L199.6,249.4L202.1,248.7L205.4,250.7L205.8,253.2L207.4,253.8L209.2,250L206.8,248.1L206.8,247L205.4,246.7L207.3,245.2L207.5,242.7L210.9,242.7L210.6,238.8L211.6,238.7L211,237.8L213.9,236.7L215,235.3L216.6,229.6L219.3,225.1L218.3,223.2L217.5,223.3L217.5,222L218.7,222.2Z","bb":[142.4,196.7,221.7,255.2],"c":[185.2,225.9]},"Perambalur":{"d":"M267.9,215.9L257.7,204.1L256.4,204.2L255.5,205.8L253.1,205.7L253.1,208.3L252,208.3L251.1,211.1L254,212.5L254.4,213.8L252.3,216.2L252,218L246.4,211.5L242.6,210.8L241.2,212.9L237.5,214.2L238.7,219.1L241.3,218.4L235.9,223.1L238.5,223.3L239,224.7L240.2,223.7L245.6,224.1L246.1,227.1L247.3,228L243.3,231.6L243.6,232.5L242.6,233.6L243.6,235.2L242.2,237.3L239.9,236.9L237.5,239.6L239.9,240.3L243.5,250.9L244.3,249.1L246.5,248.9L245.8,245.9L248.2,244.3L253.2,245.3L252.8,248.6L256.1,248.8L256.8,247.4L259.3,248L259.3,246.8L260.6,246.3L264.6,247.5L269.2,247L272.4,250.6L274.2,249.7L275,248.1L277.1,248L278.6,245.6L277.3,242.4L277.6,241.2L278.7,241L278.6,238.8L279.5,238.4L278.4,237.6L278.3,236L281,236.5L281.5,233.4L282.7,233.4L282.5,232L283.8,231.6L283.8,230.1L282.5,229.4L282.7,227.6L284.6,226.7L285.5,227.5L285.8,226.6L285.6,225.5L284.1,225.4L284.6,223.4L287.2,222.6L286.6,220.1L288.3,218.6L282.5,216.4L277,216.2L275,217.1L271.5,215.7Z","bb":[235.9,204.1,288.3,250.9],"c":[264.9,227.5]},"Ramanathapuram":{"d":"M282.3,371.4L276.2,370.5L274.8,367.1L272.4,365L270.9,362.1L268.2,362.2L268.1,364.1L266.3,364.8L265.5,363.1L263.5,363.8L261.3,365.3L262.1,367L261.2,368.6L259.7,367.8L259.3,368.8L260,369.1L258.9,371.1L258.6,373.3L259.4,374L258.4,375.2L259.2,376.2L258.7,377.5L260.7,377.8L261.5,380.1L260.2,382L257.6,379.9L257.2,381.8L254.4,381.5L253.8,382.1L254.7,383.3L253.6,383.3L252.7,380.5L254.3,380.4L254.9,377.2L253.6,378.5L251.7,377L252.2,378.1L251.1,378.3L250.2,380.4L250.4,376.9L246,378.4L246.7,380.4L245.6,380.6L245.5,381.6L246.5,382.1L246.7,385.7L250,384.5L251.6,385.9L251.7,389.8L250.7,391.2L251.6,392.7L250.9,393.1L252.4,394.4L254.8,394.7L254.2,396.5L249.6,397.6L247.6,397.1L246.9,397.9L242.4,397.1L240.8,395.9L240.2,397.1L241.7,398.8L237.8,402.1L238.6,402.9L238,404.5L234.1,402.8L234.1,400.7L231.2,399.2L230.1,398.9L229.7,399.8L224.6,398.6L222.1,396.5L223,395.4L220.4,395.1L218.9,392.8L218.2,394.9L215.7,395.6L214,397.7L212.6,396.9L212.2,398.3L209.7,399.4L210.4,399.9L210.1,402.1L211.6,402.9L211.1,404.9L210.4,405.7L207.7,405.3L205.7,407.7L206,409.2L207.6,409.3L208.1,410.4L204.1,409.7L203,410.3L203.1,412.2L195,411.7L195.4,415.5L197.4,415.8L197.4,418.4L198.6,419.1L199.4,417.8L202.2,417.4L202.5,418.3L203.4,418L204.1,421.9L202.6,422.2L202.8,423.9L205.4,423.2L206.3,421.1L208.5,420.7L209.4,422.5L205.8,428.9L201.2,428L200,436.3L202.6,436L200.5,442.3L208.6,444.7L208.6,446.6L211.4,447L214.3,445L219.5,443.7L226.3,442.6L230.4,443.4L233,441.7L238.2,440.7L236.6,439.5L237.3,437.7L240.2,436.9L244,437.5L243.9,436.5L245.5,435.3L258.1,430.9L261.5,431.3L264.6,429.7L269.8,429L280.5,430.3L290.3,428.2L292.3,428.2L291.9,428.7L291.9,429.1L293.2,429.4L293.4,430.7L297.1,430.5L302.3,432.3L314.6,440.7L312.7,437.8L303.6,430.1L302.7,428.3L304.7,425.5L304.1,424.5L302.2,423.7L297.9,427.2L293.5,427.3L292.5,428.1L278.8,427L269.9,420.3L265.1,415L262.3,410.2L261.8,407.5L263.5,406.6L265.3,395.8L267.8,393.4L269.9,387.5L273.3,383.3L273.1,382L273.3,383.2L274.7,380.3L275,380.9L277.6,379.2L279.2,375.2L279.5,376.5L281,373.5L280.1,373L281,373.5L281.1,372.6L282.1,372.7L281.5,372.1L282.5,372.2ZM293.2,431.4L289.5,431.5L289.4,432.6L291.4,433.4L293.7,431.7L291.6,432.3Z","bb":[195.0,362.1,314.6,447.0],"c":[237.4,404.5]},"Ranipet":{"d":"M349.4,54L349.5,51.1L348.3,51.1L348,50.2L346.6,51.3L345.2,51.5L344.2,50.4L342.4,51.1L343.1,49.7L344.3,49.9L344.1,47L340.7,46.5L340.8,45.4L342.4,46L342.9,44.8L344.1,44.7L344.1,39.8L340,40.6L339.7,38.7L340.6,37.3L337.6,38.1L337.7,36.1L336.7,35.4L335.4,36.5L335.1,38.6L333.7,39.2L334.1,41.7L329.7,41.7L330.6,43.3L330.2,44.3L327.9,44.3L327.6,42.7L319.2,42.5L318.5,45.7L316.1,47.1L315.4,45.1L313.9,44.8L316.3,43.8L314.9,44L312.9,41.5L311.2,46L313.1,46.1L312.7,48L309.1,48.5L304.7,50.4L303.7,48.7L301.1,47.8L300.6,46.3L298.5,47.8L300.7,51.7L297.9,57.7L298.1,62.4L293.7,60.8L290.3,63.9L290.6,65.7L292.5,66.9L290.7,67.6L289.3,74.5L292.3,78L295.2,76.7L295.4,75.6L296.6,75.7L296.4,74.1L297.5,74.6L297.5,77L300.1,78.5L300.2,81.2L305.5,83.3L305.7,87L306.9,86.8L306.7,84.6L307.8,85L309.1,83.1L310.6,83.5L310.3,85.1L309.1,85.7L310.6,87.5L306.5,89.6L307.4,91.3L306.3,91.8L309.4,93.6L312,90.9L316.1,89.3L316.5,86.6L317.5,86.4L317.2,84.8L318.5,83.3L316.3,82.4L317.7,80.8L317.2,76.6L318.6,76.5L318.6,75.7L316.7,75.4L316.7,72L318.2,71.3L318.2,69L321,69.3L321.7,70.7L324.7,70.2L327.2,70.9L326.5,68L327.6,66.5L336.9,63.4L336.5,61.4Z","bb":[289.3,35.4,349.5,93.6],"c":[311.8,64.5]},"Salem":{"d":"M235.1,169.5L232.1,174.2L226.5,175.8L218.3,173.8L216.3,171L216.9,169.6L214.3,168.4L213.2,169.1L210.9,173.9L205.8,178.9L204.3,178.2L207.5,174L207.7,171.6L209.7,168.4L209.5,167.3L208.2,167L208.8,165.3L203.9,168.3L205.6,166.5L206.1,164.2L205.4,163.5L203.3,164.2L201.1,166.5L200,166.4L202.1,163.3L200.6,163.3L198.9,165.2L200.4,162.7L198.8,162.4L196.7,164.7L198.4,161.4L196.6,158.5L187.8,159.6L183.4,160.9L180.8,162.7L177.4,162.8L176.2,164.4L174.7,164.3L170.6,166.9L164.2,166.4L160.5,164.9L158.6,167L154.6,165.6L150.2,165.5L147.7,162.4L143.2,162.3L139.5,161L134.6,162.7L130.4,162.3L128.2,163.2L124,162.1L123.1,167.7L120.7,166.5L121.1,171.8L119.5,176.9L116.1,182.4L116.5,183.6L118.1,183.3L118,184.9L118.9,184.8L118.1,186.2L118.5,189.1L119.9,189.9L118.3,192L119,194.6L120.4,195.8L119,200.3L124.1,201.3L123.8,200.6L126.1,198.5L125.7,197.3L127.3,197.8L128.1,194.5L130.8,190.4L132,191.2L132.1,187.9L133.2,188L135.3,191.2L136.5,190L136.1,188.8L137.6,190.1L139.1,186L141.7,183.9L141.4,183.2L142.7,182.2L145.5,176.7L146.2,177.3L143.2,184.6L143.6,192.5L144.6,193L145.6,191.5L148.6,191L151.6,186.9L147.6,196.3L148.6,199.4L146.5,202.8L147.3,205.3L143.9,209.1L143.8,210L145.3,210.1L144.9,211.5L150.1,211.4L150.5,208.7L151.4,208.2L153.1,209.9L152.4,211.4L154.3,211.6L154.5,210.6L155.3,210.6L154.7,209.6L156.8,209.5L157.3,210.8L155.9,211.8L158.8,213L159.1,215L160.3,214.1L161.4,215.1L161.8,214.1L164.8,214.2L165.3,210.6L166.1,211.3L166,210.4L167.8,210.5L168.5,209.1L170.8,209.6L171.4,203.4L177,203.6L178.9,205.1L179,204.2L179.3,204.9L180.5,203.7L181.3,204.1L181.7,201.1L182.4,201.9L184.4,200.9L185.3,202.6L189.3,202.6L189.9,201.6L193.3,201.2L193.9,200L197.5,201.2L199.7,200.5L200.8,199.9L199.5,199.8L200.3,198.6L203.3,197.6L204.9,198.6L203.7,200L205.9,200.6L205.3,202.2L204,202.3L205.8,203.3L207.5,202.3L210.3,197.6L211.2,198.9L211.5,197.8L217.9,196.8L217.6,199.9L218.8,200.3L218.2,202.2L219.4,202.7L218.9,203.5L220.1,204.5L218.9,207L218.5,206.2L216.1,206.9L215.4,209.4L216.6,210L217.3,212.5L218.5,212.6L217.6,213.4L217.3,216.2L215.5,218L221.7,215L221.3,215.7L223.6,216.8L223,218.4L224.2,218L225,219.4L227.9,220.6L227.9,224.5L230.1,224.9L232.9,222.6L236.6,222.2L238.7,219.1L237.5,214.2L241.2,212.9L242.6,210.8L246.4,211.5L252,218L252.3,216.2L254.4,213.8L254,212.5L251.2,210.7L252,208.3L253.1,208.3L253.1,205.7L255.5,205.8L256.4,204.2L255.5,202.5L253.6,202L255,198.6L249.7,195.9L251.1,193.6L250.8,192.3L249.5,192.8L252.8,190.3L252.6,187.6L250.2,186.1L244.1,188.1L241.6,187.5L240.1,189.3L240.4,192.1L238.3,191.7L238.4,190.3L237,190.4L237.7,184.9L236.2,184.3L236.7,179.6L238.6,178.5L238.9,176.8L241.6,176.1L241.8,171.3ZM127.6,171.6L128.8,172.8L129.3,175.6L128.6,176.3L131.7,176.3L131.5,177.9L135.9,177.9L137.7,181.1L137.4,183.5L136.3,182.7L135.6,179.8L133.4,179.1L132.8,180.7L133.9,181.5L131.5,185.3L130.1,179.8L128.4,181.2L129.1,182L128.3,182.5L127.2,181.3L125.4,181.1L122.1,185.1L121.7,184.7L121.7,187.1L120.3,188.7L119.5,186.8L121,182.2L122.5,182.5L127.5,178.6L127.1,175.3L127.9,173.9L126.9,172ZM129.9,174.3L129.6,174.8L129.2,174.5ZM130.4,189.8L129.6,190.1L129.9,189.5ZM128.8,192L129,192.8L128.4,192.5Z","bb":[116.1,158.5,256.4,224.9],"c":[194.3,191.7]},"Sivaganga":{"d":"M222.4,321.3L223.4,317.6L217.5,315.6L216.6,318.1L217.7,319L216.4,320.2L212.1,321L213.3,322.1L210.8,325.5L211.9,326.2L211.4,327.5L211,327.1L211.5,329.4L215.2,329.4L215.3,330.6L212.1,332.3L214.1,335.2L212.3,339.1L214.1,340.4L213,342.6L215.3,343.1L215.4,344.3L216.1,343L217.9,344.6L220.1,344.3L218.4,346.5L218.9,349.3L218,350.6L215.6,351.2L215.9,352.9L217.1,353L218.4,354.7L218.4,357.2L217.5,357.8L218.4,359.6L211.8,361.2L210.1,360.2L209.9,363L207.5,362.5L204.7,363.8L204,369.9L198.1,369.1L199.8,370.8L198.9,373L197.1,371.9L198,370.4L195.7,370.4L194.1,368.9L191.3,369.7L188.4,369L188.4,371.2L185.8,371L186.1,375L187.5,375.2L188.5,373.7L190.2,373.4L192.6,375.8L190.8,379.3L189.3,379L190.5,376.8L187.4,375.5L187.9,377.5L186.7,381.7L187.9,382.2L189.6,380.7L190.5,381.7L190.6,380.4L193.6,380.1L194.2,378.2L196.9,380.7L200.8,382.4L200.9,386.9L200.2,387.3L202.2,389L203.3,388.6L202.6,387.1L205.5,382.2L205.1,385.7L207.2,388.4L206.9,390.7L207.9,389.9L208.5,391.3L211.8,391.2L212.9,395.3L213.7,394.5L214.5,395.6L215.4,394.7L216.7,395.5L218.3,394.8L218.9,392.8L220.4,395.1L223,395.4L222.1,396.5L224.6,398.6L229.7,399.8L230.1,398.9L231.2,399.2L234.1,400.7L234.1,402.8L238.1,404.4L238.6,402.9L237.8,402.1L241.7,398.8L240.2,397.1L240.8,395.9L242.4,397.1L246.9,397.9L247.6,397.1L249.6,397.6L254.2,396.5L254.8,395L250.9,393.1L251.6,392.7L250.7,391.2L251.7,389.8L251.6,385.9L250,384.5L246.7,385.7L246.5,382.1L245.5,381.6L245.6,380.6L246.7,380.4L246,378.4L250.4,376.9L250.2,380.4L251.1,378.3L252.2,378.1L251.7,377L253.6,378.5L254.9,377.2L254.3,380.4L252.7,380.5L253.6,383.3L254.7,383.3L253.8,382.1L254.4,381.5L257.2,381.8L257.6,379.9L260.2,382L261.3,379.2L260.7,377.8L258.7,377.5L259.2,376.2L258.4,375.3L259.4,374L258.6,373L260,369.2L259.4,368.1L261.2,368.6L262.1,367L261.3,365.3L263.5,363.8L265.5,363.1L266.3,364.8L268.1,364.1L268.2,362.2L270.8,362.4L270.7,361.3L272.1,360.8L271.4,359.9L272.1,358.6L273.1,358.3L271.2,356.9L269.2,357.3L268.3,355.7L264.9,354.3L264.4,351.8L266.3,350.5L265.3,349.3L267.9,346.9L269.2,348.3L270.5,347.5L268.6,343.8L266.7,345.9L263.3,343.7L263.3,342L262,340.8L261.6,341.7L260.2,341L258.3,343.8L256.8,343.9L256.9,342.7L255.4,342.5L253.5,339.8L254.4,336.7L253.1,335.2L249.1,336.6L248.9,340.1L246,340.6L243.2,338.9L241.5,341.7L240.2,341.8L239.2,341L238.8,338.6L239.7,336L237.6,334.5L237.5,332.8L236.6,332.4L237.6,331L236.1,329.5L233.6,329.4L230.3,327.7L229.5,328.4L230.2,329.8L229.6,330.8L227.9,331.5L226.4,330.7L224.5,332.8L224.3,337.4L221.5,337.4L219.8,336.2L220,334.5L221.5,333L220.6,332.2L221.3,331.2L219.2,332.4L217.5,331.9L218,329.7L224.1,329.7L224.8,323.8Z","bb":[185.8,315.6,273.1,404.4],"c":[244.3,360.0]},"Theni":{"d":"M145.3,353.9L145,348.4L143.8,347.8L144.3,346.2L141,344.2L141.8,342L143.3,341.9L144.9,343.6L147,343.3L147,340.6L145.3,339.5L144.2,336.9L145.1,335.8L144.7,334.9L143.4,336.8L142.3,336.3L140.6,337.6L136.5,334.6L131.3,338.3L131,336.9L129.2,336.1L129,338.2L128.2,337.7L125.6,340.4L123.2,341.7L122.7,341.1L121.1,343.6L117.3,342.9L114.2,340.2L111.9,342.5L110.7,341.4L108.9,342.9L107.7,342.2L107.1,343.7L105,342.9L103.1,344.7L99.4,343.4L95.8,344.7L95.3,347.6L101.1,353.5L100.2,355.2L101.5,356.3L101,357.2L102.1,360L99.6,361.3L96.8,366L97,368L96.2,368.8L98.6,371.3L97.2,372L97.1,374.2L99,374.9L99.6,376.7L97.2,377.7L98.2,379.6L97,382L97.3,383.4L95.3,384.3L95.6,387L93.1,390.5L91.6,395.2L93.9,395.9L95.9,395.1L98.4,398.3L101.8,399.2L106.6,396.2L107.7,396.6L107.3,398.5L108.7,399.1L110.2,396.1L110.8,396.2L111.3,396.9L110.4,397L110.7,398.7L109.7,399.8L111.2,401.2L111.2,403L113.2,404.5L117.4,401.8L120,402.3L121.8,401.6L122,399.7L120.9,398.5L125.1,392.6L124.8,391.4L127.9,389L131,381.7L135.5,376.5L136.8,373L135.9,372.4L136.2,370.2L138.7,367.6L139.6,364.6L141,365L142,363.2L141.5,360.3L143.3,359.7L143.9,354.7Z","bb":[91.6,334.6,147.0,404.5],"c":[116.8,369.6]},"Tenkasi":{"d":"M108.7,414.4L109.1,416.4L107.3,422.8L104.8,422.8L104.8,425.4L103.1,426.3L103.7,429L102.3,432.9L103,434.8L100,437.6L101.4,438.3L101.5,441.2L99.6,444L96.2,446.4L94.7,451.8L91.8,451.9L89.7,454.3L90,455.5L92.4,457.3L92.8,459.6L94.1,459.9L94.3,463.8L96.8,464.6L99.4,468.5L104.3,468.2L108.9,469.7L113.3,469.3L113.1,471.6L115.3,472.6L114.7,473.6L116.1,473.9L116.6,477.7L118.7,479.7L120.6,479.3L120.8,475.1L125.1,477L125.5,475.6L126.4,476.3L125.8,477.3L126.4,478.3L131.2,477.6L133.7,469.6L131.6,468.3L130.7,468.7L131.4,465.9L130.5,465.3L133.6,465.4L133.6,462L136.1,463.1L136.4,461.5L138.7,460.8L139.6,460.8L139.9,463L143.6,464.6L141.7,457.5L143.2,457.1L145.1,459.7L146,459.8L147,458.2L146.3,456.2L143,456.5L142.9,455L143.8,454.4L143.5,453.3L145.4,451.9L144.5,449.1L148.4,448.7L148,445.8L142.7,446.2L141.5,443.8L141.5,442.7L144.1,442.7L143.1,440.6L144.5,439.9L144.7,437.6L147.5,436.8L147.3,434.5L148.5,433.9L148.2,429L145.3,427.3L139.7,428.1L132.9,425.6L133.2,421.7L131.6,422.2L131.8,421.1L130.4,421.1L129.3,420.1L129.8,419.4L127.7,418.9L127.3,420.4L126.3,420.8L127.2,421.6L126.6,423L122,422.4L121,423.5L120.4,422.8L121.3,421.8L118.7,421L118.4,419.7L119.6,419.5L118,417.4L116.6,416.5L113.6,417.2Z","bb":[89.7,414.4,148.5,479.7],"c":[122.1,447.3]},"Thiruvarur":{"d":"M345.3,256.8L337.7,254.7L335,255.5L333.9,258.4L331.1,258.2L331.1,259.3L329.3,258.1L328.2,259.4L327.2,258.8L324.1,259.6L323.7,260.5L323.9,259.5L322.6,259.4L322.7,261.8L321,262.3L319.4,264.4L321.6,266.9L319.7,267.5L319.5,269.5L316.8,270.1L311.6,267.2L308.1,267L301.3,262.9L300,262.7L298.8,263.8L299.9,265.7L300.8,265.7L300.8,266.1L298.1,265.9L298.7,269.2L300.8,270L300.2,273.2L301.1,272.9L303.8,275.4L308.8,276.1L306,276.9L305.7,279.8L307.3,280L307.3,281.2L305.3,282.5L303.3,282.7L302.4,281.8L301.4,282.5L303.2,288L303,290.4L305.5,290.6L306.9,291.9L306,293.8L306.3,298.2L310.7,298.4L311.6,301.3L316.2,300.5L316.2,301.4L313.9,301.9L313.3,302.9L317.9,305.3L316.5,307.6L319.2,307.5L318.9,310.1L317.9,310.3L318.2,312.9L316.1,313.5L317.5,314.9L317.1,315.8L318.5,316.4L318.7,317.1L317.1,317.2L317.7,319.2L319.5,318.4L321.4,319.8L320.8,325L325.2,324L325.7,324.7L323.9,325.5L341.4,328.4L342.7,327.9L334.5,322.2L333.4,316.8L333.7,311.9L337,312.4L339.6,311.5L338.3,308.4L340.5,308.1L339.4,305.4L340.6,305.9L343.2,302.8L341.6,301.1L336.6,300.5L337.5,298.9L338.5,299.2L339.3,298.1L337.5,297.9L336.2,295.1L337.9,294.8L337.9,294L335.6,292.2L336,290.7L337.3,291.4L338.4,288.4L337.8,287.1L335.8,286.2L336.1,285.2L337.5,285.7L339.3,284.9L338.7,283.6L340.4,281.9L340.9,278.1L343.4,276.8L343.7,275.5L342.9,275.7L343.3,273.5L339.2,273.5L339.2,274.8L336.5,274.7L336.3,275.9L333.8,274.9L333.8,274.2L335.9,274L336.1,272.1L334.8,270.8L335.7,270.8L335.3,269L336.2,268.9L335.9,267.8L337.4,265L339,263.6L339.6,264.4L341.2,263.9L342,265.1L342.1,263.4L343.4,263L342.9,262.3L344.2,261.6L344.1,260.7L342.6,261.3L342.5,259.6L344.9,259.8L345.1,260.8L346.8,260.5ZM342.3,261L342.5,260.9L342.5,261ZM342.8,262.8L342.5,262.7L342.7,262.6Z","bb":[298.1,254.7,346.8,328.4],"c":[320.9,291.6]},"Tiruchirappalli":{"d":"M238.7,219.1L236.5,222.3L232.9,222.6L231.8,223.8L230.9,223.5L230.2,224.8L228.7,224.8L227.9,224.5L227.9,220.6L225,219.4L224.2,218L223,218.4L223.6,216.8L221.3,215.7L218.9,219.4L218.7,222.2L217.5,222L217.5,223.3L218.3,223.2L219.3,225.1L216.6,229.6L215,235.3L213.9,236.7L211,237.8L211.6,238.7L210.6,238.8L210.9,242.7L207.5,242.7L207.3,245.2L205.4,246.7L206.8,247L206.8,248.1L209.2,250L207.4,253.8L205.8,253.2L205.4,250.7L202.1,248.7L199.6,249.4L197,247L196.1,247L196.8,249.8L196,251L193.4,248.9L192.8,250L191.4,249.6L189.5,251.8L192.9,251.9L192.7,254.3L189.8,255.1L193,260.3L198.1,259.6L213,260.3L219.6,264.3L219.1,265L221.6,265.8L220.3,265.8L219.8,267.8L221.2,267.9L221.7,267L227.6,268.7L230.3,271.2L229.8,272.9L231.3,273.6L230.2,275.7L228,275.1L227.1,276.9L229.7,279L228.8,280L229.1,283L224.7,285.4L224,287L219.8,286.1L219.5,287.6L216.6,287.5L215.3,289.3L213.6,289.1L211.3,284.8L210.3,284.6L210.7,283.9L207.4,284.3L207.1,285.9L202.3,286.3L202.3,282.9L201.4,281.9L198.7,296.3L199.4,298.6L197.4,301L192.2,302.6L190.6,306.1L192.4,306.4L194.9,309.8L197.8,309.7L204.5,312.5L203.7,315.2L201.8,316.3L200.8,318.1L202.3,320.3L206.1,322.7L206.7,323.9L206.3,326.4L209.2,327.1L210.4,326.4L210.1,325.6L211.9,324.9L213.2,322.4L212.1,321L216.4,320.2L217.7,319L216.6,318.1L217.5,315.6L223.4,317.6L223.2,318.9L224,319.3L225.6,317.4L224.3,315.7L224.9,312.8L228.8,313.8L229.1,312.2L231,312.4L231.5,309L229.6,307.6L230.7,304.3L227.6,305.1L226.3,303.4L225.9,305.1L226.7,306L225.4,307.8L222.3,308L221.8,303.8L221.3,302.6L219.1,302.4L219.3,298.6L217.4,295.6L221,292.6L225.3,293.6L224.4,289.5L227,288.9L227.7,287.8L229.4,288.3L229.1,290.4L231.8,290.6L233.4,288.4L234.6,288.9L235.1,286.2L235.9,285.7L238.2,286L237.6,290.6L238.9,291L239,289.3L240.6,289.4L240.6,287.8L242.1,286.2L241.3,283L243.2,283.2L243.3,284.3L246.5,285.7L246.9,287.8L245.8,289.3L247.1,292.3L248.7,291L251.2,291.5L252.1,288.5L253.4,289.2L254.1,287L259.2,287.6L258.5,283.2L260.1,278.7L260,277.6L258.7,278L258.1,276.1L258.9,273.9L251.8,274.1L249.8,273.2L257,272.3L264.3,269.9L265.9,268.6L265.9,267.7L267.9,267L268.5,267.7L272.3,267.1L272,264.2L270.8,263.6L270.1,264.3L269.6,262.1L266.6,260.2L266.6,258.8L270.5,259.8L270,258.9L271,256.3L273,255.5L272.4,250.4L269.9,247.4L264.6,247.5L260.6,246.3L259.3,246.8L259.3,248L256.8,247.4L256.1,248.8L252.8,248.6L253.2,245.3L248.2,244.3L245.8,245.9L246.5,248.9L244.3,249.1L244,250.9L242.4,249.6L239.9,240.3L237.5,239.6L239.9,236.9L242.2,237.3L243.6,235.2L242.6,233.6L243.6,232.5L243.3,231.6L247.3,228L246.1,227.1L245.6,224.1L240.2,223.7L239,224.7L238,223.1L236.1,223.3L241.3,218.4ZM229.5,285.6L230.5,286.5L230,288L228.4,286.8Z","bb":[189.5,215.7,273.0,327.1],"c":[244.9,271.4]},"Tirunelveli":{"d":"M150,463.7L142.6,464.6L139.9,463L139.6,460.8L136.4,461.5L136.1,463.1L133.6,462L133.6,465.4L130.4,465.5L131.4,465.9L130.7,468.7L131.6,468.3L133.7,469.6L132.8,473.8L131.3,475.3L131.3,477.5L126.4,478.3L125.8,477.3L126.4,476.3L125.5,475.6L125.1,477L120.8,475.1L120.1,477.8L120.7,479.2L119.5,480.1L116.6,477.7L116.1,473.9L114.7,473.6L115.1,472.3L113.1,471.6L113.3,469.3L108.9,469.7L104.3,468.2L100.8,468.4L101.1,472.3L99.6,475L98.1,475.7L97.9,478L96.3,478.6L96.7,479.6L94.7,479.6L94.2,482L92,481.7L95.6,488L95.1,489.6L99.3,494.3L99.4,496.1L101.6,498.5L109.8,501.8L112.1,504.7L113.6,504.1L118.4,505.7L119.5,507.7L119.1,509L121.1,509.6L121.7,510.9L120.7,513.6L121.8,514.8L121.8,516.7L123.6,518.6L125.2,517.8L126.4,518.2L127.5,517.2L128.2,517.9L128.6,522.9L127.7,522.9L127.5,524.6L130.8,528.6L129.7,528.8L130.6,528.9L130.2,529.5L132,532L128.9,532.4L128.4,534.3L129.3,534.5L128.7,535.9L129.6,537.3L128.1,539.5L129,540.7L132.7,541L133.2,542.3L148.6,538.7L152.1,536.4L152.3,534.3L154.2,532.4L162.6,529.1L168.9,525.1L171,522.7L163,524.3L162.7,522.3L161,521.4L159.7,522.4L159.8,520.8L158.5,521L158,520.2L159.3,518.9L157.4,518.2L159.5,518L159.8,516.8L158.6,514.1L157.1,513.2L157.9,511.3L157.1,510.8L158.2,509.3L156.5,507.5L156.5,504.9L154.6,503.3L155.9,502.4L155.1,499.4L153.6,499.9L154.2,498.9L152.1,498.1L152.6,494.4L154.5,495.3L155.8,493.4L155.8,491.4L154.5,491.7L156.3,489L154.9,488.1L156.7,483L155.7,478.9L158.2,477.8L159,476.2L157,473.1L155.7,472.7L155.1,469.3L150.2,467.8Z","bb":[92.0,460.8,171.0,542.3],"c":[132.3,501.5]},"Tiruppur":{"d":"M151.6,250.6L147.7,247.9L147.1,248.8L145.4,248.6L144.8,247.3L140.3,246.1L137.5,243.9L135.6,243.9L134.1,245.3L132.7,244.3L130,245.6L124.8,245.8L124.3,241.8L122.8,242.5L123,240.4L121.5,240L122.1,238L125.7,238.2L126.1,235.9L125.5,236.6L124.4,235.9L124.5,233.8L121,231.2L121.4,229.5L119.8,225.1L120,225.8L118.9,225.9L117.2,224.5L116.3,225.4L111,222.3L111.3,224.7L108.1,225L109.6,227.9L107.9,230.8L104.4,229.2L106.2,228.3L103.5,227.2L103.7,222.1L103.6,223.1L100.3,225.4L99.6,223.5L98.7,224.2L99.1,225.9L96.6,226.7L95.2,226.1L97.1,225.8L97.6,224.7L98.6,225.1L98.4,223.4L97.1,222.4L98.3,221.3L94.6,222.6L92.9,222.3L93.3,225.1L89.8,222.8L90.1,225.8L87.7,225.7L86.8,227L89,228.5L89.5,227.7L90.4,228.6L92,228.1L91.6,232L89.6,235.7L90.9,236.7L91.1,239.7L93.2,240.3L92.3,242.6L94,241.4L97.4,244L99.1,242.7L101.3,245.4L91.9,249.7L92.9,252.8L92.6,254.9L90.4,256.6L93.2,264.4L94.9,264.4L96.1,266.2L99.7,266L100.7,269.5L103.7,271.7L104.7,275L102.7,276.2L103.2,277.8L100.3,278.8L96.4,277.9L96.5,276.1L92.2,276.2L88.5,281.4L89.6,290.5L93.2,292.2L91.7,297.7L84.2,298.1L82.6,301.5L83,306.2L81.1,308.6L82.5,310.5L79.4,313.8L84.1,319.3L83.3,324.3L84,324L84.7,325.6L87.2,324.7L92.7,320.6L98.5,321.2L97.7,324.9L101.2,330.1L100.8,333.4L101.8,332.8L103.6,333.3L104.5,331.2L105.8,331.8L107.3,329.5L109.5,330.1L109.8,329.1L107.4,324.4L108.4,321L106.3,320.9L106.8,313.1L108,311L110.4,312L113.2,311.6L112.5,307.1L114.8,306.6L115.2,304.3L112.5,303.9L111.5,301.8L114.8,295.1L122.7,291.5L124.9,292.2L126,295.2L125.3,295.8L128.7,295.5L129.3,292.6L131.5,290.7L132.3,288.6L137.9,289.6L139.7,289.1L140.6,284.8L143,283L144.3,283.1L144.7,284.9L144.9,287.8L143.9,290.2L146.4,292.4L146.1,293.3L148.4,292.8L149.4,291.3L149.4,289.7L150.6,288.5L154.7,288.4L154.9,286.6L156.3,285L156.6,281.5L155.2,280.6L153.6,281.2L151.1,279.7L151.7,277.5L153.3,277.4L153.8,275.9L160.9,279.3L163,279.1L163,278.3L162.7,277.1L160.9,276.9L160.5,272.1L159.5,271.5L157.5,272.9L156,270.7L153.6,269.9L152.8,267.9L151.5,269.3L151.1,267.1L150.1,266.3L151,260.3L149.3,259.9L149,258.8L152.1,256.6L152.9,254.6L153.1,253.2Z","bb":[79.4,221.3,163.0,333.4],"c":[127.9,277.3]},"Tirupathur":{"d":"M257.9,93.1L255.8,92.1L253,92.8L255.7,90.7L256.2,88.6L257.7,88.2L256.5,86.8L257.4,84.8L256.9,80.8L258.1,79L259.2,79L260.5,75.4L258.5,73.8L259.5,72.9L261.7,73L261.3,72.2L259.8,72.3L259.6,71.1L261.9,70.8L262.3,71.5L262.1,69.4L263.7,65.4L250.4,71.7L247.1,74.7L245.7,73.4L245.3,69.9L244.2,70L243.9,71.4L243.5,70.5L237.8,69.9L232.8,72L233.3,74.3L231.8,78.2L228.1,80.9L228.9,81.3L228.1,82.5L228.9,82.7L228.2,86.4L226.2,87.4L225.5,85.6L227,85.4L226.4,84.8L225.1,84.9L225.3,84.3L223.8,85.7L223,84.8L222.3,86.1L223.4,87.3L222.6,89L219.5,88.9L220.2,91.7L219.2,94.1L215.5,92.9L213.5,94.5L213.8,97.6L214.9,99.4L214.4,107.6L217.8,111.5L218.3,113.6L216.4,117.1L221.7,117.8L222.3,115.3L223.5,116.6L224.1,115.7L229.3,117.6L231,120.4L234.2,121.7L233.6,123.5L231.3,125.2L233.4,125.5L232.9,130.2L234.8,130L236.6,128.2L235.9,130.3L239.9,129.5L243.3,126L245.2,119.1L247,118.3L248.3,116.3L249.1,113L248.1,112.2L249.9,110.5L249.7,107.9L251.1,106.5L252,106.7L253.9,103.5Z","bb":[213.5,65.4,263.7,130.3],"c":[235.0,98.0]},"Thiruvallur":{"d":"M402.6,32.9L404,25.1L402,12.3L399.5,8.6L396.4,0L393.8,9.4L391.1,7.4L384.3,7.3L383.7,6L381.1,5.9L380.6,7.6L377.7,7.6L377.6,3.8L378.7,2.9L378,1.5L375.6,2.8L371.3,1.7L369.9,2.2L370.1,3.9L371.7,3.5L372.7,5.1L374.7,5.2L374.6,7.1L371.6,6.7L370.7,8.6L368.4,8.5L367.3,9.6L367.4,13.5L364.1,14L364.3,14.8L363.6,14.8L364.7,15.7L364.5,16.8L366.3,17.3L365.9,18.5L364.6,18.3L363.9,20.9L361.7,20.5L361.6,21.6L358.6,23.2L358.5,24.1L357,23.4L356.5,24.8L351.2,24.7L349.5,27.1L346.5,24.6L346.1,26.9L343.8,27.6L344,28.9L349.8,32.3L349.8,33.8L348.9,33.7L348,34.9L346.8,34.6L345.9,35.8L344.2,32.8L342.3,34.8L340.8,34.2L341.8,32L340.6,31.2L340.1,32.6L339,32L338.4,30.3L340.1,29.7L338.4,26.7L337.1,28.6L337,27.5L336.4,28.1L334.9,27.4L333.8,29.5L331.3,28.5L331.6,27.7L330.3,28L329.8,30.4L328.2,30.6L326.6,29.2L324.3,28.9L325.2,24.8L324.6,22.6L322,22.3L320.6,23.3L320.9,21.7L316.6,22.6L314.5,21.3L314.2,22.8L311.6,23L311.3,24.7L309.9,24.7L309.3,25.7L310,25.5L310.1,26.7L312.6,26.5L313,27.5L315.5,26.3L314.4,29L311.9,29.9L313.3,31.3L312.9,32.2L314.8,32.2L314.2,32.9L315,32.9L314,33.3L314.1,33.5L316.3,32.6L316.4,34.8L314.7,34.5L315.4,35.7L314.3,36.8L314.8,37.6L308.5,37.5L309.9,38.7L308.1,39.2L309.1,40.2L306.8,40L307.7,43.1L307,44.3L305.7,44.3L305.3,42.8L302,45.9L300.7,45.5L302.5,43.8L299.7,44.2L301.1,47.8L303.7,48.7L304.7,50.4L306.3,50.2L309.1,48.5L312.7,48L313.1,46.1L311.2,46L312.9,41.5L314.9,44L316.3,43.8L313.9,44.8L315.4,45.1L316.1,47.1L318.5,45.7L319.2,42.5L327.6,42.7L327.9,44.3L330.4,44.1L329.6,41.7L334.1,41.7L333.7,39.2L335.1,38.6L335.4,36.5L336.7,35.4L337.7,36.1L337.6,38.1L340.6,37.3L339.7,38.7L340,40.6L344.1,39.8L344.1,44.7L342.9,44.8L342.4,46L340.8,45.4L340.7,46.5L344.1,47L344.3,49.9L343.1,49.7L342.4,51.1L344.2,50.4L345.2,51.5L346.6,51.3L348,50.2L348.3,51.1L349.3,50.8L349.1,53.6L350.5,55L353,53.4L353.4,56.8L351.6,57.4L352.3,57.7L352.4,60.3L359.2,62L361.6,58.6L359.1,57.1L361,56L363,57.5L364.3,56.3L362.1,54.5L360.2,54.8L360.2,51.5L361.9,51.7L362,53L365,53.2L366.9,52.7L367,51.6L368.7,50.8L369.1,51.3L367.5,52.6L368.2,53.3L369.5,51.8L372.3,52.4L372.2,54.1L374.2,54.6L374.1,53.5L375.2,54.2L377,52.7L377.9,54.9L378,52.4L382.6,53L384.6,50L385.1,51.5L384.3,52.5L385.5,52.3L385.9,48.3L383.8,46.6L384.3,42.5L387.4,42.5L387.3,41.7L389.1,41.1L388.7,39.6L389.6,38.3L391.2,39.2L391.9,36.5L396.6,36.1L397,33.5L399.8,35.2Z","bb":[299.7,0.0,404.0,62.0],"c":[375.3,31.0]},"Tiruvannamalai":{"d":"M334.5,75L324.7,70.2L321.7,70.7L321,69.3L318.2,69L318.2,71.3L316.7,72L316.7,75.4L318.6,75.7L318.6,76.5L317.2,76.6L317.7,80.8L316.3,82.4L318.5,83.3L317.2,84.8L317.5,86.4L316.5,86.6L316.1,89.3L312,90.9L309.4,93.6L306.3,91.8L307.4,91.3L306.5,89.6L310.6,87.5L309.1,85.7L310.3,85.1L310.6,83.5L309.1,83.1L307.8,85L306.7,84.6L306.9,86.8L305.7,87L305.5,83.3L300.2,81.2L300.1,78.5L297.5,77.1L297.5,74.6L296.4,74.1L296.6,75.7L295.4,75.6L295.2,76.7L292.3,78L292.8,80.4L292.1,82.3L290.4,81.6L288.9,82.3L287.6,79.2L287.4,81.2L284.8,80.2L280.6,80.6L279.4,81.6L279,80.9L277.4,84.7L274.1,87.6L273,90.7L274.1,87.2L271.3,85.9L269,89.8L266.7,88.5L266.9,87.8L264.7,88.9L263.1,87.7L261.7,88.5L261.6,87.5L258.6,93.3L257.9,93.1L253.9,103.5L252,106.7L251.1,106.5L249.7,107.9L249.9,110.5L248.1,112.2L249.1,112.7L249.1,114.2L247.3,117.9L245.2,119.1L243.3,126L240.2,129.3L237.2,130.6L237.5,132.4L239.2,132.6L241.2,134.3L239.3,136.7L237.4,137.6L236.5,136.7L235.7,138.8L237.2,140.2L235.6,143.7L238.1,144L238.5,146.2L246,143.1L246.8,144.1L245,146.5L242.7,153.5L242.6,157.8L245.9,157.7L248,155.3L250.2,155.7L252.6,154.5L255,155.7L263.1,155.9L266.2,153.6L266.8,152.4L266,151.4L267.8,149.6L269.9,149.9L270.6,151L271.3,149.7L274.9,150L274,151.5L276.9,152.8L278.5,151.2L278,149.5L280.3,148.4L281.5,149.9L280.4,152.2L279.7,151.8L279.3,152L279.5,153.3L284.1,154.6L286.3,152.1L288.7,153.4L289.1,151.7L290.5,151.6L291.5,149.5L294.7,150.5L295.1,148.8L297,148.5L299.2,145.8L299.1,144.1L292.5,139.9L292.5,137.1L293.3,136.7L293.6,138.1L294.8,138.1L294.7,136.7L293,135.2L295,135.2L293.9,134.3L296.2,132.4L295.4,131.1L295.9,129.1L299.3,127.3L298.7,125.9L299.8,125.8L300.2,124.7L296.5,124.1L294.8,124.9L294.8,123.5L291.2,122.2L295.3,121.8L293.9,119.7L295.1,119.6L296.2,118.2L295.6,116.7L294.1,116.3L294.5,112.2L298.3,111.7L302.1,112.6L303.7,111.4L311.2,112.9L312.2,115.8L313.1,115.4L313.9,116.4L314.3,115.5L314.9,117.6L315.8,116.9L316.1,119L318.2,120L319.5,119L320.2,119.4L319.8,121.5L320.6,122L322.7,121.1L323.8,119.5L330.5,121.6L331.5,118.7L332.8,119L332.8,121.5L334.5,122.2L337,119.7L337.5,117.1L340.3,116.2L339.7,114.4L341.3,115L341.1,113.3L342.3,112.5L344.1,113.6L343.8,111.1L345.4,110.8L345.2,108L342.6,106.4L345.4,106.2L346.1,105L342,101.5L342.2,99.7L341.1,99.5L342.1,98.3L343,98.6L343,97.7L339.4,96.3L337.2,97.1L335.2,96.2L335.2,93.9L333.7,93.4L335.3,89.4L338.8,89.7L344.7,87L344.1,84.5L341.8,83.6L344.6,83L344.9,82.1L341.5,80.6L341.3,78.7L338.3,77.4L336.1,80L335.3,79.2L335.6,78.2L334.2,77.8Z","bb":[235.6,69.0,346.1,157.8],"c":[271.8,113.5]},"Tuticorin":{"d":"M201.2,428L194.8,426.3L194.1,423.7L190.4,422.2L190.1,419.6L181.4,420.7L179.2,420.2L176.9,423.1L178.5,425.8L174.6,425.6L174.4,429.1L172.4,429.6L172,431.3L169.3,431.6L169.3,433.4L168.1,434.5L166.9,434.2L165.3,436.4L161.6,435.7L161.3,433.8L162.4,433.2L161.8,431.9L154.7,431.9L153.6,430.8L153.6,429.2L151.3,428.8L152.9,431.3L151,432.9L149.8,429.8L147.9,430.1L148.5,433.9L147.3,434.5L147.5,436.8L144.7,437.6L144.5,439.9L143.1,440.6L143.8,443.1L141.5,442.7L142.1,445.9L148,445.8L148.5,448.5L144.5,449.1L145.4,451.9L143.5,453.3L143.8,454.4L142.9,455L143,456.5L146.7,456.8L146,459.8L144.4,459.6L143.2,457.1L141.7,457.5L143.6,463.7L150,463.7L150.2,467.8L155.1,469.3L155.7,472.7L157,473.1L159,476.2L158.2,477.8L155.7,478.9L156.7,483L154.9,488.1L156.3,489L154.5,491.7L155.8,491.4L155.8,493.4L154.5,495.3L152.6,494.4L152.1,498.1L154.2,498.9L153.6,499.9L155.1,499.4L155.9,502.4L154.6,503.3L156.5,504.9L156.5,507.5L158.2,509.3L157.1,510.8L157.9,511.3L157.1,513.2L158.6,514.1L159.8,516.8L159.5,518L157.4,518.2L159.3,518.9L158,520.2L158.5,521L159.8,520.8L159.7,522.4L161,521.4L162.7,522.3L163,524.3L170.3,523.1L170.6,522.4L170.8,523.1L180.2,519.1L179.1,518.5L179.8,514.7L186.4,506.8L185.5,504.9L187.1,497.9L186.1,495L185.9,490L189.6,482.3L192.4,481.7L193,480.4L193.1,477.7L192.5,477.8L192.9,479.5L191.9,480L189.5,478.7L189.1,476.8L189.9,475.3L190,469.2L191.9,464.1L194.7,459.9L211.4,447L208.6,446.6L208.6,444.7L200.5,442.3L202.6,436L200,436.3Z","bb":[141.5,419.6,211.4,524.3],"c":[172.9,471.8]},"Vellore":{"d":"M300.6,46.3L299,40.8L297.5,41.6L296.7,40.4L295.9,42.6L295.6,39.4L294.1,40.9L292.9,40.8L292.4,41.6L294.7,42.5L294.8,45.9L291.3,48.3L290.5,47.6L289.5,48L290.7,49.7L289.3,50.5L290.6,50.8L289.5,51.6L290.7,51.8L289.9,53.5L287.8,54.4L283,52.5L281.4,53.9L279.7,53.9L278,52.4L278,51.2L271.3,47.8L269.1,48.1L268.9,49L266.8,48.1L264.3,48.4L262.3,51.7L264.8,51.9L266,52.8L265.6,53.4L261.1,53.2L261.1,46.8L259.5,46.8L259.1,48.3L256.3,48.6L253.4,47.5L251.6,49.8L247.4,51L243.7,49.6L242.8,54.9L238,53.3L237.9,54.9L234.5,57.3L237.1,59.8L236.2,60L238.1,63.3L235.8,63.3L232.8,72L237.8,69.9L243.5,70.5L243.9,71.4L244.2,70L245.3,69.9L245.7,73.4L247.1,74.7L250.4,71.7L263.7,65.4L262.1,69.4L262.3,71.5L261.9,70.8L259.6,71.1L259.8,72.3L261.3,72.2L261.7,73L259.5,72.9L258.5,73.8L260.5,75.4L259.2,79L258.1,79L256.9,80.8L257.4,84.8L256.5,86.8L257.7,88.2L256.2,88.6L255.7,90.7L253,92.8L255.8,92.1L258.6,93.3L261.6,87.5L261.7,88.5L263.1,87.7L264.7,88.9L266.9,87.8L266.8,88.6L269.5,89.7L271.3,85.9L274.1,87.2L272.6,90.7L273,90.7L274.1,87.6L277.4,84.7L279,80.9L279.4,81.6L280.6,80.6L284.8,80.2L287.4,81.2L287.6,79.2L288.9,82.3L290.4,81.6L292.2,82.3L292.3,78L289.3,74L290.9,67.2L292.5,66.9L290.1,64.6L293.1,61L295.5,60.9L298.1,62.4L297.9,57.7L300.7,51.7L298.5,47.8Z","bb":[232.8,39.4,300.7,93.3],"c":[277.7,66.3]},"Villupuram":{"d":"M338.5,124.9L332.8,121.5L332.8,119L331.5,118.7L330.5,121.6L323.8,119.5L322.7,121.1L320.5,121.9L319.8,121.5L320.2,119.4L319.5,119L318.2,120L316.1,119L315.8,116.9L314.6,117.1L314.8,115.7L313.9,116.4L313.1,115.4L312.2,115.8L311.2,112.9L309.3,112.2L303.7,111.4L302.1,112.6L298.3,111.7L294.5,112.2L294.1,116.3L295.6,116.7L296.2,118.2L295.1,119.6L293.9,119.7L295.3,121.8L291.2,122.2L294.8,123.5L294.8,124.9L296.5,124.1L300.2,124.7L299.8,125.8L298.7,125.9L299.3,127.3L295.9,129.1L295.4,131.1L296.2,132.4L293.9,134.3L295,135.2L293,135.2L294.7,136.7L294.8,138.1L293.6,138.1L292.9,136.7L292.5,139.9L299,143.9L299.2,145.7L297,148.5L295.1,148.8L294.7,150.5L291.5,149.5L290.5,151.6L289.1,151.7L288.3,157.2L290.1,157.9L289.9,159.2L292.5,159.1L295.1,161.2L300.5,162.1L302,164.4L306,163.9L309,164.7L315.1,169.2L323.8,170.8L327.3,172.5L329.8,172.3L334.8,176.6L339.1,175.2L339.1,173.2L340.8,173.3L339.5,168.4L338,168.4L338,167.3L340.1,167L340.2,164.5L342.4,164.6L341.2,165.1L341.6,167.4L343.4,167.4L343.6,166.1L344.5,165.9L342.3,163.6L342.6,162L341.5,161.5L341.6,163.2L340.3,162.3L340.1,160.1L342,159.7L341.8,157.8L345.1,155.7L346.7,156.2L346.5,157.5L344.7,158.7L343.1,157.9L342.8,158.8L344.9,160L345.5,164.5L346.6,163.6L346.4,162.1L347.6,162.1L348.9,160.5L350.9,161.1L351.6,158.7L354.4,160.9L355.9,155.9L354.4,155.2L355.2,151.3L357.6,152.3L370.9,131L369.3,131.1L367.4,133.1L365.6,133.6L362.3,131.5L362.6,133.3L360.3,133.5L357,131.6L353.1,125.2L350.3,122.7L348.3,122.6L345.5,124L341.1,123ZM339.7,153.2L340.9,153.3L340.8,155.6L342.5,157.2L339.1,157.3L338.7,158.1L338,157L336.3,157.3L336.6,155.4L337.7,155.5ZM350.5,154.8L349.3,153.8L350.9,154ZM335.7,154.3L334.3,158.7L335.5,159.7L334.9,162.3L336.4,161.7L337.7,163.3L336.9,165.2L333.9,166.3L332.5,162.9L333.5,161.9L332.4,157.5L333.3,156.4L332.6,156.3L333.6,154.6L333.2,153.2ZM336.8,159.5L339.3,159.5L339,161.1L336.1,161.1ZM331.5,168.8L332.8,167.4L333.7,168.3L334.8,167.8L336.9,170.3L335.3,171.4L333.3,171L333.5,169.5L332.6,169.4L332.6,170.2L330.9,170.7L330.7,168.2ZM335.4,172L336.8,172.5L337.7,175L335.3,174.8Z","bb":[288.3,111.4,370.9,176.6],"c":[330.8,144.0]},"Virudhunagar":{"d":"M187,380.3L184.1,377.9L182.2,378.5L183.8,379.6L183.5,380.9L180.2,381.2L179.6,382.3L180.6,382.9L181.1,386.8L182.2,388.1L181.6,390.1L179.4,390.3L179.6,389.4L177.5,388.6L175,392.5L173.6,391.4L171.1,393.5L168.9,391.5L166,391.7L163.8,393.8L162.9,392.2L158.7,391.4L158,392.9L153.4,391.6L153,392.6L151.6,392.4L150,388.2L145.1,385.9L144.9,387.4L143.5,386.7L142.2,388.8L139.3,388.2L138.6,385.8L135.1,386.8L132.9,389.8L131.9,389.6L129.5,392L128.7,391.9L128.8,390.3L127.2,391.4L124.4,396.8L124.3,398.9L122,400.2L122,401.5L120.1,402.3L117.4,401.8L115,403.8L114.7,404.7L115.8,405.6L114.6,406.8L113.9,410.5L110.9,410.7L108.7,414.4L113.6,417.2L116.6,416.5L118,417.4L119.6,419.5L118.4,419.7L118.7,421L121.3,421.8L120.4,422.8L121,423.5L122,422.4L126.6,423L127.2,421.6L126.3,420.8L127.3,420.4L127.5,418.9L129.8,419.4L129.3,420.1L131.8,421.1L131.6,422.2L133.4,422.1L132.9,425.6L139.7,428.1L145.3,427.3L146.2,428.5L147.9,428.4L148.2,430L149.8,429.8L151,432.9L152.9,431.3L151.3,428.8L153.6,429.2L153.6,430.8L154.7,431.9L161.8,431.9L162.4,433.2L161.3,433.8L161.6,435.7L164.6,436.5L166.9,434.2L168.1,434.5L169.2,433.5L169.3,431.6L172,431.3L172.4,429.6L174.4,429.1L174.6,425.6L178.5,425.8L176.9,423.1L179.2,420.2L181.4,420.7L190.1,419.6L190.4,422.2L194.1,423.7L195,426.5L205.8,428.9L209,424L209.2,421.5L208.5,420.7L206.3,421.1L205.4,423.2L202.8,423.9L202.6,422.2L204.1,421.9L203.4,418L202.5,418.3L202.2,417.4L199.4,417.8L198.6,419.1L197.4,418.4L197.4,415.8L195.4,415.5L195,411.7L203.1,412.2L203,410.3L204.1,409.7L208.1,410.4L207.6,409.3L206,409.2L205.8,406.9L206.9,406.9L207.7,405.3L210.4,405.7L211.1,404.9L211.6,402.9L210.1,402.1L210.4,399.9L209.7,399.4L212.2,398.3L212.6,396.9L214,397.7L215.7,395.9L215.5,394.8L215.1,395.7L213.7,394.5L212.8,395.3L211.7,391.1L208.5,391.3L207.9,389.9L206.9,390.7L207.2,388.4L205.1,385.7L205.5,382.2L202.6,387.1L203.3,388.6L202.2,389L200.2,387.3L200.9,386.9L200.8,382.4L196.9,380.7L194.2,378.2L193.6,380.1L190.6,380.4L190.5,381.7L189.6,380.7L187.6,382.2L186.7,381.7Z","bb":[108.7,377.9,215.7,436.5],"c":[160.2,407.1]},"Krishnagiri":{"d":"M214.1,93.8L210,93.8L203.1,89.9L200.2,86L197.6,85.8L196.9,87.9L193.3,87.3L193.9,85.6L196.3,85.2L197.2,83.5L196.2,80.4L186.7,78.3L179.2,71.3L175.9,70.8L176.4,71.9L173.9,74L175,75.1L173.1,75.9L171.6,73L170.1,73.2L170.2,71.6L168.9,70.8L167.7,71.1L168.3,72.6L167.7,74.1L165.6,73.4L166,70.9L167.8,69.6L166.5,69L167.3,68.1L166.6,67.4L162.8,69.5L157.5,69.4L153.2,72.2L154.9,73.3L153.9,75.9L154.8,76.8L151.8,79.7L153.4,80.7L153.2,81.7L150.2,82.9L150.1,83.7L151.4,84L150.4,86.5L147.5,87.1L148,89.2L146.5,89.3L145.2,88.1L144.5,90.3L142,90.4L141.8,88.5L140.2,88.1L134.2,89.7L134.9,93.6L133.4,94.9L132.3,101.3L133,105L135.9,105.5L132.7,108.6L135,109L136.8,106.8L137.7,107.7L135.9,119.6L132.2,122.9L129.5,127.3L127.7,127.3L125.8,128.9L123.2,128.4L122.4,129.3L121.6,132.1L122.7,133.5L121.7,135.7L126.3,137L129,136L130.9,136.8L135.2,135.8L140.7,136.6L147.2,138.5L148.7,140.9L151.2,139.3L151.6,140.7L153.3,141.7L155.3,133L158.4,130.2L160,131L160.6,129.9L161.3,126.1L160.5,123.4L161.7,122.9L166.4,124L168.5,122.8L169.1,121.3L168.6,119L170.4,117L170.6,115L168.2,111.5L166.7,112.3L166.1,110.9L167.1,109.5L165.9,107.4L164.3,107.5L163.7,106.5L164.6,105.2L165.8,106L167.9,105.1L169.5,108.1L172.2,105.5L172.9,106.4L174.7,106.2L176.2,110.5L178.4,108.9L179.4,110L181.2,110.1L181.4,111.6L183.2,111.9L185.2,111L184.8,111.9L187.6,113.7L186.1,116.2L186.8,118.3L189.9,120.2L189.6,121.4L190.6,122.7L193.7,123.5L196.8,121.7L197.9,123.2L196.1,124.7L196.4,126.2L198.9,127L199.8,130.1L203.2,129.1L208.2,131.7L208.4,133.9L213.2,134.1L213,135.1L210.3,136.9L212,137.9L213.7,136.8L217.4,137.4L219.9,139.2L219.3,141.8L223.3,142.2L224.3,138.7L228,138.4L229.7,137.1L230.8,140.2L233.7,138.2L235.7,138.8L236.5,136.7L237.4,137.6L239.3,136.7L241.2,134.3L239.2,132.6L237.5,132.4L237.6,131.2L235.9,130.3L236.6,128.2L234.8,130L232.8,130.2L233.4,125.5L231.3,125.2L233.6,123.5L234.2,121.7L231,120.4L229.3,117.6L224.1,115.7L223.5,116.6L222.3,115.3L221.7,117.8L216.4,117.1L218.3,113.6L217.8,111.5L214.4,107.6L214.9,99.7L213.6,96.2Z","bb":[121.6,67.4,241.2,142.2],"c":[174.5,105.0]},"Nagapattinam":{"d":"M344.8,264L342.1,263.4L342,265.1L341.2,263.9L339.6,264.4L339,263.6L337.4,265L335.9,267.8L336.2,268.9L335.3,269L335.7,270.8L334.8,270.8L336.1,272.1L335.9,274L333.8,274.2L333.8,274.9L336.3,275.9L336.5,274.7L339.2,274.8L339.2,273.5L343.3,273.5L342.9,275.7L343.6,275.5L343.7,276.2L340.9,278.1L340.4,281.9L338.7,283.6L339.3,284.9L337.5,285.7L336.1,285.2L335.8,286.2L337.8,287.1L338.4,288.4L337.3,291.4L336,290.7L335.6,292.2L337.9,294L337.9,294.8L336.2,295.1L337.5,297.9L339.3,298.1L338.5,299.2L337.5,298.9L336.6,300.5L341.6,301.1L343.2,302.8L340.6,305.9L339.4,305.4L340.5,308.1L338.3,308.4L339.6,311.5L337,312.4L333.7,311.9L333.4,316.8L334.5,322.2L342.6,327.7L341.7,328.5L348.2,329.2L347.8,327.4L345.3,326.4L345.6,325L348.7,326.9L349.1,328.3L348.4,329.2L351.7,328.9L351.7,327.6L352,328.9L356.1,328.3L357.8,327L358.4,324.3L356.1,309.2L355.6,288.8L354.4,288.8L355.6,288.5L355.5,273.7L353.4,273.7L353.1,271.5L351.1,270.9L351.1,269.9L352.8,270L351.5,268.4L353.2,268.1L349.4,267L348.8,267.6L349.9,266.2L349.3,265.6L346.1,267.3L346.7,265L344.8,265ZM344.4,264.5L344.4,264.3L344.4,264.3ZM351.3,268.6L351,268.5L351.3,268.4Z","bb":[333.4,263.4,358.4,329.2],"c":[346.5,296.3]},"Mayiladuthurai":{"d":"M345.3,256.8L346,256.1L349,256.7L350.1,258.2L350.8,256.6L353.6,256.2L355.4,257L355.6,258.1L355.9,239.3L353.7,224.3L354.5,221.4L353.5,220.8L351.6,214.2L350.7,218.4L349.5,219.2L346.9,218.3L346.4,221.2L342.9,221.9L338.9,225.3L335.7,226.5L334.9,228.1L335.3,231.5L332.3,230.9L331,234.3L327,235.6L323.5,238.1L324.6,238.4L324.8,240.2L326.5,240.2L328,241.7L324.4,246.2L325,246.9L325.5,246L324.9,248L326.1,248.7L322,252.3L322,253.7L323.9,253.8L324.1,255.1L323.2,255.6L325.5,256.2L321.7,258.1L322.5,259.5L323.9,259.5L323.6,260.5L327.2,258.8L328.2,259.4L328.6,258.2L331.1,259.3L331.1,258.2L333.9,258.4L334.7,255.7L337.7,254.7Z","bb":[321.7,214.2,355.9,260.5],"c":[340.2,237.3]},"Kanchipuram":{"d":"M377.8,54.8L377,52.7L375.2,54.2L374.1,53.5L374.2,54.6L372.2,54.1L372.3,52.4L369.5,51.8L368.2,53.3L367.5,52.6L369.1,51.3L368.7,50.8L367,51.6L366.9,52.7L365,53.2L362,53L361.9,51.7L360.2,51.5L360.2,54.8L362.1,54.5L364.3,56.3L363,57.5L361,56L359.1,57.1L361.6,58.6L359.2,62L352.4,60.3L352.3,57.7L351.6,57.4L353.4,56.8L353,53.4L350.5,55L350,53.7L336.5,61.4L336.9,63.4L327.6,66.5L326.5,68.4L327.5,70.5L326.4,71.2L334.5,75L334.2,77.8L335.6,78.2L335.3,79.2L336.1,80L338.3,77.4L341.3,78.7L341.5,80.6L344.9,82.1L344.6,83L341.8,83.6L344.1,84.5L344.6,87.1L338.8,89.7L335.3,89.4L333.7,93.4L335.2,93.9L335.2,96.2L337.2,97.1L339.6,96.4L343,97.7L343,98.6L342.1,98.3L341.1,99.5L342.4,100L342,101.5L344.9,103.3L345.9,102.1L345.8,100.3L346.8,101.4L350,99.6L352.3,99.9L350.9,93.6L352.4,94.4L355.1,93.3L357.3,93.8L359.9,92.3L362.6,93.2L361.9,86.8L365.4,86.5L365.3,85.5L362.8,81.9L358.5,79.8L359.3,79.1L357.9,78.5L360.3,78L361.2,76.5L362.8,76.6L364,78.1L364.1,77.4L365.7,77.4L366.4,75.5L365.8,73.9L366.8,75.1L370.9,75.5L373.9,72.5L375,72.6L376,70.1L375.1,68.3L375.9,66.5L379,61.8L380.2,61.5L377.9,59.2L376.4,60.6L374.7,60L375.2,58.2L376.2,58L375.7,55.6ZM396.3,59L393.9,58.1L391.7,60L390.1,58.2L390.7,55.6L389.5,54.8L389.6,53.6L384.1,54.1L386.2,56L386.6,58.4L389.7,60.6L388.5,62.7L389.6,63.1L389.5,65.4L391.4,65.4L390.5,69.2L391.6,71.2L394.5,70.7Z","bb":[326.4,50.8,396.3,103.3],"c":[347.8,77.1]},"Thanjavur":{"d":"M322.7,261.8L322.1,257.6L325.5,256.4L323.2,255.6L324.1,255.1L323.9,253.8L322,253.7L322,252.3L326.1,248.7L324.9,248L325.5,246L325,246.9L324.4,246.2L328,241.7L326.5,240.2L324.8,240.2L324.6,238.4L323.5,238.1L316.8,241.4L311,249.8L302.4,254.7L300.4,255L292.7,262.3L291.7,261.6L285.7,262.4L282.6,264L280.2,263.8L276.7,267.6L271.7,267L268.5,267.7L267.9,267L265.9,267.7L265.9,268.6L264.3,269.9L257,272.3L249.8,273.2L251.8,274.1L258.9,273.9L258.1,276.1L258.7,278L260,277.6L260.1,278.7L258.9,280.4L258.5,284.4L262.8,289.3L265.9,288.2L266.7,288.9L265.6,289L267.3,289.6L268.2,291.3L268.8,288.9L270.5,288.5L270.1,286.8L271.1,284.3L272.1,284.2L272.8,285.7L274.7,286.1L273.4,288.5L278.6,288.7L278.7,292.4L281.7,293.5L282,294.9L284.3,292.8L285.9,295.6L285.8,297.8L289.2,297.8L289.3,299.3L290.5,298.6L290.5,300.5L289.3,301.4L289.9,302.7L286.7,303.2L287,304.3L284.4,306.9L286.7,308.9L288.6,308.3L290.9,309.9L288.1,310.9L289.1,311.7L285.6,311.5L284.1,312.9L286.8,316.4L285.9,318.2L286.8,321.4L283,323.6L285,324.6L283.7,325.9L283.4,327.6L284.8,330L284.5,331.1L283.3,331.1L283.2,333.1L285.9,332.8L286.6,334.8L289.6,334.8L290.4,336.4L289.7,337.1L288.8,336.1L286.8,336.8L286.6,337.9L287.6,338.5L286.9,340.6L291.1,340.4L292.3,341.7L292.1,342.8L294,342.8L295.5,338L299.2,334.9L298.3,332.9L304.1,328L307.2,327.3L309.9,324.7L320.8,325L321.4,319.8L319.5,318.4L317.7,319.2L317.1,317.2L318.7,317.1L318.5,316.4L317.1,315.8L317.5,314.9L316.1,313.5L318.2,312.9L317.9,310.3L318.9,310.1L319.2,307.5L316.5,307.6L317.9,305.3L313.3,302.9L313.9,301.9L316.2,301.4L316.2,300.5L311.6,301.3L310.7,298.4L306.3,298.2L306,293.8L306.9,291.9L305.5,290.6L303,290.4L303.2,288L301.4,282.5L302.4,281.8L303.3,282.7L305.3,282.5L307.3,281.2L307.3,280L305.7,279.8L306,276.9L308.8,276.1L303.8,275.4L301.1,272.9L300.2,273.2L300.8,270L298.7,269.2L298.1,265.9L300.8,266.1L298.8,264.2L300.4,262.7L304,264L304.1,264.8L308.1,267L311.6,267.2L316.6,270.1L319.5,269.5L319.7,267.5L321.7,266.6L319.4,264.4L321,262.3Z","bb":[249.8,238.1,328.0,342.8],"c":[291.2,290.5]},"Pudukkottai":{"d":"M259.4,285.9L259.2,287.6L254.1,287L253.4,289.2L252.1,288.5L251.2,291.5L248.7,291L247.1,292.3L245.8,289.3L246.9,287.8L246.5,285.7L243.3,284.3L243.2,283.2L241.3,283L242.1,286.2L240.6,287.8L240.6,289.4L239,289.3L238.9,291L237.6,290.6L238.2,286L235.9,285.7L235.1,286.2L234.6,288.9L233.4,288.4L231.8,290.6L229.1,290.4L229.4,288.3L227.7,287.8L227,288.9L224.4,289.5L225.3,293.6L221,292.6L217.3,295.7L219.3,298.6L219.1,302.4L221.3,302.6L221.8,303.8L222.3,308L225.4,307.8L226.6,306.2L225.9,305.1L226.7,303.4L227.6,305.1L230.7,304.3L229.6,307.6L231.5,309L231,312.4L229.1,312.2L229,313.8L225.1,312.8L224.5,313.3L224.3,315.7L225.6,317.4L224,319.3L223.2,318.9L222.4,320.6L224.8,323.8L224.1,329.7L218,329.7L217.5,331.9L219.2,332.4L221,331L220.6,332.4L221.5,333L219.7,336L221.5,337.4L224.2,337.4L224.5,332.8L226.4,330.7L227.9,331.5L229.6,330.8L230.2,329.8L229.5,328.4L230.3,327.7L233.6,329.4L236.1,329.5L237.6,331L236.6,332.4L237.5,332.8L237.6,334.5L239.7,336L238.8,338.6L239.2,341L240.1,341.7L241.5,341.7L243.2,338.9L246,340.6L248.9,340.1L249.1,336.6L253.1,335.2L254.4,336.7L253.5,339.8L255.4,342.5L256.9,342.7L256.8,343.9L258.3,343.8L260.2,341L261.6,341.7L262,340.8L263.3,342L263.3,343.7L266.7,345.9L268.5,343.7L270.5,347.5L269.2,348.3L267.9,346.9L265.3,349.3L266.3,350.5L264.4,351.8L264.9,354.3L268.3,355.7L269.2,357.3L272.8,357.5L273.1,358.4L271.4,359.7L272.1,360.8L270.6,361.4L272.4,365L274.8,367.1L276,370.3L278.6,371.5L280.6,370.7L283.1,371.6L282.6,370.7L283.6,370.9L282.9,370.4L283.7,368.5L282.7,367.2L284,368.1L284.1,366.1L284.7,366.8L286.2,365.3L285.4,364.4L286.6,364.5L292.9,356.5L297.9,352.5L296.4,352.3L295.3,350.7L296.1,349.4L293.7,348.3L294.5,348.2L294.3,345.9L293.7,345.9L293.3,345.5L294.3,345.7L294.7,343.8L294,342.8L292.1,342.8L292.3,341.7L291.1,340.4L286.7,340.5L287.6,338.5L286.5,337.1L288.8,336.1L289.7,337.1L290.4,336.4L289.8,335L286.6,334.8L285.9,332.8L283.2,333.1L283.3,331.1L284.5,331.1L284.8,330L283.4,327.6L283.7,325.9L285,324.6L283,323.6L286.8,321.4L285.9,318.2L286.8,316.4L284.1,312.7L285.6,311.5L289.1,311.7L288.1,310.9L290.9,309.9L288.6,308.3L286.7,308.9L284.4,306.9L287,304.3L286.7,303.2L289.9,302.7L289.3,301.4L290.5,300.5L290.5,298.6L289.3,299.3L289.2,297.8L285.8,297.8L285.9,295.6L284.3,292.8L282,294.9L281.7,293.5L278.7,292.4L278.6,288.7L273.4,288.5L274.7,286.1L272.8,285.7L272.1,284.2L271.1,284.3L270.1,286.8L270.5,288.5L268.8,288.9L268.2,291.3L267.3,289.6L265.6,289L266.7,289L266.3,288.4L262.8,289.3L261.3,287ZM289.9,299.7L289.9,299.9L289.8,299.7ZM288.4,302.2L288.6,302.3L288.4,302.3ZM286.4,303.5L286.4,303.6L286.3,303.6ZM286,303.8L286.2,303.8L286.1,303.9ZM286.3,304L286.4,304.1L286.3,304.1ZM286,304.6L286,304.9L285.9,304.9ZM284.9,305.5L284.9,305.6L284.9,305.5ZM285.2,305.7L285,305.8L285,305.6ZM285.4,305.8L285.2,305.9L285.3,305.7ZM287.3,309.1L287.4,309.3L287.3,309.2ZM289.1,309.5L289,309.6L289,309.4ZM289.4,309.7L289.4,309.8L289.3,309.7ZM288.9,309.7L289,309.8L288.9,309.8ZM287.2,309.8L287,309.8L287.1,309.7ZM286.9,309.9L286.7,310L286.7,309.9ZM288.6,309.9L288.6,310L288.6,309.9ZM288.8,310L288.9,310.1L288.8,310.1ZM288.3,310L288.3,310.2L288.2,310.2ZM287.3,309.5L287.2,309.6L287.2,309.4ZM287.4,310.8L287.5,311L287.4,310.9ZM287.8,310.9L287.8,311L287.7,311ZM286.8,311.2L286.7,311.3L286.7,311.2Z","bb":[217.3,283.0,297.9,371.6],"c":[253.8,327.3]}}};
+/* ==================================================================
+   ONE-CLICK BULLETIN (PNG) — static SVG, no map tiles, no network
+   Reads the live dashboard state (viewMode, dayStations, activeDistrict,
+   getCurrentScale) so the bulletin always matches what is on screen.
+   ================================================================== */
+const BULLETIN_TITLE  = 'Rainfall Bulletin';     // <- edit title here
+const BULLETIN_SOURCE = 'TNSmart station network';
+const BULLETIN_WATERMARK = 'Vidhyapathi (Haiyan)';   // <- diagonal watermark + credit line
+
+// station-data district spelling → GeoJSON district key (cleaned, lower-case)
+const GEO_ALIAS = {
+    tiruvarur:'thiruvarur', thoothukudi:'tuticorin', thoothukkudi:'tuticorin',
+    kanyakumari:'kanniyakumari', nilgiris:'thenilgiris', nilgiri:'thenilgiris', thenilgiri:'thenilgiris',
+    viluppuram:'villupuram', tirupattur:'tirupathur', trichy:'tiruchirappalli', thiruchirappalli:'tiruchirappalli',
+    tiruchirapalli:'tiruchirappalli', kancheepuram:'kanchipuram', tiruvallur:'thiruvallur',
+    pudukottai:'pudukkottai', chengalpet:'chengalpattu', sivagangai:'sivaganga', virudunagar:'virudhunagar',
+    ramnad:'ramanathapuram', kallakkurichi:'kallakurichi', tanjore:'thanjavur', thiruvannamalai:'tiruvannamalai',
+    tirunelvelli:'tirunelveli', coimbator:'coimbatore', mayiladuturai:'mayiladuthurai', nagappattinam:'nagapattinam'
+};
+function geoKey(n) { const k = cleanStr(n || ''); return GEO_ALIAS[k] || k; }
+
+function bEsc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function bTrunc(t, px, fs) { const max = Math.max(4, Math.floor(px / (fs * 0.54))); t = String(t); return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t; }
+function bWrap(t, px, fs) {
+    const max = Math.floor(px / (fs * 0.66)), words = String(t).split(/\s+/), lines = []; let cur = '';
+    words.forEach(w => { if ((cur + ' ' + w).trim().length > max) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); });
+    if (cur) lines.push(cur);
+    return lines.slice(0, 2);
+}
+function bProject(lat, lon) {
+    const g = BULLETIN_GEO;
+    return [(lon - g.lon0) * g.kx * g.K, (g.latmax - lat) * g.K];
+}
+
+function buildBulletinSVG() {
+    const dark = document.body.getAttribute('data-theme') === 'dark';
+    const T = dark
+        ? { bg:'#0f1626', card:'#18223a', text:'#e8edf5', muted:'#97a3b8', line:'#2a3550', accent:'#5aa0d6', none:'#232f4a', stroke:'#0f1626' }
+        : { bg:'#ffffff', card:'#f3f6fa', text:'#16202e', muted:'#667385', line:'#dbe2ea', accent:'#2f6690', none:'#e4e9ef', stroke:'#ffffff' };
+    const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+    const W = 1080, H = 1350, M = 48;
+
+    const range = isRangeMode();
+    const scale = getCurrentScale();
+    const geo = BULLETIN_GEO;
+
+    // ── scope & data ──
+    const scopeStations = dayStations.filter(s => s.district !== 'Unknown' && isDistrictInGroup(s.district, activeDistrict));
+    const inScopeGeo = name => {
+        if (activeDistrict === 'ALL') return true;
+        if (activeDistrict === 'CDZ_CORE' || activeDistrict === 'CDZ_EXT') return isDistrictInGroup(name, activeDistrict);
+        return geoKey(name) === geoKey(activeDistrict);
+    };
+    const geoNames = Object.keys(geo.d);
+    const scopeGeo = geoNames.filter(inScopeGeo);
+    const scopeLabel = activeDistrict === 'ALL' ? 'All Tamil Nadu'
+        : activeDistrict === 'CDZ_CORE' ? 'Cauvery Delta · Core'
+        : activeDistrict === 'CDZ_EXT' ? 'Cauvery Delta · Extended' : activeDistrict;
+
+    const dAgg = {};
+    scopeStations.forEach(s => {
+        const k = geoKey(s.district);
+        const a = dAgg[k] || (dAgg[k] = { sum:0, n:0, name:s.district });
+        a.sum += s.rain; a.n++;
+    });
+    Object.values(dAgg).forEach(a => { a.avg = Math.round((a.sum / a.n) * 10) / 10; });
+
+    const withRain = scopeStations.filter(s => s.rain > 0);
+    const T1 = range ? 100 : 64.5;
+    const nHeavy = scopeStations.filter(s => s.rain >= T1).length;
+    const top = [...withRain].sort((a, b) => b.rain - a.rain).slice(0, 5);
+    const topD = Object.values(dAgg).filter(a => a.n > 0 && a.avg > 0).sort((a, b) => b.avg - a.avg).slice(0, 5);
+    const maxS = top[0];
+
+    // ── headline ──
+    let headline;
+    if (!scopeStations.length) headline = 'No station data for the selected scope.';
+    else if (!withRain.length) headline = 'No rainfall recorded across the selected stations.';
+    else {
+        const plural = nHeavy === 1 ? 'station' : 'stations';
+        headline = nHeavy > 0
+            ? `${nHeavy} ${plural} recorded ${T1} mm or more` + (topD[0] ? `; ${topD[0].name} led districts with a ${topD[0].avg.toFixed(1)} mm station average.` : '.')
+            : `No station reached ${T1} mm; highest was ${maxS.rain.toFixed(1)} mm at ${maxS.name}.`;
+    }
+
+    const subtitle = (typeof bulletinSubtitle === 'string' && bulletinSubtitle) ? bulletinSubtitle : (range ? 'Accumulated rainfall' : '24-hour rainfall');
+
+    let o = '';
+    const rect = (x, y, w, h, fill, r = 0, extra = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}" ${extra}/>`;
+    const txt = (x, y, s, fs, fill, wt = 400, anchor = 'start', extra = '') =>
+        `<text x="${x}" y="${y}" font-size="${fs}" fill="${fill}" font-weight="${wt}" text-anchor="${anchor}" ${extra}>${bEsc(s)}</text>`;
+
+    o += rect(0, 0, W, H, T.bg);
+    o += rect(0, 0, W, 10, T.accent);
+
+    // ── header ──
+    o += txt(M, 92, BULLETIN_TITLE, 46, T.text, 800);
+    o += txt(M, 128, bTrunc(subtitle, 700, 22), 22, T.muted, 500);
+    const pillW = Math.min(300, 40 + scopeLabel.length * 11);
+    o += rect(W - M - pillW, 62, pillW, 40, T.card, 20, `stroke="${T.line}"`);
+    o += txt(W - M - pillW / 2, 88, scopeLabel, 18, T.accent, 700, 'middle');
+
+    // ── headline ──
+    const hl = bWrap(headline, W - 2 * M, 24);
+    hl.forEach((l, i) => { o += txt(M, 178 + i * 32, l, 24, T.text, 600); });
+
+    // ── options chosen in the toolbar ──
+    const selStyle = document.getElementById('bulletin-style');
+    const selMin   = document.getElementById('bulletin-min');
+    const bStyle = (selStyle && selStyle.value) || 'choro';           // choro | points | both
+    const minMm  = selMin ? (parseFloat(selMin.value) || 0) : 0;      // show stations >= this
+    const unit   = range ? 'accumulated rainfall' : '24h rainfall';
+
+    // ── KPI tiles ──
+    const kY = 252, kH = 112, kGap = 16, kW = (W - 2 * M - 3 * kGap) / 4;
+    const kpis = [
+        { l:'STATIONS REPORTING', v:String(scopeStations.length), s:`${new Set(scopeStations.map(s => geoKey(s.district))).size} districts` },
+        { l:'STATIONS WITH RAIN', v:String(withRain.length), s: scopeStations.length ? Math.round(withRain.length / scopeStations.length * 100) + '% of stations' : '—' },
+        { l:`STATIONS ≥ ${T1} MM`, v:String(nHeavy), s: range ? 'accumulated total' : 'Heavy or above (IMD)' },
+        { l:'HIGHEST STATION', v: maxS ? maxS.rain.toFixed(1) + ' mm' : '—', s: maxS ? maxS.name : '' }
+    ];
+    kpis.forEach((k, i) => {
+        const x = M + i * (kW + kGap);
+        o += rect(x, kY, kW, kH, T.card, 14, `stroke="${T.line}"`);
+        o += rect(x, kY + 16, 5, kH - 32, T.accent, 3);
+        o += txt(x + 20, kY + 30, k.l, 12.5, T.muted, 700, 'start', 'letter-spacing="0.6"');
+        o += txt(x + 20, kY + 70, k.v, k.v.length > 7 ? 30 : 38, T.text, 800);
+        o += txt(x + 20, kY + 96, bTrunc(k.s, kW - 36, 14), 14, T.muted, 500);
+    });
+
+    // ── legend layout first, so the main block can fill the remaining height ──
+    const counts = {};
+    scale.forEach(c => counts[c.key] = 0);
+    scopeStations.forEach(s => { if (counts[s.imd.key] !== undefined) counts[s.imd.key]++; });
+    const items = scale.map(c => ({ c, t: (range ? c.label : `${c.label} ${c.desc}`) + `  (${counts[c.key]})` }));
+    const lfs = 14, lx0 = M + 20, lMax = W - M - 20;
+    let lx = lx0, rows = 1; const pos = [];
+    items.forEach(it => {
+        const w = 26 + it.t.length * lfs * 0.52 + 22;
+        if (lx + w > lMax) { lx = lx0; rows++; }
+        pos.push([lx, rows, it]); lx += w;
+    });
+    const lH = 56 + rows * 28 - 6;
+    const footLineY = H - 78;
+    const lY = footLineY - 18 - lH;
+
+    // ── main block ──
+    const mY = 388, mH = lY - 22 - mY, mapW = 590, colX = M + mapW + 20, colW = W - M - colX;
+    o += rect(M, mY, mapW, mH, T.card, 16, `stroke="${T.line}"`);
+
+    // viewBox for scope
+    let bb;
+    if (activeDistrict === 'ALL' || !scopeGeo.length) bb = [0, 0, geo.W, geo.H];
+    else {
+        bb = [1e9, 1e9, -1e9, -1e9];
+        scopeGeo.forEach(n => { const b = geo.d[n].bb; bb = [Math.min(bb[0], b[0]), Math.min(bb[1], b[1]), Math.max(bb[2], b[2]), Math.max(bb[3], b[3])]; });
+        const px = (bb[2] - bb[0]) * 0.08, py = (bb[3] - bb[1]) * 0.08;
+        bb = [bb[0] - px, bb[1] - py, bb[2] + px, bb[3] + py];
+    }
+    const pad = 18, capH = 30, pW = mapW - 2 * pad, pH = mH - 2 * pad - capH;
+    const vbW = bb[2] - bb[0], vbH = bb[3] - bb[1];
+    const sc = Math.min(pW / vbW, pH / vbH);
+    const f = v => (v / sc).toFixed(2);
+    const inView = (x, y) => x >= bb[0] && x <= bb[2] && y >= bb[1] && y <= bb[3];
+
+    let m = '';
+    geoNames.forEach(n => {
+        const g = geo.d[n], k = geoKey(n), a = dAgg[k], inS = inScopeGeo(n);
+        let fill = T.none, op = 1;
+        if (!inS) op = 0.35;
+        else if (a && bStyle !== 'points') { fill = classifyCurrent(a.avg).color; if (bStyle === 'both') op = 0.5; }
+        m += `<path d="${g.d}" fill="${fill}" fill-opacity="${op}" stroke="${bStyle === 'points' ? T.muted : T.stroke}" stroke-opacity="${bStyle === 'points' ? 0.55 : 1}" stroke-width="${f(bStyle === 'points' ? 0.7 : 1.1)}" stroke-linejoin="round"/>`;
+    });
+
+    // station dots
+    const dots = (bStyle === 'choro') ? [] : scopeStations
+        .filter(s => s.lat && s.lon && s.rain >= minMm)
+        .sort((a, b) => a.rain - b.rain);                      // heavy stations drawn last (on top)
+    const nScale = Math.max(1, scale.length - 1);
+    dots.forEach(s => {
+        const [x, y] = bProject(s.lat, s.lon);
+        if (!inView(x, y)) return;
+        if (s.rain <= 0) {
+            m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(2.6)}" fill="none" stroke="${T.muted}" stroke-width="${f(0.9)}" stroke-opacity="0.8"/>`;
+            return;
+        }
+        const bin = Math.max(1, scale.findIndex(c => c.key === s.imd.key));
+        const rpx = (activeDistrict === 'ALL' ? 3.4 : 5) + (bin / nScale) * (activeDistrict === 'ALL' ? 5.5 : 7);
+        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(rpx)}" fill="${s.imd.color}" stroke="${T.bg}" stroke-width="${f(1)}"/>`;
+    });
+
+    // district labels when zoomed
+    if (activeDistrict !== 'ALL' && scopeGeo.length <= 12) {
+        scopeGeo.forEach(n => {
+            const g = geo.d[n], a = dAgg[geoKey(n)];
+            const cls = (a && bStyle === 'choro') ? classifyCurrent(a.avg) : null;
+            const col = cls ? cls.textColor : (bStyle === 'both' ? T.text : T.muted);
+            m += `<text x="${g.c[0]}" y="${g.c[1]}" font-size="${f(10)}" font-weight="700" fill="${col}" text-anchor="middle" stroke="none">${bEsc(n)}</text>`;
+            if (a && bStyle !== 'points') m += `<text x="${g.c[0]}" y="${(g.c[1] + 11 / sc).toFixed(2)}" font-size="${f(9.5)}" fill="${col}" text-anchor="middle">${a.avg.toFixed(1)} mm</text>`;
+        });
+    }
+    // numbered markers for top-5 stations
+    top.forEach((s, i) => {
+        if (!s.lat || !s.lon) return;
+        const [x, y] = bProject(s.lat, s.lon);
+        if (!inView(x, y)) return;
+        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(12)}" fill="${s.imd.color}" stroke="${T.text}" stroke-width="${f(2)}"/>`;
+        m += `<text x="${x.toFixed(2)}" y="${(y + 4.5 / sc).toFixed(2)}" font-size="${f(13)}" font-weight="800" fill="${s.imd.textColor}" text-anchor="middle">${i + 1}</text>`;
+    });
+    const offX = M + pad + (pW - vbW * sc) / 2, offY = mY + pad + (pH - vbH * sc) / 2;
+    o += `<svg x="${offX.toFixed(1)}" y="${offY.toFixed(1)}" width="${(vbW * sc).toFixed(1)}" height="${(vbH * sc).toFixed(1)}" viewBox="${bb[0].toFixed(1)} ${bb[1].toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}" font-family='${FONT}'>${m}</svg>`;
+
+    // caption under the map (own strip, never overlaps the map)
+    const filt = minMm > 0 ? ` ≥ ${minMm} mm (${dots.length} of ${scopeStations.length})` : '';
+    const cap = bStyle === 'choro' ? `District colour = average ${range ? 'accumulated' : '24h'} rainfall of its stations`
+              : bStyle === 'points' ? `Dots = stations${filt} · colour = ${unit}`
+              : `District average + stations${filt}`;
+    o += txt(M + 18, mY + mH - 14, bTrunc(cap, mapW - 36, 13), 13, T.muted, 500);
+
+    // right column: top stations
+    const stH = Math.round(mH * 0.54), dH = mH - stH - 16;
+    let y = mY;
+    o += rect(colX, y, colW, stH, T.card, 16, `stroke="${T.line}"`);
+    o += txt(colX + 20, y + 34, 'TOP 5 STATIONS', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+    if (!top.length) o += txt(colX + 20, y + 80, 'No rainfall recorded', 17, T.muted, 500);
+    const sRow = (stH - 62) / 5;
+    top.forEach((s, i) => {
+        const ry = y + 52 + i * sRow, cls = s.imd, mid = sRow / 2;
+        o += `<circle cx="${colX + 34}" cy="${(ry + mid).toFixed(1)}" r="16" fill="${cls.color}"/>`;
+        o += txt(colX + 34, (ry + mid + 6).toFixed(1), String(i + 1), 16, cls.textColor, 800, 'middle');
+        o += txt(colX + 62, (ry + mid - 3).toFixed(1), bTrunc(s.name, colW - 175, 18), 18, T.text, 700);
+        o += txt(colX + 62, (ry + mid + 17).toFixed(1), bTrunc(s.district, colW - 175, 13), 13, T.muted, 500);
+        o += txt(colX + colW - 20, (ry + mid + 8).toFixed(1), s.rain.toFixed(1), 24, T.text, 800, 'end');
+    });
+    // top districts
+    y = mY + stH + 16;
+    o += rect(colX, y, colW, dH, T.card, 16, `stroke="${T.line}"`);
+    o += txt(colX + 20, y + 34, range ? 'TOP 5 DISTRICTS · AVG ACCUM. MM' : 'TOP 5 DISTRICTS · AVG MM', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+    if (!topD.length) o += txt(colX + 20, y + 80, 'No rainfall recorded', 17, T.muted, 500);
+    const maxAvg = topD[0] ? topD[0].avg : 1, dRow = (dH - 62) / 5;
+    topD.forEach((a, i) => {
+        const ry = y + 52 + i * dRow, cls = classifyCurrent(a.avg);
+        o += txt(colX + 20, (ry + 18).toFixed(1), bTrunc(a.name, colW - 120, 16), 16, T.text, 700);
+        o += txt(colX + colW - 20, (ry + 18).toFixed(1), a.avg.toFixed(1), 18, T.text, 800, 'end');
+        o += rect(colX + 20, (ry + 28).toFixed(1), colW - 40, 8, T.line, 4);
+        o += rect(colX + 20, (ry + 28).toFixed(1), Math.max(6, (colW - 40) * a.avg / maxAvg), 8, cls.color, 4);
+    });
+
+    // ── legend ──
+    o += rect(M, lY, W - 2 * M, lH, T.card, 16, `stroke="${T.line}"`);
+    o += txt(M + 20, lY + 32, range ? 'ACCUMULATION SCALE · STATIONS PER CLASS' : 'IMD 24-HOUR CLASSIFICATION · STATIONS PER CLASS', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+    pos.forEach(([x, r, it]) => {
+        const yy = lY + 56 + (r - 1) * 28;
+        o += rect(x, yy - 14, 18, 18, it.c.color, 4, `stroke="${T.line}"`);
+        o += txt(x + 26, yy, it.t, lfs, T.text, 500);
+    });
+
+    // ── footer + credit ──
+    const gen = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    o += `<line x1="${M}" y1="${footLineY}" x2="${W - M}" y2="${footLineY}" stroke="${T.line}"/>`;
+    o += txt(M, footLineY + 26, `Source: ${BULLETIN_SOURCE}  ·  ${range ? 'Multi-day accumulation scale' : 'IMD rainfall classification'}`, 14, T.muted, 500);
+    o += txt(W - M, footLineY + 26, `Generated ${gen}`, 14, T.muted, 500, 'end');
+    o += txt(M, footLineY + 54, `Prepared by ${BULLETIN_WATERMARK}`, 17, T.accent, 700);
+
+    // ── diagonal watermark (very light, over everything) ──
+    let wm = '';
+    for (let r = 0, yy = -200; yy < H + 500; yy += 250, r++) {
+        for (let xx = -400 + (r % 2) * 280; xx < W + 500; xx += 560) {
+            wm += `<text x="${xx}" y="${yy}" font-size="40" font-weight="700" letter-spacing="1">${bEsc(BULLETIN_WATERMARK)}</text>`;
+        }
+    }
+    o += `<g transform="rotate(-30 ${W / 2} ${H / 2})" fill="${T.text}" opacity="${dark ? 0.03 : 0.022}" pointer-events="none">${wm}</g>`;
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family='${FONT}'>${o}</svg>`;
+}
+
+/* Fill the "show stations ≥" select from the scale now in force (called after every view change) */
+function refreshBulletinOptions() {
+    const sel = document.getElementById('bulletin-min');
+    if (!sel) return;
+    const scale = getCurrentScale();
+    let h = '<option value="0">All stations</option>';
+    scale.filter(c => c.key !== 'zero').forEach(c => {
+        const lab = isRangeMode() ? c.label : `${c.label} (${c.desc})`;
+        h += `<option value="${c.min}">≥ ${bEsc(lab)}</option>`;
+    });
+    sel.innerHTML = h;
+    sel.value = '0';
+}
+
+function downloadBulletin() {
+    if (!dataLoaded || !dayStations.length) { alert('Load a day or an accumulation first.'); return; }
+    const btn = document.getElementById('bulletin-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+    const done = () => { if (btn) { btn.disabled = false; btn.style.opacity = '1'; } };
+    try {
+        const svg = buildBulletinSVG();
+        const img = new Image();
+        img.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = 2160; c.height = 2700;               // 2× for crisp sharing
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            c.toBlob(b => {
+                const a = document.createElement('a');
+                const tag = isRangeMode() ? 'Accumulated' : (document.getElementById('r24-date-input').value || 'Day');
+                const scope = String(activeDistrict).replace(/[^A-Za-z0-9]+/g, '_');
+                const st = (document.getElementById('bulletin-style') || {}).value || 'choro';
+                a.download = `Rainfall_Bulletin_${scope}_${tag}_${st}.png`;
+                a.href = URL.createObjectURL(b);
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+                done();
+            }, 'image/png');
+        };
+        img.onerror = () => { done(); alert('Could not render the bulletin.'); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    } catch (e) { console.error(e); done(); alert('Bulletin error: ' + e.message); }
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
