@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -38,11 +38,19 @@
                         <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener noreferrer">Instagram · haiyan_clicks</a>
                     </div>
                 </div>
-                <button id="openForecastBtn" class="tn-forecast-launch" type="button">🌦️ Multi-Model &amp; Seasonal Forecast</button>
+                <div style="display:flex; gap:12px; margin-left: 20px;">
+                    <button id="openAnalyticsBtn" class="tn-forecast-launch" type="button" style="background:#173b63; display:inline-flex; align-items:center; gap:6px;">&#128202; 24-Hour Rainfall Analytics</button>
+                    <button id="openForecastBtn" class="tn-forecast-launch" type="button" style="background:#173b63; display:inline-flex; align-items:center; gap:6px;">&#127782;&#65039; Multi-Model &amp; Seasonal Forecast</button>
+                </div>
             </div>
             <div id="headerMeta"></div>
         </div>
     </header>
+
+    <!-- Integrated Analytics Modal Application -->
+    <div id="analyticsAppPanel" aria-hidden="true">
+        <iframe id="analyticsFrame" title="24-Hour Rainfall" loading="lazy" src="rainfall24h.html" style="height: 100vh; min-height: 100vh;"></iframe>
+    </div>
 
     <!-- Integrated Forecast Modal Application -->
     <div id="forecastAppPanel" aria-hidden="true">
@@ -438,43 +446,28 @@
     </div>
 
     <div id="exportIdwWrapper" class="offscreen-wrapper layout-vertical-story">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 280px; font-weight: 900; white-space: nowrap; pointer-events: none; z-index: 1001; color: var(--exp-watermark-idw);">HaiyanTip</div>
-
         <div style="z-index: 1000; text-align: center; margin-bottom: 25px;">
             <h1 id="idwExportTitle" style="margin:0 0 10px 0; font-size:52px; font-weight:900; color:var(--exp-text); text-transform:uppercase;">Spatial Distribution</h1>
             <h2 id="idwExportSubtitle" style="margin:0; font-size:32px; color:var(--exp-text-dim); font-weight:300;">August 4, 2026</h2>
         </div>
 
-        <div style="flex: 1; width: 100%; border-radius: 20px; overflow: hidden; position: relative; z-index: 1; border: 2px solid var(--exp-panel-border); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <div style="flex: 1; width: 100%; border-radius: 12px; overflow: hidden; position: relative; z-index: 1; border: 3px solid var(--exp-text); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
             <div id="idwMapExportDiv" style="width: 100%; height: 100%; background: transparent;"></div>
+            
+            <!-- Classical Horizontal Legend Overlay -->
+            <div id="idwHorizontalLegendContainer" style="position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; background: var(--exp-bg); border: 2px solid var(--exp-text); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); padding: 12px 20px;">
+                <div id="idwHorizontalLegendTitle" style="font-size: 16px; font-weight: 800; color: var(--exp-text); margin-bottom: 6px; text-align: center;">Accumulated Rainfall (mm)</div>
+                <div style="position: relative; margin-top: 5px;">
+                    <!-- Horizontal Color Bar -->
+                    <div id="idwHorizontalColorBar" style="height: 20px; display: flex; flex-direction: row; border: 1px solid rgba(0,0,0,0.3);"></div>
+                    <!-- Horizontal Labels -->
+                    <div id="idwHorizontalLabels" style="position: relative; height: 20px; margin-top: 5px;"></div>
+                </div>
+            </div>
         </div>
 
         <div style="z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 35px;">
-            <div style="background: var(--exp-footer-panel-bg); padding: 30px; border-radius: 12px; border: 1px solid var(--exp-panel-border); width: 100%; box-sizing: border-box;">
-                <div id="idwLegendImd" style="display:none; flex-direction:column; gap:15px;">
-                    <div style="color:var(--exp-text); font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Rainfall Intensity (mm)</div>
-                    <div style="display:flex; justify-content:space-around; font-size:20px; font-weight:bold; margin-bottom: 10px;">
-                        <span style="color:var(--exp-zero-dot);"><span class="legend-dot" style="background:var(--exp-zero-dot); border: 1px solid var(--exp-zero-border);"></span> 0</span>
-                        <span style="color:var(--exp-trace);"><span class="legend-dot" style="background:var(--exp-trace);"></span> 0.1 - 2.4</span>
-                        <span style="color:var(--exp-light-green);"><span class="legend-dot" style="background:var(--exp-light-green);"></span> 2.5 - 15.5</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-around; font-size:20px; font-weight:bold; margin-bottom: 10px;">
-                        <span style="color:#2ecc71;"><span class="legend-dot" style="background:#2ecc71;"></span> 15.6 - 64.4</span>
-                        <span style="color:#f1c40f;"><span class="legend-dot" style="background:#f1c40f;"></span> 64.5 - 115.4</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-around; font-size:20px; font-weight:bold;">
-                        <span style="color:#e67e22;"><span class="legend-dot" style="background:#e67e22;"></span> 115.5 - 204.4</span>
-                        <span style="color:#e74c3c;"><span class="legend-dot" style="background:#e74c3c;"></span> > 204.4</span>
-                    </div>
-                </div>
-
-                <div id="idwLegendSeasonal" style="display:none; flex-direction:column; gap:15px;">
-                    <div style="color:var(--exp-text); font-size:24px; font-weight:bold; margin-bottom:10px; text-align: center;">Accumulation (mm)</div>
-                    <div id="seasonalLegendBlocks" style="display:flex; flex-wrap: wrap; justify-content:center; gap:12px; font-size:14px; font-weight:bold;"></div>
-                </div>
-            </div>
-
-            <div style="text-align: center; background: var(--exp-footer-panel-bg); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box;">
+            <div style="text-align: center; background: var(--exp-footer-panel-bg); padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box; border: 1px solid var(--exp-panel-border);">
                 <div class="export-source" style="color: #8e44ad; margin-bottom:8px; font-weight:bold; font-size: 32px;">Data: TNSMART</div>
                 <div style="font-size: 24px; color: var(--exp-text-dim); font-style: italic;">X @HaiyanTip | IG @haiyan_clicks</div>
             </div>

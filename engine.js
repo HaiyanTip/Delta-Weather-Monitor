@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    1. UI & UTILITY FUNCTIONS
    ============================================================ */
 
@@ -1016,6 +1016,23 @@ function generateIdwPreview() {
     }, 100);
 }
 
+// ----------------------------------------------------------------
+// 4. IDW & COLOR BLENDING ENGINE
+// ----------------------------------------------------------------
+
+/**
+ * Blends two hex colors together by a given ratio (0.0 to 1.0)
+ */
+function blendHexColors(c1, c2, ratio) {
+    const hex = x => {
+        const h = Math.round(x).toString(16);
+        return h.length === 1 ? '0' + h : h;
+    };
+    const r1 = parseInt(c1.substring(1,3), 16), g1 = parseInt(c1.substring(3,5), 16), b1 = parseInt(c1.substring(5,7), 16);
+    const r2 = parseInt(c2.substring(1,3), 16), g2 = parseInt(c2.substring(3,5), 16), b2 = parseInt(c2.substring(5,7), 16);
+    return '#' + hex(r1 + (r2 - r1) * ratio) + hex(g1 + (g2 - g1) * ratio) + hex(b1 + (b2 - b1) * ratio);
+}
+
 function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex = null, customDates = []) {
     let maxRain = 0;
     const pts = [];
@@ -1085,11 +1102,30 @@ function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex 
 
     let numBins = Math.round(maxRainNormal / step);
 
+    // Option 1: IMD Classic (Smoothed Rainbow) updated with pure Yellow
+    // Red -> Orange -> Yellow -> Green -> Cyan -> Blue -> Purple -> Magenta
     const idwMasterPalette = [
-        "#d32f2f", "#f57c00", "#ffb300", "#ffeb3b",
-        "#8bdc39", "#1a570b", "#00c191", "#32f3ed",
-        "#087db8", "#2842e6", "#311b92", "#5e35b1"
+        "#d7191c", // 0
+        "#fdae61", // 1
+        "#ffee00", // 2 - Pure Yellow
+        "#a6d96a", // 3
+        "#1a9641", // 4
+        "#4eb3d3", // 5
+        "#2b8cbe", // 6
+        "#0868ac", // 7
+        "#084081", // 8
+        "#4a1486", // 9
+        "#ff00ff"  // 10 - Overflow
     ];
+
+    function getIdwColor(binIdx, totalBins) {
+        if (totalBins <= 1) return idwMasterPalette[0];
+        let exactIdx = (binIdx / (totalBins - 1)) * (idwMasterPalette.length - 2);
+        let idx1 = Math.floor(exactIdx);
+        let idx2 = Math.min(idx1 + 1, idwMasterPalette.length - 2);
+        let ratio = exactIdx - idx1;
+        return blendHexColors(idwMasterPalette[idx1], idwMasterPalette[idx2], ratio);
+    }
 
     const pointsCollection = turf.featureCollection(pts);
     const tnBounds = L.geoJSON(tnGeoJSONData).getBounds();
@@ -1114,61 +1150,93 @@ function runIdwGeneration(metric, isDaily, doy, prettyDate, dateVal, monthIndex 
     L.geoJSON(finalGrid, {
         pane: 'gridPane',
         style: function(feature) {
-            const val = feature.properties.rain; let color;
-            if (isDaily) color = getIMDColor(val);
-            else if (metric === 'custom') {
-                if (val > customScale.thresholds[customScale.thresholds.length - 1]) color = customScale.overflow;
-                else {
-                    let binIdx = 0;
-                    for (let i = 0; i < customScale.thresholds.length - 1; i++) { if (val > customScale.thresholds[i]) binIdx = i + 1; }
-                    color = customScale.colors[Math.min(binIdx, customScale.colors.length - 1)];
-                }
-            } else {
-                if (val > maxRainNormal) color = '#ff00ff';
-                else {
-                    let binIdx = Math.max(0, Math.min(numBins - 1, Math.floor((val - 0.0001) / step)));
-                    let colorIdx = Math.floor((binIdx / Math.max(1, numBins - 1)) * (idwMasterPalette.length - 1));
-                    color = idwMasterPalette[colorIdx];
+            const val = feature.properties.rain; 
+            let color = 'transparent';
+            if (val > 0) {
+                if (isDaily) color = getIMDColor(val);
+                else if (metric === 'custom') {
+                    if (val > customScale.thresholds[customScale.thresholds.length - 1]) color = customScale.overflow;
+                    else {
+                        let binIdx = 0;
+                        for (let i = 0; i < customScale.thresholds.length - 1; i++) { if (val > customScale.thresholds[i]) binIdx = i + 1; }
+                        color = customScale.colors[Math.min(binIdx, customScale.colors.length - 1)];
+                    }
+                } else {
+                    if (val > maxRainNormal) {
+                        color = idwMasterPalette[idwMasterPalette.length - 1]; // Overflow Magenta
+                    } else {
+                        let binIdx = Math.max(0, Math.min(numBins - 1, Math.floor((val - 0.0001) / step)));
+                        color = getIdwColor(binIdx, numBins);
+                    }
                 }
             }
-            return { fillColor: color, fillOpacity: 0.95, weight: 2, color: color, stroke: true };
+            return { fillColor: color, fillOpacity: val > 0 ? 0.95 : 0, weight: val > 0 ? 2 : 0, color: color, stroke: val > 0 };
         }
     }).addTo(exportIdwMapInstance);
 
-    L.polygon(generateInvertedMask(tnGeoJSONData), { pane: 'maskPane', fillColor: 'var(--exp-bg-annual)', fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
-    L.geoJSON(tnGeoJSONData, { pane: 'boundsPane', style: { fillColor: 'transparent', color: 'var(--exp-text-dim)', weight: 1.5, opacity: 0.9 } }).addTo(exportIdwMapInstance);
+    const theme = document.getElementById('idwExportTheme').value;
+    const bgAnnual = theme === 'dark' ? '#0f141e' : '#f4f6fb'; // Match index.css backgrounds
+    const textMain = theme === 'dark' ? '#f8fafc' : '#1a1a2e';
+    const boundsColor = theme === 'dark' ? '#ffffff' : '#111827'; // White in dark mode, near-black in light mode
+
+    L.polygon(generateInvertedMask(tnGeoJSONData), { pane: 'maskPane', fillColor: bgAnnual, fillOpacity: 1, stroke: false }).addTo(exportIdwMapInstance);
+    L.geoJSON(tnGeoJSONData, { pane: 'boundsPane', style: { fillColor: 'transparent', color: boundsColor, weight: 1.5, opacity: 0.85 } }).addTo(exportIdwMapInstance);
 
     if (document.getElementById('idwShowStations').checked) {
-        L.geoJSON(pointsCollection, { pane: 'pointsPane', pointToLayer: function (feature, latlng) { return L.circleMarker(latlng, { radius: 0.8, fillColor: "var(--exp-text)", color: "transparent", fillOpacity: 0.7 }); } }).addTo(exportIdwMapInstance);
+        L.geoJSON(pointsCollection, { pane: 'pointsPane', pointToLayer: function (feature, latlng) { return L.circleMarker(latlng, { radius: 0.8, fillColor: textMain, color: "transparent", fillOpacity: 0.7 }); } }).addTo(exportIdwMapInstance);
     }
 
     document.getElementById('idwExportTitle').innerText = isDaily ? "24-Hour Spatial Distribution" : (metric === 'custom' ? "CUMULATIVE RAINFALL DISTRIBUTION" : "Spatial Rainfall Distribution");
     document.getElementById('idwExportSubtitle').innerText = prettyDate;
 
-    if (isDaily) {
-        document.getElementById('idwLegendImd').style.display = 'flex';
-        document.getElementById('idwLegendSeasonal').style.display = 'none';
-    } else {
-        document.getElementById('idwLegendImd').style.display = 'none';
-        document.getElementById('idwLegendSeasonal').style.display = 'flex';
+    // Generate Classical Vertical Legend
+    let bins = [];
+    let title = "";
 
-        let seasonalLegendHTML = "";
+    if (isDaily) {
+        title = "Rainfall (24h) [mm]";
+        bins = [
+            { color: theme === 'dark' ? '#2c2c2c' : '#ffffff', bottom: '0' },
+            { color: theme === 'dark' ? '#3a3a3a' : '#e0e0e0', bottom: '0.1' },
+            { color: theme === 'dark' ? '#22c55e' : '#98fb98', bottom: '2.5' },
+            { color: '#2ecc71', bottom: '15.6' },
+            { color: '#f1c40f', bottom: '64.5' },
+            { color: '#e67e22', bottom: '115.5' },
+            { color: '#e74c3c', bottom: '204.5' }
+        ];
+    } else {
+        title = metric === 'custom' ? "Cumulative Rainfall (mm)" : "Accumulated Rainfall (mm)";
         if (metric === 'custom') {
             for (let i = 0; i < customScale.thresholds.length - 1; i++) {
-                const lower = customScale.thresholds[i], upper = customScale.thresholds[i + 1], color = customScale.colors[i];
-                seasonalLegendHTML += `<span style="color:${color === '#FFFFFF' ? 'var(--exp-text-dim)' : color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${lower === 0 ? `1-${upper}` : `${lower}-${upper}`}</span>`;
+                bins.push({ color: customScale.colors[i], bottom: customScale.thresholds[i] });
             }
-            seasonalLegendHTML += `<span style="color:${customScale.overflow}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${customScale.overflow}; border:1px solid rgba(255,255,255,0.2);"></span> &gt; ${customScale.thresholds[customScale.thresholds.length - 1]}</span>`;
+            let lastIdx = customScale.thresholds.length - 1;
+            bins.push({ color: customScale.overflow, bottom: customScale.thresholds[lastIdx] });
         } else {
             for (let i = 0; i < numBins; i++) {
-                let color = idwMasterPalette[Math.floor((i / Math.max(1, numBins - 1)) * (idwMasterPalette.length - 1))];
-                let label = i === 0 ? `1-${(i + 1) * step}` : `${(i * step) + 1}-${(i + 1) * step}`;
-                seasonalLegendHTML += `<span style="color:${color}; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:${color}; border:1px solid rgba(255,255,255,0.2);"></span> ${label}</span>`;
+                bins.push({ color: getIdwColor(i, numBins), bottom: i * step });
             }
-            seasonalLegendHTML += `<span style="color:#ff00ff; white-space:nowrap; font-size:13px; font-weight:700;"><span class="legend-dot" style="background:#ff00ff; border:1px solid rgba(255,255,255,0.2);"></span> &gt; ${maxRainNormal}</span>`;
+            bins.push({ color: idwMasterPalette[idwMasterPalette.length - 1], bottom: maxRainNormal });
         }
-        document.getElementById('seasonalLegendBlocks').innerHTML = seasonalLegendHTML;
     }
+
+    let blocksHTML = '';
+    let labelsHTML = '';
+    const blockWidth = 40; // px
+    const totalWidth = bins.length * blockWidth;
+
+    bins.forEach((b, i) => {
+        blocksHTML += `<div style="flex:1; height:100%; background:${b.color}; box-sizing:border-box;"></div>`;
+        if (i > 0) {
+            labelsHTML += `<div style="position:absolute; left:${i * blockWidth}px; top:0; transform:translateX(-50%); font-size:14px; font-weight:700; color:var(--exp-text);">${b.bottom}</div>`;
+        }
+    });
+
+    document.getElementById('idwHorizontalColorBar').innerHTML = blocksHTML;
+    document.getElementById('idwHorizontalColorBar').style.width = `${totalWidth}px`;
+    document.getElementById('idwHorizontalLabels').innerHTML = labelsHTML;
+    document.getElementById('idwHorizontalLabels').style.width = `${totalWidth}px`;
+    document.getElementById('idwHorizontalLegendTitle').innerText = title;
 
     finalImageFileName = `IDW_Map_${isDaily ? dateVal : (metric === 'custom' ? 'custom_multidate' : metric+'_'+datasetActiveYear)}.png`;
     activeModalSource = '';
@@ -1219,6 +1287,9 @@ function downloadPreviewImage() {
 
 (function(){
     const forecastBtn = document.getElementById('openForecastBtn');
+    const analyticsBtn = document.getElementById('openAnalyticsBtn');
+    const closeAnalyticsBtn = document.getElementById('closeAnalyticsBtn');
+    const analyticsPanel = document.getElementById('analyticsAppPanel');
     const closeBtn = document.getElementById('closeForecastBtn');
     const panel = document.getElementById('forecastAppPanel');
     const dashboard = document.getElementById('tnSmartDashboard');
@@ -1249,7 +1320,37 @@ function downloadPreviewImage() {
     if(forecastBtn) forecastBtn.addEventListener('click', openForecast);
     if(closeBtn) closeBtn.addEventListener('click', closeForecast);
 
+    function openAnalytics() {
+        if(!analyticsPanel) return;
+        const attr = document.getElementById('openMeteoAttribution');
+        if (attr) attr.style.display = 'none';
+        analyticsPanel.classList.add('open');
+        analyticsPanel.setAttribute('aria-hidden','false');
+        if(dashboard) dashboard.style.visibility='hidden';
+        document.body.style.overflow='hidden';
+    }
+
+    function closeAnalytics() {
+        if(!analyticsPanel) return;
+        const attr = document.getElementById('openMeteoAttribution');
+        if (attr) attr.style.display = '';
+        analyticsPanel.classList.remove('open');
+        analyticsPanel.setAttribute('aria-hidden','true');
+        if(dashboard) dashboard.style.visibility='visible';
+        document.body.style.overflow='';
+    }
+
+    if(analyticsBtn) analyticsBtn.addEventListener('click', openAnalytics);
+    if(closeAnalyticsBtn) closeAnalyticsBtn.addEventListener('click', closeAnalytics);
+
+    window.addEventListener('message', e => {
+        if (e.data === 'closeAnalytics') closeAnalytics();
+    });
+
     window.addEventListener('keydown', e => {
-        if(e.key === 'Escape' && panel && panel.classList.contains('open')) closeForecast();
+        if(e.key === 'Escape') {
+            if (panel && panel.classList.contains('open')) closeForecast();
+            if (analyticsPanel && analyticsPanel.classList.contains('open')) closeAnalytics();
+        }
     });
 })();
