@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -548,7 +548,9 @@
                 <div class="r24-chart-title">District-wise Average Rainfall</div>
                 <div class="r24-chart-sub" id="r24-chart-sub">Sorted highest → lowest</div>
                 <div class="r24-chart-wrap">
-                    <canvas id="r24-bar-chart"></canvas>
+                    <div id="r24-chart-inner" style="position:absolute; inset:0;">
+                        <canvas id="r24-bar-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1729,8 +1731,30 @@
         const ctx = document.getElementById('r24-bar-chart');
         if (barChartInst) barChartInst.destroy();
 
+        // Small screens: the card has no fixed height, so give every district its own row
+        const mobile = window.matchMedia('(max-width: 1024px)').matches;
+        const inner  = document.getElementById('r24-chart-inner');
+        if (mobile) inner.style.cssText = 'position:relative; height:' + Math.max(320, entries.length * 28 + 70) + 'px;';
+        else        inner.style.cssText = 'position:absolute; inset:0;';
+
+        // value at the end of each bar (phones only — too cramped on desktop)
+        const valueLabels = {
+            id: 'valueLabels',
+            afterDatasetsDraw(chart) {
+                if (!mobile) return;
+                const c = chart.ctx, meta = chart.getDatasetMeta(0);
+                c.save();
+                c.font = '700 11px -apple-system, Segoe UI, Roboto, sans-serif';
+                c.fillStyle = (getComputedStyle(document.body).getPropertyValue('--text') || '#222').trim();
+                c.textBaseline = 'middle';
+                meta.data.forEach((bar, i) => c.fillText(vals[i].toFixed(1), bar.x + 6, bar.y));
+                c.restore();
+            }
+        };
+
         barChartInst = new Chart(ctx, {
             type: 'bar',
+            plugins: [valueLabels],
             data: {
                 labels,
                 datasets: [{
@@ -1759,17 +1783,20 @@
                 scales: {
                     x: {
                         beginAtZero: true,
+                        grace: mobile ? '14%' : 0,
                         title: { display: true, text: isRangeMode() ? 'Avg Accumulated Rainfall (mm)' : 'Avg Rainfall (mm)', font:{ size:11 } },
                         grid: { color: 'rgba(128,128,128,.12)' }
                     },
                     y: {
-                        ticks: { font:{ size:10 } },
+                        ticks: { font:{ size: mobile ? 11 : 10 }, autoSkip: !mobile },
                         grid: { display: false }
                     }
                 }
             }
         });
     }
+
+    window.matchMedia('(max-width: 1024px)').addEventListener('change', () => { if (typeof dayStations !== 'undefined' && dayStations.length) renderChart(); });
 
     /* ==================================================================
        STATION TABLE
