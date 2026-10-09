@@ -364,6 +364,30 @@
         .r24-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
         .r24-footer a:hover { text-decoration: underline; }
 
+        /* ---- BULLETIN / EXPORT ACTION BAR ---- */
+        .r24-actionbar { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 28px; margin:16px 0 14px; padding-top:14px; border-top:1px solid var(--border); }
+        .ab-group { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+        .ab-label { width:100%; font-size:10.5px; font-weight:800; letter-spacing:.8px; color:var(--text-muted); text-transform:uppercase; }
+        .ab-btn { border:none; border-radius:6px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; color:#fff; }
+        .ab-btn.primary { background:var(--accent); }
+        .ab-btn.csv { background:var(--kpi-dry); }
+        .ab-btn.png { background:#8e44ad; }
+        .ab-btn:hover { filter:brightness(1.08); }
+        .ab-sel { padding:8px 10px; font-size:12.5px; }
+        .bd-wrap { position:relative; }
+        .bd-toggle { background:var(--input-bg); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+        .bd-panel { display:none; position:absolute; left:0; top:calc(100% + 6px); z-index:60; width:460px; max-width:92vw; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 12px 32px rgba(0,0,0,.25); padding:14px; }
+        .bd-panel.open { display:block; }
+        .bd-quick { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+        .bd-quick button { border:1px solid var(--border); background:var(--input-bg); color:var(--text); border-radius:999px; padding:5px 11px; font-size:11.5px; font-weight:700; cursor:pointer; }
+        .bd-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0 10px; max-height:240px; overflow-y:auto; padding:8px 2px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .bd-item { display:flex; align-items:center; gap:6px; font-size:12.5px; padding:5px 2px; cursor:pointer; color:var(--text); }
+        .bd-out { margin-top:10px; font-size:12px; color:var(--text); display:flex; flex-direction:column; gap:6px; }
+        .bd-out label { cursor:pointer; }
+        .bd-foot { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; }
+        .bd-hint { font-size:11px; color:var(--text-muted); }
+        @media (max-width: 600px) { .bd-grid { grid-template-columns:repeat(2,1fr); } .r24-actionbar { align-items:stretch; } .ab-group { width:100%; } .bd-panel { position:fixed; left:4vw; right:4vw; top:12vh; width:auto; max-width:none; } }
+
         /* ---- RESPONSIVE ---- */
         @media (max-width: 1024px) {
             .r24-mid { grid-template-columns: 1fr; height: auto; }
@@ -560,7 +584,6 @@
             <div class="r24-table-header">
                 <span class="r24-table-title">Station Readings</span>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <button class="btn-load" style="background:var(--kpi-dry); color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer;" onclick="exportCSV()">&#11015;&#65039; Export CSV</button> <button class="btn-load" style="background:#8e44ad; color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer;" onclick="exportTablePNG()">&#128444;&#65039; Export PNG</button> <select id="bulletin-style" class="input-modern" title="Bulletin map style" style="padding:6px 8px; font-size:12px; margin-left:6px;"><option value="choro">Bulletin: District map</option><option value="points">Bulletin: Station map</option><option value="both">Bulletin: District + stations</option></select> <select id="bulletin-min" class="input-modern" title="Bulletin: show stations at or above this class (station map)" style="padding:6px 8px; font-size:12px;"><option value="0">All stations</option></select> <button class="btn-load" id="bulletin-btn" style="background:var(--accent); color:#fff; border:none; border-radius:5px; padding:8px 12px; font-size:12px; cursor:pointer; font-weight:700;" onclick="downloadBulletin()">&#128196; Download Bulletin</button>
                     <input type="text" class="r24-search" id="r24-search" placeholder="🔍 Search station or district…" oninput="renderTable()">
                     <select class="input-modern" id="r24-sort-sel" onchange="renderTable()">
                         <option value="rain-desc">Sort: Highest Rain ↓</option>
@@ -574,6 +597,37 @@
             <!-- District filter pills -->
             <div class="r24-district-filter" id="r24-dist-pills">
                 <!-- built by JS -->
+            </div>
+            <!-- Bulletin & export toolbar -->
+            <div class="r24-actionbar">
+                <div class="ab-group">
+                    <div class="ab-label">Bulletin (PNG)</div>
+                    <select id="bulletin-style" class="input-modern ab-sel" title="Bulletin map style"><option value="choro">Map: District colours</option><option value="points">Map: Station dots</option><option value="both">Map: Districts + stations</option></select>
+                    <select id="bulletin-min" class="input-modern ab-sel" title="Show stations at or above this class (station dots)"><option value="0">All stations</option></select>
+                    <div class="bd-wrap">
+                        <button type="button" class="bd-toggle" id="bd-toggle" onclick="toggleBulletinDistricts(event)">&#128205; Districts: <span id="bd-label">Same as dashboard filter</span> &#9662;</button>
+                        <div class="bd-panel" id="bd-panel">
+                            <div class="bd-quick">
+                                <button type="button" onclick="bdQuick('clear')">Same as dashboard</button>
+                                <button type="button" onclick="bdQuick('rain')">With rain</button>
+                                <button type="button" onclick="bdQuick('core')">CDZ Core</button>
+                                <button type="button" onclick="bdQuick('ext')">CDZ Extended</button>
+                            </div>
+                            <div class="bd-grid" id="bd-grid"></div>
+                            <div class="bd-out">
+                                <label><input type="radio" name="bd-out" value="one" checked onchange="bdOut()"> One bulletin with the selected districts</label>
+                                <label><input type="radio" name="bd-out" value="sep" onchange="bdOut()"> Separate bulletin for each district <span id="bd-sep-n" style="color:var(--text-muted);"></span></label>
+                            </div>
+                            <div class="bd-foot"><span class="bd-hint" id="bd-hint"></span><button type="button" class="ab-btn primary" onclick="toggleBulletinDistricts(event)">Done</button></div>
+                        </div>
+                    </div>
+                    <button type="button" class="ab-btn primary" id="bulletin-btn" onclick="downloadBulletin()">&#128196; Download Bulletin</button>
+                </div>
+                <div class="ab-group">
+                    <div class="ab-label">Export table</div>
+                    <button type="button" class="ab-btn csv" onclick="exportCSV()">&#11015;&#65039; Export CSV</button>
+                    <button type="button" class="ab-btn png" onclick="exportTablePNG()">&#128444;&#65039; Export PNG</button>
+                </div>
             </div>
             <div class="r24-table-wrap">
                 <table class="r24-tbl" id="r24-tbl">
@@ -1892,47 +1946,66 @@ const GEO_ALIAS = {
 function geoKey(n) { const k = cleanStr(n || ''); return GEO_ALIAS[k] || k; }
 
 function bEsc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function bTrunc(t, px, fs) { const max = Math.max(4, Math.floor(px / (fs * 0.54))); t = String(t); return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t; }
+function bTrunc(t, px, fs) { const max = Math.max(4, Math.floor(px / (fs * 0.58))); t = String(t); return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t; }
 function bWrap(t, px, fs) {
     const max = Math.floor(px / (fs * 0.66)), words = String(t).split(/\s+/), lines = []; let cur = '';
     words.forEach(w => { if ((cur + ' ' + w).trim().length > max) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); });
     if (cur) lines.push(cur);
     return lines.slice(0, 2);
 }
+function bWrapLines(t, px, fs, n) {
+    const max = Math.max(6, Math.floor(px / (fs * 0.6))), words = String(t).trim().split(/\s+/), lines = []; let cur = '';
+    words.forEach(w => { if (cur && (cur + ' ' + w).length > max) { lines.push(cur); cur = w; } else cur = (cur ? cur + ' ' : '') + w; });
+    if (cur) lines.push(cur);
+    if (lines.length > n) { const last = lines[n - 1]; lines.length = n; lines[n - 1] = (last.length > max - 1 ? last.slice(0, max - 1) : last) + '…'; }
+    return lines;
+}
 function bProject(lat, lon) {
     const g = BULLETIN_GEO;
     return [(lon - g.lon0) * g.kx * g.K, (g.latmax - lat) * g.K];
 }
 
-function buildBulletinSVG() {
+function buildBulletinSVG(keys) {
     const dark = document.body.getAttribute('data-theme') === 'dark';
     const T = dark
         ? { bg:'#0f1626', card:'#18223a', text:'#e8edf5', muted:'#97a3b8', line:'#2a3550', accent:'#5aa0d6', none:'#232f4a', stroke:'#0f1626' }
         : { bg:'#ffffff', card:'#f3f6fa', text:'#16202e', muted:'#667385', line:'#dbe2ea', accent:'#2f6690', none:'#e4e9ef', stroke:'#ffffff' };
     const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-    const W = 1080, H = 1350, M = 48;
+    const W = 1080, H = 1620, M = 48;
 
     const range = isRangeMode();
     const scale = getCurrentScale();
     const geo = BULLETIN_GEO;
 
     // ── scope & data ──
-    const scopeStations = dayStations.filter(s => s.district !== 'Unknown' && isDistrictInGroup(s.district, activeDistrict));
-    const inScopeGeo = name => {
-        if (activeDistrict === 'ALL') return true;
-        if (activeDistrict === 'CDZ_CORE' || activeDistrict === 'CDZ_EXT') return isDistrictInGroup(name, activeDistrict);
-        return geoKey(name) === geoKey(activeDistrict);
-    };
     const geoNames = Object.keys(geo.d);
-    const scopeGeo = geoNames.filter(inScopeGeo);
-    const scopeLabel = activeDistrict === 'ALL' ? 'All Tamil Nadu'
-        : activeDistrict === 'CDZ_CORE' ? 'Cauvery Delta · Core'
-        : activeDistrict === 'CDZ_EXT' ? 'Cauvery Delta · Extended' : activeDistrict;
+    const nameOfKey = k => geoNames.find(n => geoKey(n) === k) || k;
+    // districts to include: explicit keys (separate bulletins) → picker selection → dashboard filter
+    let scopeKeys = null, dashLabel = '';
+    if (keys && keys.length) scopeKeys = new Set(keys);
+    else if (bSel.size) scopeKeys = new Set(bSel);
+    else if (activeDistrict === 'CDZ_CORE' || activeDistrict === 'CDZ_EXT') {
+        scopeKeys = new Set(geoNames.filter(n => isDistrictInGroup(n, activeDistrict)).map(geoKey));
+        dashLabel = activeDistrict === 'CDZ_CORE' ? 'Cauvery Delta · Core' : 'Cauvery Delta · Extended';
+    } else if (activeDistrict !== 'ALL') scopeKeys = new Set([geoKey(activeDistrict)]);
+    if (scopeKeys && scopeKeys.size >= geoNames.length) scopeKeys = null;
 
+    const inScopeGeo = name => !scopeKeys || scopeKeys.has(geoKey(name));
+    const scopeStations = dayStations.filter(s => s.district !== 'Unknown' && (!scopeKeys || scopeKeys.has(geoKey(s.district))));
+    const scopeGeo = geoNames.filter(inScopeGeo);
+    let scopeLabel;
+    if (!scopeKeys) scopeLabel = 'All Tamil Nadu';
+    else if (dashLabel && !(keys && keys.length) && !bSel.size) scopeLabel = dashLabel;
+    else {
+        const nm = [...scopeKeys].map(nameOfKey).sort((x, y) => x.localeCompare(y));
+        scopeLabel = nm.length <= 4 ? nm.join(' · ') : nm.slice(0, 3).join(' · ') + ' +' + (nm.length - 3) + ' more';
+    }
+    lastBulletinScope = scopeLabel;
+    const singleScope = !!scopeKeys && scopeKeys.size === 1;
     const dAgg = {};
     scopeStations.forEach(s => {
         const k = geoKey(s.district);
-        const a = dAgg[k] || (dAgg[k] = { sum:0, n:0, name:s.district });
+        const a = dAgg[k] || (dAgg[k] = { sum:0, n:0, name:s.district, k });
         a.sum += s.rain; a.n++;
     });
     Object.values(dAgg).forEach(a => { a.avg = Math.round((a.sum / a.n) * 10) / 10; });
@@ -1944,16 +2017,22 @@ function buildBulletinSVG() {
     const topD = Object.values(dAgg).filter(a => a.n > 0 && a.avg > 0).sort((a, b) => b.avg - a.avg).slice(0, 5);
     const maxS = top[0];
 
-    // ── headline ──
+    // ── headline (names the highest class any station reached) ──
     let headline;
+    let hiIdx = -1;
+    scale.forEach((c, i) => { if (withRain.some(s => s.imd.key === c.key)) hiIdx = i; });
+    const hiC = hiIdx >= 0 ? scale[hiIdx] : null;
+    const nHi = hiC ? withRain.filter(s => s.imd.key === hiC.key).length : 0;
+    const where = singleScope ? ` in ${scopeLabel}` : '';
     if (!scopeStations.length) headline = 'No station data for the selected scope.';
     else if (!withRain.length) headline = 'No rainfall recorded across the selected stations.';
-    else {
-        const plural = nHeavy === 1 ? 'station' : 'stations';
-        headline = nHeavy > 0
-            ? `${nHeavy} ${plural} recorded ${T1} mm or more` + (topD[0] ? `; ${topD[0].name} led districts with a ${topD[0].avg.toFixed(1)} mm station average.` : '.')
-            : `No station reached ${T1} mm; highest was ${maxS.rain.toFixed(1)} mm at ${maxS.name}.`;
-    }
+    else if (hiC && maxS.rain >= T1) {
+        const pl = nHi === 1 ? 'station' : 'stations';
+        const what = range ? `accumulated ${Math.floor(hiC.min)} mm or more` : `recorded ${hiC.label} (≥ ${hiC.min} mm)`;
+        headline = `${nHi} ${pl}${where} ${what}` + (singleScope
+            ? `; highest was ${maxS.rain.toFixed(1)} mm at ${maxS.name}.`
+            : (topD[0] ? `; ${topD[0].name} led districts with a ${topD[0].avg.toFixed(1)} mm station average.` : '.'));
+    } else headline = `No station${where} reached ${T1} mm; highest was ${maxS.rain.toFixed(1)} mm at ${maxS.name}.`;
 
     const subtitle = (typeof bulletinSubtitle === 'string' && bulletinSubtitle) ? bulletinSubtitle : (range ? 'Accumulated rainfall' : '24-hour rainfall');
 
@@ -1968,9 +2047,9 @@ function buildBulletinSVG() {
     // ── header ──
     o += txt(M, 92, BULLETIN_TITLE, 46, T.text, 800);
     o += txt(M, 128, bTrunc(subtitle, 700, 22), 22, T.muted, 500);
-    const pillW = Math.min(300, 40 + scopeLabel.length * 11);
+    const pillW = Math.min(500, 44 + scopeLabel.length * 10.2);
     o += rect(W - M - pillW, 62, pillW, 40, T.card, 20, `stroke="${T.line}"`);
-    o += txt(W - M - pillW / 2, 88, scopeLabel, 18, T.accent, 700, 'middle');
+    o += txt(W - M - pillW / 2, 88, bTrunc(scopeLabel, pillW - 28, 18), 18, T.accent, 700, 'middle');
 
     // ── headline ──
     const hl = bWrap(headline, W - 2 * M, 24);
@@ -1986,7 +2065,7 @@ function buildBulletinSVG() {
     // ── KPI tiles ──
     const kY = 252, kH = 112, kGap = 16, kW = (W - 2 * M - 3 * kGap) / 4;
     const kpis = [
-        { l:'STATIONS REPORTING', v:String(scopeStations.length), s:`${new Set(scopeStations.map(s => geoKey(s.district))).size} districts` },
+        { l:'STATIONS REPORTING', v:String(scopeStations.length), s:(() => { const nd = new Set(scopeStations.map(s => geoKey(s.district))).size; return nd + (nd === 1 ? ' district' : ' districts'); })() },
         { l:'STATIONS WITH RAIN', v:String(withRain.length), s: scopeStations.length ? Math.round(withRain.length / scopeStations.length * 100) + '% of stations' : '—' },
         { l:`STATIONS ≥ ${T1} MM`, v:String(nHeavy), s: range ? 'accumulated total' : 'Heavy or above (IMD)' },
         { l:'HIGHEST STATION', v: maxS ? maxS.rain.toFixed(1) + ' mm' : '—', s: maxS ? maxS.name : '' }
@@ -2016,13 +2095,14 @@ function buildBulletinSVG() {
     const footLineY = H - 78;
     const lY = footLineY - 18 - lH;
 
-    // ── main block ──
-    const mY = 388, mH = lY - 22 - mY, mapW = 590, colX = M + mapW + 20, colW = W - M - colX;
+    // ── main block: map (left) + zoomed top districts (right), lists underneath ──
+    const listH = 318, listY = lY - 22 - listH;
+    const mY = 388, mH = listY - 16 - mY, mapW = singleScope ? W - 2 * M : 540, colX = M + mapW + 16, colW = W - M - colX;
     o += rect(M, mY, mapW, mH, T.card, 16, `stroke="${T.line}"`);
 
     // viewBox for scope
     let bb;
-    if (activeDistrict === 'ALL' || !scopeGeo.length) bb = [0, 0, geo.W, geo.H];
+    if (!scopeKeys || !scopeGeo.length) bb = [0, 0, geo.W, geo.H];
     else {
         bb = [1e9, 1e9, -1e9, -1e9];
         scopeGeo.forEach(n => { const b = geo.d[n].bb; bb = [Math.min(bb[0], b[0]), Math.min(bb[1], b[1]), Math.max(bb[2], b[2]), Math.max(bb[3], b[3])]; });
@@ -2049,20 +2129,21 @@ function buildBulletinSVG() {
         .filter(s => s.lat && s.lon && s.rain >= minMm)
         .sort((a, b) => a.rain - b.rain);                      // heavy stations drawn last (on top)
     const nScale = Math.max(1, scale.length - 1);
+    const zoomed = !!scopeKeys;
     dots.forEach(s => {
         const [x, y] = bProject(s.lat, s.lon);
         if (!inView(x, y)) return;
         if (s.rain <= 0) {
-            m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(2.6)}" fill="none" stroke="${T.muted}" stroke-width="${f(0.9)}" stroke-opacity="0.8"/>`;
+            m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(2.4)}" fill="none" stroke="${T.muted}" stroke-width="${f(0.8)}" stroke-opacity="0.8"/>`;
             return;
         }
         const bin = Math.max(1, scale.findIndex(c => c.key === s.imd.key));
-        const rpx = (activeDistrict === 'ALL' ? 3.4 : 5) + (bin / nScale) * (activeDistrict === 'ALL' ? 5.5 : 7);
-        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(rpx)}" fill="${s.imd.color}" stroke="${T.bg}" stroke-width="${f(1)}"/>`;
+        const rpx = (zoomed ? 4.5 : 2.9) + (bin / nScale) * (zoomed ? 6.5 : 5);
+        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(rpx)}" fill="${s.imd.color}" fill-opacity="0.92" stroke="${T.bg}" stroke-width="${f(0.9)}"/>`;
     });
 
     // district labels when zoomed
-    if (activeDistrict !== 'ALL' && scopeGeo.length <= 12) {
+    if (zoomed && scopeGeo.length <= 12) {
         scopeGeo.forEach(n => {
             const g = geo.d[n], a = dAgg[geoKey(n)];
             const cls = (a && bStyle === 'choro') ? classifyCurrent(a.avg) : null;
@@ -2071,13 +2152,36 @@ function buildBulletinSVG() {
             if (a && bStyle !== 'points') m += `<text x="${g.c[0]}" y="${(g.c[1] + 11 / sc).toFixed(2)}" font-size="${f(9.5)}" fill="${col}" text-anchor="middle">${a.avg.toFixed(1)} mm</text>`;
         });
     }
-    // numbered markers for top-5 stations
+
+    // numbered markers for top-5 stations — nudged apart when they collide, with a leader line to the true spot
+    const mk = [];
     top.forEach((s, i) => {
         if (!s.lat || !s.lon) return;
         const [x, y] = bProject(s.lat, s.lon);
-        if (!inView(x, y)) return;
-        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(12)}" fill="${s.imd.color}" stroke="${T.text}" stroke-width="${f(2)}"/>`;
-        m += `<text x="${x.toFixed(2)}" y="${(y + 4.5 / sc).toFixed(2)}" font-size="${f(13)}" font-weight="800" fill="${s.imd.textColor}" text-anchor="middle">${i + 1}</text>`;
+        if (inView(x, y)) mk.push({ s, i, tx: x, ty: y, x, y });
+    });
+    const rr = 12 / sc, minD = rr * 2.25;
+    for (let it = 0; it < 60; it++) {
+        let moved = false;
+        for (let a = 0; a < mk.length; a++) for (let b = a + 1; b < mk.length; b++) {
+            let dx = mk[b].x - mk[a].x, dy = mk[b].y - mk[a].y, d = Math.hypot(dx, dy);
+            if (d < minD) {
+                if (d < 1e-6) { const ang = (a + 1) * 1.7; dx = Math.cos(ang); dy = Math.sin(ang); d = 1; }
+                const push = (minD - d) / 2, ux = dx / d, uy = dy / d;
+                mk[a].x -= ux * push; mk[a].y -= uy * push; mk[b].x += ux * push; mk[b].y += uy * push; moved = true;
+            }
+        }
+        if (!moved) break;
+    }
+    mk.forEach(k => {
+        if (Math.hypot(k.x - k.tx, k.y - k.ty) > rr * 0.6) {
+            m += `<line x1="${k.tx.toFixed(2)}" y1="${k.ty.toFixed(2)}" x2="${k.x.toFixed(2)}" y2="${k.y.toFixed(2)}" stroke="${T.text}" stroke-width="${f(1.3)}"/>`;
+            m += `<circle cx="${k.tx.toFixed(2)}" cy="${k.ty.toFixed(2)}" r="${f(2.6)}" fill="${T.text}"/>`;
+        }
+    });
+    mk.forEach(k => {
+        m += `<circle cx="${k.x.toFixed(2)}" cy="${k.y.toFixed(2)}" r="${f(12)}" fill="${k.s.imd.color}" stroke="${T.text}" stroke-width="${f(2)}"/>`;
+        m += `<text x="${k.x.toFixed(2)}" y="${(k.y + 4.5 / sc).toFixed(2)}" font-size="${f(13)}" font-weight="800" fill="${k.s.imd.textColor}" text-anchor="middle">${k.i + 1}</text>`;
     });
     const offX = M + pad + (pW - vbW * sc) / 2, offY = mY + pad + (pH - vbH * sc) / 2;
     o += `<svg x="${offX.toFixed(1)}" y="${offY.toFixed(1)}" width="${(vbW * sc).toFixed(1)}" height="${(vbH * sc).toFixed(1)}" viewBox="${bb[0].toFixed(1)} ${bb[1].toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}" font-family='${FONT}'>${m}</svg>`;
@@ -2089,34 +2193,110 @@ function buildBulletinSVG() {
               : `District average + stations${filt}`;
     o += txt(M + 18, mY + mH - 14, bTrunc(cap, mapW - 36, 13), 13, T.muted, 500);
 
-    // right column: top stations
-    const stH = Math.round(mH * 0.54), dH = mH - stH - 16;
-    let y = mY;
-    o += rect(colX, y, colW, stH, T.card, 16, `stroke="${T.line}"`);
-    o += txt(colX + 20, y + 34, 'TOP 5 STATIONS', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
-    if (!top.length) o += txt(colX + 20, y + 80, 'No rainfall recorded', 17, T.muted, 500);
-    const sRow = (stH - 62) / 5;
+    // ── right column: zoomed view of the top districts (average) with their stations ──
+    const zN = singleScope ? 0 : Math.min(3, topD.length);
+    if (!zN && !singleScope) {
+        o += rect(colX, mY, colW, mH, T.card, 16, `stroke="${T.line}"`);
+        o += txt(colX + 20, mY + 36, 'DISTRICT ZOOM', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+        o += txt(colX + 20, mY + 80, 'No rainfall recorded', 17, T.muted, 500);
+    }
+    const zGap = 14, zh = zN ? (mH - (zN - 1) * zGap) / zN : 0;
+    for (let zi = 0; zi < zN; zi++) {
+        const d = topD[zi], zy = mY + zi * (zh + zGap), gn = geoNames.find(n => geoKey(n) === d.k);
+        const cls = classifyCurrent(d.avg);
+        o += rect(colX, zy, colW, zh, T.card, 16, `stroke="${T.line}"`);
+
+        const ds = scopeStations.filter(s => geoKey(s.district) === d.k);
+        const peak = ds.reduce((a, s) => (s.rain > a.rain ? s : a), ds[0]);
+        const nRain = ds.filter(s => s.rain > 0).length;
+
+        if (gn) {
+            const gb = geo.d[gn].bb, ppx = (gb[2] - gb[0]) * 0.1, ppy = (gb[3] - gb[1]) * 0.1;
+            const zb = [gb[0] - ppx, gb[1] - ppy, gb[2] + ppx, gb[3] + ppy];
+            const zx = colX + 12, zyy = zy + 12, zw = 220, zhh = zh - 24;
+            const zvW = zb[2] - zb[0], zvH = zb[3] - zb[1], zs = Math.min(zw / zvW, zhh / zvH), fz = v => (v / zs).toFixed(2);
+            let zm = '';
+            geoNames.forEach(n => {
+                if (n === gn) return;
+                const b = geo.d[n].bb;
+                if (b[2] < zb[0] || b[0] > zb[2] || b[3] < zb[1] || b[1] > zb[3]) return;
+                zm += `<path d="${geo.d[n].d}" fill="${T.none}" fill-opacity="0.5" stroke="${T.muted}" stroke-opacity="0.45" stroke-width="${fz(0.8)}" stroke-linejoin="round"/>`;
+            });
+            zm += `<path d="${geo.d[gn].d}" fill="${cls.color}" fill-opacity="0.4" stroke="${T.text}" stroke-opacity="0.8" stroke-width="${fz(1.2)}" stroke-linejoin="round"/>`;
+            [...ds].filter(s => s.lat && s.lon).sort((a, b) => a.rain - b.rain).forEach(s => {
+                const [x, y] = bProject(s.lat, s.lon);
+                if (s.rain <= 0) { zm += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${fz(2.6)}" fill="none" stroke="${T.muted}" stroke-width="${fz(0.9)}" stroke-opacity="0.85"/>`; return; }
+                const bin = Math.max(1, scale.findIndex(c => c.key === s.imd.key));
+                zm += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${fz(4.5 + (bin / nScale) * 5.5)}" fill="${s.imd.color}" stroke="${T.bg}" stroke-width="${fz(1)}"/>`;
+            });
+            if (peak && peak.rain > 0 && peak.lat && peak.lon) {
+                const [x, y] = bProject(peak.lat, peak.lon);
+                const below = (y - zb[1]) < 22 / zs;
+                zm += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${fz(11)}" fill="none" stroke="${T.text}" stroke-width="${fz(1.6)}"/>`;
+                const lx2 = x.toFixed(2), ly2 = (y + (below ? 24 : -15) / zs).toFixed(2), lt = peak.rain.toFixed(1);
+                zm += `<text x="${lx2}" y="${ly2}" font-size="${fz(11.5)}" font-weight="800" fill="none" stroke="${T.card}" stroke-width="${fz(3.5)}" stroke-linejoin="round" text-anchor="middle">${lt}</text>`;
+                zm += `<text x="${lx2}" y="${ly2}" font-size="${fz(11.5)}" font-weight="800" fill="${T.text}" text-anchor="middle">${lt}</text>`;
+            }
+            const zox = zx + (zw - zvW * zs) / 2, zoy = zyy + (zhh - zvH * zs) / 2;
+            o += `<svg x="${zox.toFixed(1)}" y="${zoy.toFixed(1)}" width="${(zvW * zs).toFixed(1)}" height="${(zvH * zs).toFixed(1)}" viewBox="${zb[0].toFixed(1)} ${zb[1].toFixed(1)} ${zvW.toFixed(1)} ${zvH.toFixed(1)}" font-family='${FONT}'>${zm}</svg>`;
+        }
+
+        // badge + name + stats beside the zoom map
+        const sx = colX + 246, sw = colW - 258;
+        o += `<circle cx="${sx + 11}" cy="${zy + 30}" r="11" fill="${cls.color}"/>`;
+        o += txt(sx + 11, zy + 35, String(zi + 1), 13, cls.textColor, 800, 'middle');
+        o += txt(sx + 29, zy + 36, bTrunc(d.name, sw - 29, 15), 15, T.text, 800);
+        o += txt(sx, zy + 68, range ? 'AVG ACCUMULATED' : 'AVG RAINFALL', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
+        o += txt(sx, zy + 95, d.avg.toFixed(1) + ' mm', 28, T.text, 800);
+        o += txt(sx, zy + 121, 'HIGHEST STATION', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
+        o += txt(sx, zy + 143, peak ? peak.rain.toFixed(1) + ' mm' : '—', 19, T.text, 800);
+        (peak ? bWrapLines(peak.name, sw, 12, 2) : []).forEach((ln, li) => { o += txt(sx, zy + 160 + li * 14, ln, 12, T.muted, 500); });
+        o += txt(sx, zy + 200, `${nRain} of ${ds.length} with rain`, 13, T.muted, 600);
+    }
+
+    // ── lists under the map (full names fit here) ──
+    const lw2 = (W - 2 * M - 16) / 2;
+    o += rect(M, listY, lw2, listH, T.card, 16, `stroke="${T.line}"`);
+    o += txt(M + 20, listY + 34, 'TOP 5 STATIONS', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+    if (!top.length) o += txt(M + 20, listY + 80, 'No rainfall recorded', 17, T.muted, 500);
     top.forEach((s, i) => {
-        const ry = y + 52 + i * sRow, cls = s.imd, mid = sRow / 2;
-        o += `<circle cx="${colX + 34}" cy="${(ry + mid).toFixed(1)}" r="16" fill="${cls.color}"/>`;
-        o += txt(colX + 34, (ry + mid + 6).toFixed(1), String(i + 1), 16, cls.textColor, 800, 'middle');
-        o += txt(colX + 62, (ry + mid - 3).toFixed(1), bTrunc(s.name, colW - 175, 18), 18, T.text, 700);
-        o += txt(colX + 62, (ry + mid + 17).toFixed(1), bTrunc(s.district, colW - 175, 13), 13, T.muted, 500);
-        o += txt(colX + colW - 20, (ry + mid + 8).toFixed(1), s.rain.toFixed(1), 24, T.text, 800, 'end');
+        const ry = listY + 50 + i * 52, cls = s.imd;
+        o += `<circle cx="${M + 34}" cy="${ry + 22}" r="16" fill="${cls.color}"/>`;
+        o += txt(M + 34, ry + 28, String(i + 1), 16, cls.textColor, 800, 'middle');
+        o += txt(M + 62, ry + 20, bTrunc(s.name, lw2 - 190, 17), 17, T.text, 700);
+        o += txt(M + 62, ry + 40, bTrunc(s.district, lw2 - 190, 13), 13, T.muted, 500);
+        o += txt(M + lw2 - 20, ry + 30, s.rain.toFixed(1), 24, T.text, 800, 'end');
     });
-    // top districts
-    y = mY + stH + 16;
-    o += rect(colX, y, colW, dH, T.card, 16, `stroke="${T.line}"`);
-    o += txt(colX + 20, y + 34, range ? 'TOP 5 DISTRICTS · AVG ACCUM. MM' : 'TOP 5 DISTRICTS · AVG MM', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
-    if (!topD.length) o += txt(colX + 20, y + 80, 'No rainfall recorded', 17, T.muted, 500);
-    const maxAvg = topD[0] ? topD[0].avg : 1, dRow = (dH - 62) / 5;
-    topD.forEach((a, i) => {
-        const ry = y + 52 + i * dRow, cls = classifyCurrent(a.avg);
-        o += txt(colX + 20, (ry + 18).toFixed(1), bTrunc(a.name, colW - 120, 16), 16, T.text, 700);
-        o += txt(colX + colW - 20, (ry + 18).toFixed(1), a.avg.toFixed(1), 18, T.text, 800, 'end');
-        o += rect(colX + 20, (ry + 28).toFixed(1), colW - 40, 8, T.line, 4);
-        o += rect(colX + 20, (ry + 28).toFixed(1), Math.max(6, (colW - 40) * a.avg / maxAvg), 8, cls.color, 4);
-    });
+    const rx = M + lw2 + 16;
+    o += rect(rx, listY, lw2, listH, T.card, 16, `stroke="${T.line}"`);
+    if (singleScope) {
+        const dA = dAgg[[...scopeKeys][0]];
+        const rowsS = [
+            ['Average rainfall', dA ? dA.avg.toFixed(1) + ' mm' : '—'],
+            ['Highest station', maxS ? maxS.rain.toFixed(1) + ' mm' : '—'],
+            ['Stations with rain', `${withRain.length} of ${scopeStations.length}`],
+            [`Stations ≥ ${T1} mm`, String(nHeavy)],
+            ['Dry stations', String(scopeStations.length - withRain.length)]
+        ];
+        o += txt(rx + 20, listY + 34, (scopeLabel + ' · SUMMARY').toUpperCase(), 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+        rowsS.forEach((r, i) => {
+            const ry = listY + 52 + i * 52;
+            o += txt(rx + 20, ry + 26, r[0], 16, T.muted, 500);
+            o += txt(rx + lw2 - 20, ry + 26, r[1], 22, T.text, 800, 'end');
+            if (i < rowsS.length - 1) o += `<line x1="${rx + 20}" y1="${ry + 40}" x2="${rx + lw2 - 20}" y2="${ry + 40}" stroke="${T.line}"/>`;
+        });
+    } else {
+        o += txt(rx + 20, listY + 34, range ? 'TOP 5 DISTRICTS · AVG ACCUM. MM' : 'TOP 5 DISTRICTS · AVG MM', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
+        if (!topD.length) o += txt(rx + 20, listY + 80, 'No rainfall recorded', 17, T.muted, 500);
+        const maxAvg = topD[0] ? topD[0].avg : 1;
+        topD.forEach((a, i) => {
+            const ry = listY + 52 + i * 52, cls = classifyCurrent(a.avg);
+            o += txt(rx + 20, ry + 18, bTrunc(a.name, lw2 - 120, 17), 17, T.text, 700);
+            o += txt(rx + lw2 - 20, ry + 18, a.avg.toFixed(1), 19, T.text, 800, 'end');
+            o += rect(rx + 20, ry + 28, lw2 - 40, 8, T.line, 4);
+            o += rect(rx + 20, ry + 28, Math.max(6, (lw2 - 40) * a.avg / maxAvg), 8, cls.color, 4);
+        });
+    }
 
     // ── legend ──
     o += rect(M, lY, W - 2 * M, lH, T.card, 16, `stroke="${T.line}"`);
@@ -2160,35 +2340,86 @@ function refreshBulletinOptions() {
     sel.value = '0';
 }
 
-function downloadBulletin() {
-    if (!dataLoaded || !dayStations.length) { alert('Load a day or an accumulation first.'); return; }
-    const btn = document.getElementById('bulletin-btn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
-    const done = () => { if (btn) { btn.disabled = false; btn.style.opacity = '1'; } };
-    try {
-        const svg = buildBulletinSVG();
+function bulletinToPNG(keys) {
+    return new Promise((resolve, reject) => {
+        const svg = buildBulletinSVG(keys);
         const img = new Image();
         img.onload = () => {
             const c = document.createElement('canvas');
-            c.width = 2160; c.height = 2700;               // 2× for crisp sharing
-            const ctx = c.getContext('2d');
-            ctx.drawImage(img, 0, 0, c.width, c.height);
-            c.toBlob(b => {
-                const a = document.createElement('a');
-                const tag = isRangeMode() ? 'Accumulated' : (document.getElementById('r24-date-input').value || 'Day');
-                const scope = String(activeDistrict).replace(/[^A-Za-z0-9]+/g, '_');
-                const st = (document.getElementById('bulletin-style') || {}).value || 'choro';
-                a.download = `Rainfall_Bulletin_${scope}_${tag}_${st}.png`;
-                a.href = URL.createObjectURL(b);
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-                done();
-            }, 'image/png');
+            c.width = 2160; c.height = 3240;               // 2× for crisp sharing
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            c.toBlob(b => b ? resolve(b) : reject(new Error('PNG export failed')), 'image/png');
         };
-        img.onerror = () => { done(); alert('Could not render the bulletin.'); };
+        img.onerror = () => reject(new Error('Could not render the bulletin.'));
         img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    } catch (e) { console.error(e); done(); alert('Bulletin error: ' + e.message); }
+    });
 }
+
+async function downloadBulletin() {
+    if (!dataLoaded || !dayStations.length) { alert('Load a day or an accumulation first.'); return; }
+    const btn = document.getElementById('bulletin-btn');
+    const html0 = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+    const sepMode = bSep && bSel.size > 1;
+    const jobs = sepMode ? [...bSel].map(k => ({ keys: [k] })) : [{ keys: null }];
+    try {
+        for (let i = 0; i < jobs.length; i++) {
+            if (btn && jobs.length > 1) btn.textContent = `Generating ${i + 1}/${jobs.length}…`;
+            const blob = await bulletinToPNG(jobs[i].keys);
+            const tag = isRangeMode() ? 'Accumulated' : (document.getElementById('r24-date-input').value || 'Day');
+            const st  = (document.getElementById('bulletin-style') || {}).value || 'choro';
+            const scope = String(lastBulletinScope).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || 'ALL';
+            const a = document.createElement('a');
+            a.download = `Rainfall_Bulletin_${scope}_${tag}_${st}.png`;
+            a.href = URL.createObjectURL(blob);
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            if (i < jobs.length - 1) await new Promise(r => setTimeout(r, 700));   // let the browser accept each download
+        }
+    } catch (e) { console.error(e); alert('Bulletin error: ' + e.message); }
+    finally { if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = html0; } }
+}
+
+/* ---------- district picker for the bulletin (multi-select) ---------- */
+const bSel = new Set();          // geoKeys chosen in the picker; empty = follow the dashboard district filter
+let bSep = false;                // true = one separate PNG per selected district
+let lastBulletinScope = '';
+
+function bdSync() {
+    document.querySelectorAll('#bd-grid input').forEach(i => { i.checked = bSel.has(i.value); });
+    const lab = document.getElementById('bd-label');
+    if (lab) lab.textContent = bSel.size ? bSel.size + (bSel.size === 1 ? ' district' : ' districts') + ' selected' : 'Same as dashboard filter';
+    const sepN = document.getElementById('bd-sep-n'), hint = document.getElementById('bd-hint');
+    if (sepN) sepN.textContent = bSel.size > 1 ? '(' + bSel.size + ' PNG files)' : '';
+    if (hint) hint.textContent = !bSel.size ? 'Uses the district chips above the table'
+        : (bSep && bSel.size > 1 ? bSel.size + ' separate PNG files will download' : '1 PNG with the selected districts');
+}
+function bdOut() { const r = document.querySelector('input[name="bd-out"]:checked'); bSep = !!r && r.value === 'sep'; bdSync(); }
+function bdQuick(kind) {
+    const names = Object.keys(BULLETIN_GEO.d);
+    bSel.clear();
+    if (kind === 'core' || kind === 'ext') names.filter(n => isDistrictInGroup(n, kind === 'core' ? 'CDZ_CORE' : 'CDZ_EXT')).forEach(n => bSel.add(geoKey(n)));
+    else if (kind === 'rain') {
+        const rained = new Set(dayStations.filter(s => s.rain > 0 && s.district !== 'Unknown').map(s => geoKey(s.district)));
+        names.forEach(n => { if (rained.has(geoKey(n))) bSel.add(geoKey(n)); });
+    }
+    bdSync();
+}
+function toggleBulletinDistricts(ev) {
+    if (ev) ev.stopPropagation();
+    const p = document.getElementById('bd-panel');
+    if (p) p.classList.toggle('open');
+}
+function buildBulletinDistrictPanel() {
+    const grid = document.getElementById('bd-grid');
+    if (!grid) return;
+    const names = Object.keys(BULLETIN_GEO.d).sort((a, b) => a.localeCompare(b));
+    grid.innerHTML = names.map(n => `<label class="bd-item"><input type="checkbox" value="${geoKey(n)}"> <span>${bEsc(n)}</span></label>`).join('');
+    grid.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { i.checked ? bSel.add(i.value) : bSel.delete(i.value); bdSync(); }));
+    document.addEventListener('click', e => { const w = document.querySelector('.bd-wrap'); if (w && !w.contains(e.target)) document.getElementById('bd-panel').classList.remove('open'); });
+    bdSync();
+}
+buildBulletinDistrictPanel();
 </script>
 </body>
 </html>
