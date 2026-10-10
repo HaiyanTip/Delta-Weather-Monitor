@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Last 24h Rainfall — TN SMART · Delta Monitor</title>
+    <title>Last 24h Rainfall — TNSMART · Delta Monitor</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232f6690' d='M12 2C8 8 4 12.5 4 16a8 8 0 0 0 16 0c0-3.5-4-8-8-14z'/%3E%3C/svg%3E">
 
     <!-- Leaflet Map -->
@@ -654,7 +654,7 @@
 
         <!-- FOOTER -->
         <div class="r24-footer">
-            Data: <strong>TNSMART</strong> (Tamil Nadu Smart Meteorological Alert &amp; Rainfall Tracker) ·
+            Data: <strong>TNSMART</strong> ·
             Designed by <strong>Vidhyapathi · Haiyan</strong> ·
             <a href="https://x.com/HaiyanTip" target="_blank" rel="noopener">𝕏 @HaiyanTip</a> ·
             <a href="https://www.instagram.com/haiyan_clicks/" target="_blank" rel="noopener">IG @haiyan_clicks</a>
@@ -1016,7 +1016,7 @@
                 key: 'dyn_' + i,
                 label: i === 0 ? `0.1 \u2014 ${top} mm` : `${bottom}.1 \u2014 ${top} mm`,
                 min: i === 0 ? 0.1 : bottom + 0.1,
-                max: top + 0.1,
+                max: top,
                 color: c,
                 textColor: getTextColor(c),
                 icon: '🌧️',
@@ -1930,7 +1930,7 @@ const BULLETIN_GEO = {"W":404.0,"H":548.7,"lon0":76.23298312565383,"latmax":13.5
    getCurrentScale) so the bulletin always matches what is on screen.
    ================================================================== */
 const BULLETIN_TITLE  = 'Rainfall Bulletin';     // <- edit title here
-const BULLETIN_SOURCE = 'TNSmart station network';
+const BULLETIN_SOURCE = 'TNSMART';
 const BULLETIN_WATERMARK = 'Vidhyapathi (Haiyan)';   // <- diagonal watermark + credit line
 
 // station-data district spelling → GeoJSON district key (cleaned, lower-case)
@@ -1945,6 +1945,7 @@ const GEO_ALIAS = {
 };
 function geoKey(n) { const k = cleanStr(n || ''); return GEO_ALIAS[k] || k; }
 
+function bCol(c) { return c.key === 'zero' ? '#e0e0e0' : c.color; }
 function bEsc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function bTrunc(t, px, fs) { const max = Math.max(4, Math.floor(px / (fs * 0.58))); t = String(t); return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t; }
 function bWrap(t, px, fs) {
@@ -2120,7 +2121,7 @@ function buildBulletinSVG(keys) {
         const g = geo.d[n], k = geoKey(n), a = dAgg[k], inS = inScopeGeo(n);
         let fill = T.none, op = 1;
         if (!inS) op = 0.35;
-        else if (a && bStyle !== 'points') { fill = classifyCurrent(a.avg).color; if (bStyle === 'both') op = 0.5; }
+        else if (a && bStyle !== 'points') { fill = bCol(classifyCurrent(a.avg)); if (bStyle === 'both') op = 0.5; }
         m += `<path d="${g.d}" fill="${fill}" fill-opacity="${op}" stroke="${bStyle === 'points' ? T.muted : T.stroke}" stroke-opacity="${bStyle === 'points' ? 0.55 : 1}" stroke-width="${f(bStyle === 'points' ? 0.7 : 1.1)}" stroke-linejoin="round"/>`;
     });
 
@@ -2303,7 +2304,7 @@ function buildBulletinSVG(keys) {
     o += txt(M + 20, lY + 32, range ? 'ACCUMULATION SCALE · STATIONS PER CLASS' : 'IMD 24-HOUR CLASSIFICATION · STATIONS PER CLASS', 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
     pos.forEach(([x, r, it]) => {
         const yy = lY + 56 + (r - 1) * 28;
-        o += rect(x, yy - 14, 18, 18, it.c.color, 4, `stroke="${T.line}"`);
+        o += rect(x, yy - 14, 18, 18, bCol(it.c), 4, `stroke="${T.line}"`);
         o += txt(x + 26, yy, it.t, lfs, T.text, 500);
     });
 
