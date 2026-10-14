@@ -420,6 +420,7 @@
             cursor: pointer; transition: all .15s;
         }
         .acc-quick-btn:hover { background: var(--accent); color: #fff; }
+        .acc-quick-btn:disabled { opacity:.4; cursor:not-allowed; background:var(--input-bg); color:var(--text-muted); }
         .acc-calendar {
             display: grid; grid-template-columns: repeat(7, 1fr);
             gap: 4px; margin-bottom: 14px; max-width: 380px;
@@ -523,6 +524,14 @@
                 <button class="acc-quick-btn" onclick="accQuickPickMonth()">Current Month</button>
                 <button class="acc-quick-btn" onclick="accQuickPickSeason()">Current Season</button>
             </div>
+            <div class="acc-quick-btns">
+                <span style="font-size:11px; font-weight:700; color:var(--text-muted); align-self:center;" id="acc-season-label">Seasons:</span>
+                <button class="acc-quick-btn" data-season="winter" onclick="accQuickPickSeasonKey('winter')">&#10052;&#65039; Winter (JF)</button>
+                <button class="acc-quick-btn" data-season="premon" onclick="accQuickPickSeasonKey('premon')">&#127800; Summer (MAM)</button>
+                <button class="acc-quick-btn" data-season="swm" onclick="accQuickPickSeasonKey('swm')">&#9729;&#65039; SWM (JJAS)</button>
+                <button class="acc-quick-btn" data-season="nem" onclick="accQuickPickSeasonKey('nem')">&#9748; NEM (OND)</button>
+                <button class="acc-quick-btn" data-season="annual" onclick="accQuickPickSeasonKey('annual')">&#128197; Annual (Jan&ndash;Dec)</button>
+            </div>
 
             <!-- Calendar Nav -->
             <div class="acc-cal-nav">
@@ -602,14 +611,15 @@
             <div class="r24-actionbar">
                 <div class="ab-group">
                     <div class="ab-label">Bulletin (PNG)</div>
-                    <select id="bulletin-style" class="input-modern ab-sel" title="Bulletin map style"><option value="choro">Map: District colours</option><option value="points">Map: Station dots</option><option value="both">Map: Districts + stations</option></select>
+                    <select id="bulletin-style" class="input-modern ab-sel" title="Bulletin map style"><option value="choro">Map: District colours</option><option value="points">Map: Station dots</option><option value="both">Map: Districts + stations</option><option value="idw">Map: IDW (interpolated)</option></select>
                     <select id="bulletin-min" class="input-modern ab-sel" title="Show stations at or above this class (station dots)"><option value="0">All stations</option></select>
+                    <select id="bulletin-top5" class="input-modern ab-sel" title="Mark the top 5 stations on the map"><option value="on">Top 5 on map: On</option><option value="off">Top 5 on map: Off</option></select>
                     <div class="bd-wrap">
                         <button type="button" class="bd-toggle" id="bd-toggle" onclick="toggleBulletinDistricts(event)">&#128205; Districts: <span id="bd-label">Same as dashboard filter</span> &#9662;</button>
                         <div class="bd-panel" id="bd-panel">
                             <div class="bd-quick">
                                 <button type="button" onclick="bdQuick('clear')">Same as dashboard</button>
-                                <button type="button" onclick="bdQuick('rain')">With rain</button>
+                                <button type="button" onclick="bdQuick('rain')" title="Districts with at least one rainy station (≥ 2.5 mm)">Rainy districts</button>
                                 <button type="button" onclick="bdQuick('core')">CDZ Core</button>
                                 <button type="button" onclick="bdQuick('ext')">CDZ Extended</button>
                             </div>
@@ -740,7 +750,21 @@
     let activeDistrict  = 'ALL';
     let viewMode = 'day';   // 'day' = single-day 24h/IMD view, 'range' = multi-date accumulation (custom/month/season)
     let bulletinSubtitle = '';  // set by loadDay / loadAccumulated, used by the bulletin
+    let bulletinCoverage = '';  // e.g. "270 of 286 days with data" (period picks only)
+    let rangeSeasonKey = '';    // season of the loaded accumulation (winter / premon / swm / nem)
+    // "Heavy+" style thresholds for accumulation views — scaled to the period length
+    function getRangeThresholds() {
+        if (accModeType === 'annual') return [1000, 1500, 2000];
+        if (accModeType === 'season') {
+            if (rangeSeasonKey === 'swm' || rangeSeasonKey === 'nem') return [300, 600, 900];
+            if (rangeSeasonKey === 'winter') return [50, 100, 150];
+        }
+        return [100, 200, 300];
+    }
     function isRangeMode() { return viewMode === 'range'; }
+    const RAINY_MM = 2.5;   // IMD rainy-day threshold
+    // day view: station reading ≥ 2.5 mm · accumulation views: at least one day of ≥ 2.5 mm
+    function isRainyStation(s) { return isRangeMode() ? (s.rainyDays || 0) >= 1 : s.rain >= RAINY_MM; }
     // The scale in force for the current view (single source of truth for chips, filter, map, chart)
     function getCurrentScale() { return isRangeMode() ? (activeDynamicScale || MULTI_DAY_SCALE) : IMD; }
     function classifyCurrent(mm) { return getIMDFromScale(mm, getCurrentScale()); }
@@ -827,6 +851,7 @@
         } else {
             panel.classList.add('open');
             document.getElementById('acc-toggle-btn').textContent = '✕ Close Panel';
+            refreshSeasonButtons();
             // initialise calendar to the currently selected single date or today
             const inp = document.getElementById('r24-date-input').value;
             if (inp) {
@@ -911,7 +936,9 @@
                 const d = new Date(k + 'T00:00:00');
                 return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
             });
-            info.innerHTML = `<strong>${n} day${n>1?'s':''} selected:</strong> ${labels.join(', ')}`;
+            info.innerHTML = n > 14
+                ? `<strong>${n} days selected:</strong> ${labels[0]} → ${labels[labels.length - 1]}`
+                : `<strong>${n} day${n>1?'s':''} selected:</strong> ${labels.join(', ')}`;
             btn.disabled = false; btn.style.opacity = '1';
         }
     }
@@ -950,6 +977,41 @@
             if (d.getFullYear() === anchor.getFullYear() && season.months.includes(m) && k <= aKey) accSelectedDates.add(k);
         });
         accCalYear = anchor.getFullYear(); accCalMonth = anchor.getMonth();
+        buildAccCalendar();
+    }
+
+    /* ---- Winter / Summer / SWM / NEM / Annual picks (completed seasons in full, running one to date) ---- */
+    const SEASON_DEFS = {
+        winter: { name:'Winter',  months:[1,2],                         sub:'JF · Jan–Feb'  },
+        premon: { name:'Summer',  months:[3,4,5],                       sub:'MAM · Mar–May' },
+        swm:    { name:'SWM',     months:[6,7,8,9],                     sub:'JJAS · Jun–Sep'},
+        nem:    { name:'NEM',     months:[10,11,12],                    sub:'OND · Oct–Dec' },
+        annual: { name:'Annual',  months:[1,2,3,4,5,6,7,8,9,10,11,12],  sub:'Jan–Dec'       }
+    };
+    function datesForSeason(key) {
+        const def = SEASON_DEFS[key], anchor = getLatestDate();
+        if (!def || !anchor) return [];
+        const aKey = anchor.getFullYear() + '-' + String(anchor.getMonth()+1).padStart(2,'0') + '-' + String(anchor.getDate()).padStart(2,'0');
+        return [...availableDates].filter(k => +k.slice(0,4) === DATASET_YEAR && def.months.includes(+k.slice(5,7)) && k <= aKey).sort();
+    }
+    function refreshSeasonButtons() {
+        const lab = document.getElementById('acc-season-label');
+        if (lab) lab.textContent = 'Seasons ' + DATASET_YEAR + ':';
+        document.querySelectorAll('[data-season]').forEach(b => {
+            const ds = datesForSeason(b.dataset.season);
+            b.disabled = ds.length === 0;
+            b.title = ds.length ? ds.length + ' days with data (' + ds[0] + ' to ' + ds[ds.length-1] + ')' : 'No data yet for this period';
+        });
+    }
+    function accQuickPickSeasonKey(key) {
+        accModeType = key === 'annual' ? 'annual' : 'season';
+        accSelectedDates.clear();
+        const ds = datesForSeason(key);
+        ds.forEach(k => accSelectedDates.add(k));
+        if (ds.length) {
+            const d = new Date(ds[ds.length - 1] + 'T00:00:00');
+            accCalYear = d.getFullYear(); accCalMonth = d.getMonth();
+        }
         buildAccCalendar();
     }
 
@@ -1060,6 +1122,18 @@
         const latestDate = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00');
         const curSeason  = getSeason(latestDate);
         const selYear    = latestDate.getFullYear();
+        rangeSeasonKey   = curSeason.key;
+
+        // coverage: days with data vs calendar days of the period so far (period picks only)
+        bulletinCoverage = '';
+        if (accModeType !== 'custom') {
+            const first = new Date(sortedDates[0] + 'T00:00:00');
+            const pStart = accModeType === 'annual' ? new Date(selYear, 0, 1)
+                         : accModeType === 'month'  ? new Date(selYear, latestDate.getMonth(), 1)
+                         : new Date(selYear, curSeason.months[0] - 1, 1);
+            const expected = Math.round((latestDate - pStart) / 86400000) + 1;
+            if (sortedDates.length < expected) bulletinCoverage = sortedDates.length + ' of ' + expected + ' days with data';
+        }
 
         // Update season header
         const thEl  = document.getElementById('th-season');
@@ -1070,13 +1144,13 @@
         // Determine if we should generate a dynamic scale
         activeDynamicScale = null;
         if (accModeType === 'season') {
-            if (curSeason.key === 'swm' || curSeason.key === 'nem') {
-                activeDynamicScale = generateDynamicScale(1200, 100);
-            } else {
-                activeDynamicScale = generateDynamicScale(600, 50);
-            }
+            // max / step per season: NEM 1200/100 · SWM 1000/100 · Summer 500/50 · Winter 200/20
+            const SB = { nem:[1200,100], swm:[1000,100], premon:[500,50], winter:[200,20] }[curSeason.key] || [600,50];
+            activeDynamicScale = generateDynamicScale(SB[0], SB[1]);
         } else if (accModeType === 'month') {
             activeDynamicScale = generateDynamicScale(600, 50);
+        } else if (accModeType === 'annual') {
+            activeDynamicScale = generateDynamicScale(2000, 200);
         }
 
         // Update 24h Rain header → "Accumulated (mm)"
@@ -1120,11 +1194,12 @@
             if (!stMap[meta.uniqueKey]) {
                 stMap[meta.uniqueKey] = {
                     name: meta.name, district: meta.district,
-                    lat: meta.lat, lon: meta.lon, rain: 0, rain48h: 0,
+                    lat: meta.lat, lon: meta.lon, rain: 0, rain48h: 0, rainyDays: 0,
                     ukey: meta.uniqueKey
                 };
             }
             stMap[meta.uniqueKey].rain += mm;
+            if (mm >= RAINY_MM) stMap[meta.uniqueKey].rainyDays += 1;
         });
 
         const currentScale = activeDynamicScale ? activeDynamicScale : MULTI_DAY_SCALE;
@@ -1154,7 +1229,7 @@
 
         // Update Banner Title for Multi-Day Scale
         const bannerTitle = document.querySelector('.imd-banner-title');
-        if (bannerTitle) bannerTitle.innerHTML = (accModeType === 'month' ? '🏷️ Monthly Accumulation Scale' : accModeType === 'season' ? '🏷️ Seasonal Accumulation Scale' : '🏷️ Multi-Day Intensity Scale') + ' — click to filter';
+        if (bannerTitle) bannerTitle.innerHTML = (accModeType === 'month' ? '🏷️ Monthly Accumulation Scale' : accModeType === 'season' ? '🏷️ Seasonal Accumulation Scale' : accModeType === 'annual' ? '🏷️ Annual Accumulation Scale' : '🏷️ Multi-Day Intensity Scale') + ' — click to filter';
 
         // Date summary label
         const d0 = new Date(sortedDates[0] + 'T00:00:00');
@@ -1164,13 +1239,17 @@
             ? fmt(d0)
             : `${fmt(d0)} to ${fmt(d1)} (${sortedDates.length} days)`;
 
-        const modeName = accModeType === 'month' ? 'Monthly accumulation' : accModeType === 'season' ? 'Seasonal accumulation · ' + curSeason.sub : 'Multi-day accumulation';
+        const sDef = SEASON_DEFS[curSeason.key] || { name: curSeason.sub };
+        const modeName = accModeType === 'month' ? 'Monthly accumulation'
+                       : accModeType === 'annual' ? 'Annual accumulation · ' + selYear
+                       : accModeType === 'season' ? 'Seasonal accumulation · ' + sDef.name + ' ' + selYear
+                       : 'Multi-day accumulation';
         bulletinSubtitle = modeName + ' · ' + label;
 
         const total = dayStations.length;
-        const withRain = dayStations.filter(s => s.rain > 0).length;
+        const rainyN = dayStations.filter(isRainyStation).length;
         document.getElementById('r24-meta-text').textContent =
-            `📊 Accumulated: ${label} · ${total} stations · ${withRain} with rain`;
+            `📊 Accumulated: ${label} · ${total} stations · ${rainyN} rainy (≥ 1 day of ≥ 2.5 mm)` + (bulletinCoverage ? ' · ' + bulletinCoverage : '');
 
         closeAccPanel();
         buildIMDChips(); // Rebuild chips for MULTI_DAY_SCALE
@@ -1555,12 +1634,13 @@
         if (bannerTitle) bannerTitle.innerHTML = '🏷️ IMD Rainfall Classification — click to filter';
 
         bulletinSubtitle = '24-hour rainfall · ' + prettyDate(selDate);
+        bulletinCoverage = '';
 
         // meta text
         const total = dayStations.length;
-        const withRain = dayStations.filter(s => s.rain > 0).length;
+        const rainyN = dayStations.filter(isRainyStation).length;
         document.getElementById('r24-meta-text').textContent =
-            `${prettyDate(selDate)} · ${total} stations · ${withRain} with rain · Season: ${curSeason.sub}`;
+            `${prettyDate(selDate)} · ${total} stations · ${rainyN} rainy (≥ 2.5 mm) · Season: ${curSeason.sub}`;
 
         buildIMDChips(); // Rebuild chips for IMD scale
         if (typeof refreshBulletinOptions === 'function') refreshBulletinOptions();
@@ -1694,17 +1774,19 @@
 
         const isRange = isRangeMode();
 
-        const withRain    = s.filter(x => x.rain > 0);
+        const withRain    = s.filter(x => x.rain > 0);          // any measurable rain
         const total       = s.length;
-        const rainy       = withRain.length;
-        const dry         = total - rainy;
+        const rainy       = s.filter(isRainyStation).length;     // IMD rainy station (≥ 2.5 mm)
+        const traceN      = withRain.length - rainy;
+        const dry         = total - withRain.length;             // 0 mm
         const maxS        = s.reduce((a,b) => b.rain > a.rain ? b : a, s[0]);
-        const avgRainy    = rainy ? withRain.reduce((a,b)=>a+b.rain,0)/rainy : 0;
+        const avgRainy    = withRain.length ? withRain.reduce((a,b)=>a+b.rain,0)/withRain.length : 0;
         
         // Dynamic thresholds based on mode
-        const t1 = isRange ? 100 : 64.5;
-        const t2 = isRange ? 200 : 115.5;
-        const t3 = isRange ? 300 : 204.5;
+        const [r1, r2, r3] = getRangeThresholds();
+        const t1 = isRange ? r1 : 64.5;
+        const t2 = isRange ? r2 : 115.5;
+        const t3 = isRange ? r3 : 204.5;
         
         const heavy       = s.filter(x => x.rain >= t1).length;
         const vheavy      = s.filter(x => x.rain >= t2).length;
@@ -1712,13 +1794,13 @@
 
         const kpis = [
             { label:'Total Stations',   value: total,             unit:'stations',   accent:'blue',   sub:'' },
-            { label:'Stations with Rain',value: rainy,            unit:`/ ${total}`, accent:'green',  sub:`${((rainy/total)*100).toFixed(0)}% of stations` },
+            { label:'Rainy Stations',   value: rainy,            unit:`/ ${total}`, accent:'green',  sub:`${((rainy/total)*100).toFixed(0)}% · ${isRange ? '≥ 1 day ≥ 2.5 mm' : '≥ 2.5 mm'}${traceN ? ' · +' + traceN + ' trace' : ''}` },
             { label:'Dry Stations',     value: dry,               unit:'stations',   accent:'gray',   sub:'No rainfall recorded' },
             { label:'Highest Single',   value: maxS.rain.toFixed(1), unit:'mm',     accent:'red',    sub:maxS.name + ' · ' + maxS.district },
-            { label:'Avg (rainy stns)', value: avgRainy.toFixed(1),  unit:'mm',     accent:'teal',   sub:'Avg of stations with > 0 mm' },
-            { label: isRange ? '100mm+ Stations' : 'Heavy+ Stations',  value: heavy,             unit:'stations',   accent:'orange', sub: isRange ? '≥ 100 mm' : '≥ 64.5 mm (Heavy & above)' },
-            { label: isRange ? '200mm+ Stations' : 'Very Heavy+',      value: vheavy,            unit:'stations',   accent:'yellow', sub: isRange ? '≥ 200 mm' : '≥ 115.5 mm' },
-            { label: isRange ? '300mm+ Stations' : 'Extremely Heavy',  value: extreme,           unit:'stations',   accent:'red',    sub: isRange ? '≥ 300 mm' : '> 204.4 mm' },
+            { label:'Avg (stns > 0 mm)', value: avgRainy.toFixed(1), unit:'mm',     accent:'teal',   sub:'Avg of stations with > 0 mm' },
+            { label: isRange ? t1 + 'mm+ Stations' : 'Heavy+ Stations',  value: heavy,             unit:'stations',   accent:'orange', sub: isRange ? '≥ ' + t1 + ' mm' : '≥ 64.5 mm (Heavy & above)' },
+            { label: isRange ? t2 + 'mm+ Stations' : 'Very Heavy+',      value: vheavy,            unit:'stations',   accent:'yellow', sub: isRange ? '≥ ' + t2 + ' mm' : '≥ 115.5 mm' },
+            { label: isRange ? t3 + 'mm+ Stations' : 'Extremely Heavy',  value: extreme,           unit:'stations',   accent:'red',    sub: isRange ? '≥ ' + t3 + ' mm' : '> 204.4 mm' },
         ];
 
         const row = document.getElementById('r24-kpi-row');
@@ -1946,6 +2028,44 @@ const GEO_ALIAS = {
 function geoKey(n) { const k = cleanStr(n || ''); return GEO_ALIAS[k] || k; }
 
 function bCol(c) { return c.key === 'zero' ? '#e0e0e0' : c.color; }
+/* Inverse-distance-weighted surface (power 2) over bb, built from ALL stations within ~44 km of each cell
+   (so districts borders are not artificially flat). Stepped by the active scale; same-colour runs are merged
+   into single rects to keep the SVG small. Returns <rect> markup in map units. */
+function bIDW(bb, stations, colourOf) {
+    const R = 40, R2 = R * R;                        // 1 map unit ≈ 1.1 km
+    const vbW = bb[2] - bb[0], vbH = bb[3] - bb[1];
+    const cell = Math.max(vbW, vbH) / 280;
+    const cols = Math.ceil(vbW / cell), rows = Math.ceil(vbH / cell);
+    const pts = [];
+    stations.forEach(s => {
+        if (!s.lat || !s.lon) return;
+        const [x, y] = bProject(s.lat, s.lon);
+        if (x >= bb[0] - R && x <= bb[2] + R && y >= bb[1] - R && y <= bb[3] + R) pts.push([x, y, s.rain]);
+    });
+    let out = '';
+    const rect = (r, c0, c1, col) => `<rect x="${(bb[0] + c0 * cell).toFixed(2)}" y="${(bb[1] + r * cell).toFixed(2)}" width="${((c1 - c0) * cell + 0.4).toFixed(2)}" height="${(cell + 0.4).toFixed(2)}" fill="${col}"/>`;
+    for (let r = 0; r < rows; r++) {
+        const y = bb[1] + (r + 0.5) * cell;
+        let runStart = 0, runCol = null;
+        for (let c = 0; c < cols; c++) {
+            const x = bb[0] + (c + 0.5) * cell;
+            let sw = 0, sv = 0, exact = null;
+            for (let i = 0; i < pts.length; i++) {
+                const dx = pts[i][0] - x, dy = pts[i][1] - y, d2 = dx * dx + dy * dy;
+                if (d2 > R2) continue;
+                if (d2 < 0.05) { exact = pts[i][2]; break; }
+                const w = 1 / d2; sw += w; sv += w * pts[i][2];
+            }
+            const col = exact !== null ? colourOf(exact) : (sw > 0 ? colourOf(sv / sw) : null);
+            if (col !== runCol) {
+                if (runCol !== null) out += rect(r, runStart, c, runCol);
+                runStart = c; runCol = col;
+            }
+        }
+        if (runCol !== null) out += rect(r, runStart, cols, runCol);
+    }
+    return out;
+}
 function bEsc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function bTrunc(t, px, fs) { const max = Math.max(4, Math.floor(px / (fs * 0.58))); t = String(t); return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t; }
 function bWrap(t, px, fs) {
@@ -2011,8 +2131,11 @@ function buildBulletinSVG(keys) {
     });
     Object.values(dAgg).forEach(a => { a.avg = Math.round((a.sum / a.n) * 10) / 10; });
 
-    const withRain = scopeStations.filter(s => s.rain > 0);
-    const T1 = range ? 100 : 64.5;
+    const withRain = scopeStations.filter(s => s.rain > 0);              // any measurable rain (rankings, headline)
+    const rainyStns = scopeStations.filter(isRainyStation);              // IMD rainy station (≥ 2.5 mm)
+    const traceN = withRain.length - rainyStns.length;
+    const avgRD = scopeStations.length ? scopeStations.reduce((a, s) => a + (s.rainyDays || 0), 0) / scopeStations.length : 0;   // avg rainy days (≥ 2.5 mm) per station
+    const T1 = range ? getRangeThresholds()[0] : 64.5;
     const nHeavy = scopeStations.filter(s => s.rain >= T1).length;
     const top = [...withRain].sort((a, b) => b.rain - a.rain).slice(0, 5);
     const topD = Object.values(dAgg).filter(a => a.n > 0 && a.avg > 0).sort((a, b) => b.avg - a.avg).slice(0, 5);
@@ -2047,7 +2170,7 @@ function buildBulletinSVG(keys) {
 
     // ── header ──
     o += txt(M, 92, BULLETIN_TITLE, 46, T.text, 800);
-    o += txt(M, 128, bTrunc(subtitle, 700, 22), 22, T.muted, 500);
+    o += txt(M, 128, bTrunc(subtitle, W - 2 * M, 22), 22, T.muted, 500);
     const pillW = Math.min(500, 44 + scopeLabel.length * 10.2);
     o += rect(W - M - pillW, 62, pillW, 40, T.card, 20, `stroke="${T.line}"`);
     o += txt(W - M - pillW / 2, 88, bTrunc(scopeLabel, pillW - 28, 18), 18, T.accent, 700, 'middle');
@@ -2067,7 +2190,8 @@ function buildBulletinSVG(keys) {
     const kY = 252, kH = 112, kGap = 16, kW = (W - 2 * M - 3 * kGap) / 4;
     const kpis = [
         { l:'STATIONS REPORTING', v:String(scopeStations.length), s:(() => { const nd = new Set(scopeStations.map(s => geoKey(s.district))).size; return nd + (nd === 1 ? ' district' : ' districts'); })() },
-        { l:'STATIONS WITH RAIN', v:String(withRain.length), s: scopeStations.length ? Math.round(withRain.length / scopeStations.length * 100) + '% of stations' : '—' },
+        { l: range ? 'RAINY STATIONS' : 'RAINY STATIONS ≥ 2.5 MM', v:String(rainyStns.length),
+          s: range ? 'avg ' + avgRD.toFixed(1) + ' rainy days' : scopeStations.length ? Math.round(rainyStns.length / scopeStations.length * 100) + '%' + (range ? '' : (traceN ? ' · +' + traceN + ' trace' : '')) : '—' },
         { l:`STATIONS ≥ ${T1} MM`, v:String(nHeavy), s: range ? 'accumulated total' : 'Heavy or above (IMD)' },
         { l:'HIGHEST STATION', v: maxS ? maxS.rain.toFixed(1) + ' mm' : '—', s: maxS ? maxS.name : '' }
     ];
@@ -2120,10 +2244,21 @@ function buildBulletinSVG(keys) {
     geoNames.forEach(n => {
         const g = geo.d[n], k = geoKey(n), a = dAgg[k], inS = inScopeGeo(n);
         let fill = T.none, op = 1;
+        if (bStyle === 'idw') { m += `<path d="${g.d}" fill="${T.none}" fill-opacity="${inS ? 1 : 0.35}" stroke="none"/>`; return; }
         if (!inS) op = 0.35;
         else if (a && bStyle !== 'points') { fill = bCol(classifyCurrent(a.avg)); if (bStyle === 'both') op = 0.5; }
         m += `<path d="${g.d}" fill="${fill}" fill-opacity="${op}" stroke="${bStyle === 'points' ? T.muted : T.stroke}" stroke-opacity="${bStyle === 'points' ? 0.55 : 1}" stroke-width="${f(bStyle === 'points' ? 0.7 : 1.1)}" stroke-linejoin="round"/>`;
     });
+
+    // IDW surface (clipped to the selected districts) + outlines on top
+    if (bStyle === 'idw' && scopeGeo.length) {
+        const clip = scopeGeo.map(n => `<path d="${geo.d[n].d}"/>`).join('');
+        const surf = bIDW(bb, dayStations.filter(s => s.district !== 'Unknown'), v => bCol(classifyCurrent(Math.round(v * 10) / 10)));
+        m += `<defs><clipPath id="idwclip">${clip}</clipPath></defs><g clip-path="url(#idwclip)" shape-rendering="crispEdges">${surf}</g>`;
+        geoNames.forEach(n => {
+            m += `<path d="${geo.d[n].d}" fill="none" stroke="${T.stroke}" stroke-opacity="${inScopeGeo(n) ? 0.9 : 0.4}" stroke-width="${f(1)}" stroke-linejoin="round"/>`;
+        });
+    }
 
     // station dots
     const dots = (bStyle === 'choro') ? [] : scopeStations
@@ -2138,15 +2273,28 @@ function buildBulletinSVG(keys) {
             m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(2.4)}" fill="none" stroke="${T.muted}" stroke-width="${f(0.8)}" stroke-opacity="0.8"/>`;
             return;
         }
+        if (bStyle === 'idw') {      // surface already carries the value → small uniform location dots
+            m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(zoomed ? 2.7 : 2)}" fill="#ffffff" fill-opacity="0.95" stroke="#1a2433" stroke-opacity="0.75" stroke-width="${f(zoomed ? 0.8 : 0.6)}"/>`;
+            return;
+        }
         const bin = Math.max(1, scale.findIndex(c => c.key === s.imd.key));
         const rpx = (zoomed ? 4.5 : 2.9) + (bin / nScale) * (zoomed ? 6.5 : 5);
-        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(rpx)}" fill="${s.imd.color}" fill-opacity="0.92" stroke="${T.bg}" stroke-width="${f(0.9)}"/>`;
+        m += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${f(rpx)}" fill="${s.imd.color}" fill-opacity="0.95" stroke="${bStyle === 'idw' ? '#ffffff' : T.bg}" stroke-width="${f(bStyle === 'idw' ? 1.3 : 0.9)}"/>`;
     });
 
     // district labels when zoomed
     if (zoomed && scopeGeo.length <= 12) {
         scopeGeo.forEach(n => {
             const g = geo.d[n], a = dAgg[geoKey(n)];
+            if (bStyle === 'idw') {   // name only, small, with a halo so it reads over the surface
+                const nm = `x="${g.c[0]}" y="${g.c[1]}" font-size="${f(7.5)}" font-weight="700" text-anchor="middle"`;
+                m += `<text ${nm} fill="none" stroke="${T.bg}" stroke-width="${f(2.4)}" stroke-linejoin="round">${bEsc(n)}</text><text ${nm} fill="${T.text}" stroke="none">${bEsc(n)}</text>`;
+                if (a) {
+                    const vl = `x="${g.c[0]}" y="${(g.c[1] + 8.5 / sc).toFixed(2)}" font-size="${f(7)}" font-weight="600" text-anchor="middle"`;
+                    m += `<text ${vl} fill="none" stroke="${T.bg}" stroke-width="${f(2.2)}" stroke-linejoin="round">${a.avg.toFixed(1)} mm</text><text ${vl} fill="${T.text}" stroke="none">${a.avg.toFixed(1)} mm</text>`;
+                }
+                return;
+            }
             const cls = (a && bStyle === 'choro') ? classifyCurrent(a.avg) : null;
             const col = cls ? cls.textColor : (bStyle === 'both' ? T.text : T.muted);
             m += `<text x="${g.c[0]}" y="${g.c[1]}" font-size="${f(10)}" font-weight="700" fill="${col}" text-anchor="middle" stroke="none">${bEsc(n)}</text>`;
@@ -2154,36 +2302,20 @@ function buildBulletinSVG(keys) {
         });
     }
 
-    // numbered markers for top-5 stations — nudged apart when they collide, with a leader line to the true spot
-    const mk = [];
-    top.forEach((s, i) => {
-        if (!s.lat || !s.lon) return;
-        const [x, y] = bProject(s.lat, s.lon);
-        if (inView(x, y)) mk.push({ s, i, tx: x, ty: y, x, y });
-    });
-    const rr = 12 / sc, minD = rr * 2.25;
-    for (let it = 0; it < 60; it++) {
-        let moved = false;
-        for (let a = 0; a < mk.length; a++) for (let b = a + 1; b < mk.length; b++) {
-            let dx = mk[b].x - mk[a].x, dy = mk[b].y - mk[a].y, d = Math.hypot(dx, dy);
-            if (d < minD) {
-                if (d < 1e-6) { const ang = (a + 1) * 1.7; dx = Math.cos(ang); dy = Math.sin(ang); d = 1; }
-                const push = (minD - d) / 2, ux = dx / d, uy = dy / d;
-                mk[a].x -= ux * push; mk[a].y -= uy * push; mk[b].x += ux * push; mk[b].y += uy * push; moved = true;
-            }
-        }
-        if (!moved) break;
+    // top-5 markers: one numbered circle per station at its true location (small); rank 1 is drawn last, on top
+    const selTop5 = document.getElementById('bulletin-top5');
+    if (!(selTop5 && selTop5.value === 'off')) {
+        const mk = [];
+        top.forEach((s, i) => {
+            if (!s.lat || !s.lon) return;
+            const [x, y] = bProject(s.lat, s.lon);
+            if (inView(x, y)) mk.push({ s, i, x, y });
+        });
+        mk.reverse().forEach(k => {
+            m += `<circle cx="${k.x.toFixed(2)}" cy="${k.y.toFixed(2)}" r="${f(8)}" fill="${k.s.imd.color}" stroke="${T.text}" stroke-width="${f(1.5)}"/>`;
+            m += `<text x="${k.x.toFixed(2)}" y="${(k.y + 3.6 / sc).toFixed(2)}" font-size="${f(10)}" font-weight="800" fill="${k.s.imd.textColor}" text-anchor="middle">${k.i + 1}</text>`;
+        });
     }
-    mk.forEach(k => {
-        if (Math.hypot(k.x - k.tx, k.y - k.ty) > rr * 0.6) {
-            m += `<line x1="${k.tx.toFixed(2)}" y1="${k.ty.toFixed(2)}" x2="${k.x.toFixed(2)}" y2="${k.y.toFixed(2)}" stroke="${T.text}" stroke-width="${f(1.3)}"/>`;
-            m += `<circle cx="${k.tx.toFixed(2)}" cy="${k.ty.toFixed(2)}" r="${f(2.6)}" fill="${T.text}"/>`;
-        }
-    });
-    mk.forEach(k => {
-        m += `<circle cx="${k.x.toFixed(2)}" cy="${k.y.toFixed(2)}" r="${f(12)}" fill="${k.s.imd.color}" stroke="${T.text}" stroke-width="${f(2)}"/>`;
-        m += `<text x="${k.x.toFixed(2)}" y="${(k.y + 4.5 / sc).toFixed(2)}" font-size="${f(13)}" font-weight="800" fill="${k.s.imd.textColor}" text-anchor="middle">${k.i + 1}</text>`;
-    });
     const offX = M + pad + (pW - vbW * sc) / 2, offY = mY + pad + (pH - vbH * sc) / 2;
     o += `<svg x="${offX.toFixed(1)}" y="${offY.toFixed(1)}" width="${(vbW * sc).toFixed(1)}" height="${(vbH * sc).toFixed(1)}" viewBox="${bb[0].toFixed(1)} ${bb[1].toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}" font-family='${FONT}'>${m}</svg>`;
 
@@ -2191,6 +2323,7 @@ function buildBulletinSVG(keys) {
     const filt = minMm > 0 ? ` ≥ ${minMm} mm (${dots.length} of ${scopeStations.length})` : '';
     const cap = bStyle === 'choro' ? `District colour = average ${range ? 'accumulated' : '24h'} rainfall of its stations`
               : bStyle === 'points' ? `Dots = stations${filt} · colour = ${unit}`
+              : bStyle === 'idw' ? `IDW surface (interpolated) · dots = stations${filt}`
               : `District average + stations${filt}`;
     o += txt(M + 18, mY + mH - 14, bTrunc(cap, mapW - 36, 13), 13, T.muted, 500);
 
@@ -2209,7 +2342,7 @@ function buildBulletinSVG(keys) {
 
         const ds = scopeStations.filter(s => geoKey(s.district) === d.k);
         const peak = ds.reduce((a, s) => (s.rain > a.rain ? s : a), ds[0]);
-        const nRain = ds.filter(s => s.rain > 0).length;
+        const nRainy = ds.filter(isRainyStation).length;
 
         if (gn) {
             const gb = geo.d[gn].bb, ppx = (gb[2] - gb[0]) * 0.1, ppy = (gb[3] - gb[1]) * 0.1;
@@ -2243,16 +2376,16 @@ function buildBulletinSVG(keys) {
         }
 
         // badge + name + stats beside the zoom map
-        const sx = colX + 246, sw = colW - 258;
+        const sx = colX + 246, sw = colW - 258, kz = Math.min(1, zh / 215);
         o += `<circle cx="${sx + 11}" cy="${zy + 30}" r="11" fill="${cls.color}"/>`;
         o += txt(sx + 11, zy + 35, String(zi + 1), 13, cls.textColor, 800, 'middle');
         o += txt(sx + 29, zy + 36, bTrunc(d.name, sw - 29, 15), 15, T.text, 800);
-        o += txt(sx, zy + 68, range ? 'AVG ACCUMULATED' : 'AVG RAINFALL', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
-        o += txt(sx, zy + 95, d.avg.toFixed(1) + ' mm', 28, T.text, 800);
-        o += txt(sx, zy + 121, 'HIGHEST STATION', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
-        o += txt(sx, zy + 143, peak ? peak.rain.toFixed(1) + ' mm' : '—', 19, T.text, 800);
-        (peak ? bWrapLines(peak.name, sw, 12, 2) : []).forEach((ln, li) => { o += txt(sx, zy + 160 + li * 14, ln, 12, T.muted, 500); });
-        o += txt(sx, zy + 200, `${nRain} of ${ds.length} with rain`, 13, T.muted, 600);
+        o += txt(sx, zy + 68 * kz, range ? 'AVG ACCUMULATED' : 'AVG RAINFALL', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
+        o += txt(sx, zy + 95 * kz, d.avg.toFixed(1) + ' mm', 28, T.text, 800);
+        o += txt(sx, zy + 121 * kz, 'HIGHEST STATION', 11, T.muted, 700, 'start', 'letter-spacing="0.6"');
+        o += txt(sx, zy + 143 * kz, peak ? peak.rain.toFixed(1) + ' mm' : '—', 19, T.text, 800);
+        (peak ? bWrapLines(peak.name, sw, 12, 2) : []).forEach((ln, li) => { o += txt(sx, zy + 160 * kz + li * 13, ln, 12, T.muted, 500); });
+        o += txt(sx, zy + 200 * kz, range ? `${nRainy} of ${ds.length} had a rainy day` : `${nRainy} of ${ds.length} rainy ≥ 2.5 mm`, 12.5, T.muted, 600);
     }
 
     // ── lists under the map (full names fit here) ──
@@ -2275,9 +2408,9 @@ function buildBulletinSVG(keys) {
         const rowsS = [
             ['Average rainfall', dA ? dA.avg.toFixed(1) + ' mm' : '—'],
             ['Highest station', maxS ? maxS.rain.toFixed(1) + ' mm' : '—'],
-            ['Stations with rain', `${withRain.length} of ${scopeStations.length}`],
+            [range ? 'Rainy stations (≥ 1 day)' : 'Rainy stations (≥ 2.5 mm)', `${rainyStns.length} of ${scopeStations.length}`],
             [`Stations ≥ ${T1} mm`, String(nHeavy)],
-            ['Dry stations', String(scopeStations.length - withRain.length)]
+            range ? ['Avg rainy days (≥ 2.5 mm)', avgRD.toFixed(1)] : ['No-rain stations (0 mm)', String(scopeStations.length - withRain.length)]
         ];
         o += txt(rx + 20, listY + 34, (scopeLabel + ' · SUMMARY').toUpperCase(), 14, T.muted, 700, 'start', 'letter-spacing="0.8"');
         rowsS.forEach((r, i) => {
@@ -2311,9 +2444,10 @@ function buildBulletinSVG(keys) {
     // ── footer + credit ──
     const gen = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     o += `<line x1="${M}" y1="${footLineY}" x2="${W - M}" y2="${footLineY}" stroke="${T.line}"/>`;
-    o += txt(M, footLineY + 26, `Source: ${BULLETIN_SOURCE}  ·  ${range ? 'Multi-day accumulation scale' : 'IMD rainfall classification'}`, 14, T.muted, 500);
+    o += txt(M, footLineY + 26, `Source: ${BULLETIN_SOURCE}  ·  ${range ? 'Multi-day accumulation scale' : 'IMD rainfall classification'}` + (bStyle === 'idw' ? '  ·  IDW p=2, radius ≈ 44 km' : ''), 14, T.muted, 500);
     o += txt(W - M, footLineY + 26, `Generated ${gen}`, 14, T.muted, 500, 'end');
     o += txt(M, footLineY + 54, `Prepared by ${BULLETIN_WATERMARK}`, 17, T.accent, 700);
+    if (range && bulletinCoverage) o += txt(W - M, footLineY + 54, bulletinCoverage, 14, T.muted, 500, 'end');
 
     // ── diagonal watermark (very light, over everything) ──
     let wm = '';
@@ -2344,15 +2478,17 @@ function refreshBulletinOptions() {
 function bulletinToPNG(keys) {
     return new Promise((resolve, reject) => {
         const svg = buildBulletinSVG(keys);
+        const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));   // no data-URL size limit (IDW maps are large)
         const img = new Image();
         img.onload = () => {
             const c = document.createElement('canvas');
             c.width = 2160; c.height = 3240;               // 2× for crisp sharing
             c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
             c.toBlob(b => b ? resolve(b) : reject(new Error('PNG export failed')), 'image/png');
         };
-        img.onerror = () => reject(new Error('Could not render the bulletin.'));
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not render the bulletin.')); };
+        img.src = url;
     });
 }
 
@@ -2401,7 +2537,7 @@ function bdQuick(kind) {
     bSel.clear();
     if (kind === 'core' || kind === 'ext') names.filter(n => isDistrictInGroup(n, kind === 'core' ? 'CDZ_CORE' : 'CDZ_EXT')).forEach(n => bSel.add(geoKey(n)));
     else if (kind === 'rain') {
-        const rained = new Set(dayStations.filter(s => s.rain > 0 && s.district !== 'Unknown').map(s => geoKey(s.district)));
+        const rained = new Set(dayStations.filter(s => isRainyStation(s) && s.district !== 'Unknown').map(s => geoKey(s.district)));
         names.forEach(n => { if (rained.has(geoKey(n))) bSel.add(geoKey(n)); });
     }
     bdSync();
