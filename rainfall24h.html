@@ -611,9 +611,11 @@
             <div class="r24-actionbar">
                 <div class="ab-group">
                     <div class="ab-label">Bulletin (PNG)</div>
-                    <select id="bulletin-style" class="input-modern ab-sel" title="Bulletin map style"><option value="choro">Map: District colours</option><option value="points">Map: Station dots</option><option value="both">Map: Districts + stations</option><option value="idw">Map: IDW (interpolated)</option></select>
+                    <select id="bulletin-style" class="input-modern ab-sel" title="Bulletin map style" onchange="bulletinStyleChanged()"><option value="choro">Map: District colours</option><option value="points">Map: Station dots</option><option value="both">Map: Districts + stations</option><option value="idw">Map: IDW (interpolated)</option></select>
                     <select id="bulletin-min" class="input-modern ab-sel" title="Show stations at or above this class (station dots)"><option value="0">All stations</option></select>
                     <select id="bulletin-top5" class="input-modern ab-sel" title="Mark the top 5 stations on the map"><option value="on">Top 5 on map: On</option><option value="off">Top 5 on map: Off</option></select>
+                    <select id="bulletin-dots" class="input-modern ab-sel" title="IDW map: show the station dots" disabled><option value="on">IDW dots: On</option><option value="off">IDW dots: Off</option></select>
+                    <select id="bulletin-theme" class="input-modern ab-sel" title="Bulletin colour theme"><option value="auto">Theme: Same as page</option><option value="light">Theme: Light</option><option value="dark">Theme: Dark</option></select>
                     <div class="bd-wrap">
                         <button type="button" class="bd-toggle" id="bd-toggle" onclick="toggleBulletinDistricts(event)">&#128205; Districts: <span id="bd-label">Same as dashboard filter</span> &#9662;</button>
                         <div class="bd-panel" id="bd-panel">
@@ -1657,7 +1659,7 @@
        FILTERED DATA HELPER
        ================================================================== */
     const CDZ_CORE_LIST = ['thanjavur', 'tiruvarur', 'thiruvarur', 'nagapattinam', 'mayiladuthurai'];
-    const CDZ_EXT_LIST  = [...CDZ_CORE_LIST, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'karur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
+    const CDZ_EXT_LIST  = [...CDZ_CORE_LIST, 'thiruchirappalli', 'tiruchirappalli', 'trichy', 'perambalur', 'ariyalur', 'cuddalore', 'pudukkottai', 'pudukottai'];
 
     function isDistrictInGroup(dist, group) {
         if (group === 'ALL') return true;
@@ -2087,7 +2089,10 @@ function bProject(lat, lon) {
 }
 
 function buildBulletinSVG(keys) {
-    const dark = document.body.getAttribute('data-theme') === 'dark';
+    const selTheme = document.getElementById('bulletin-theme');
+    const tv = selTheme ? selTheme.value : 'auto';
+    const dark = tv === 'dark' || (tv !== 'light' && document.body.getAttribute('data-theme') === 'dark');
+    lastBulletinDark = dark;
     const T = dark
         ? { bg:'#0f1626', card:'#18223a', text:'#e8edf5', muted:'#97a3b8', line:'#2a3550', accent:'#5aa0d6', none:'#232f4a', stroke:'#0f1626' }
         : { bg:'#ffffff', card:'#f3f6fa', text:'#16202e', muted:'#667385', line:'#dbe2ea', accent:'#2f6690', none:'#e4e9ef', stroke:'#ffffff' };
@@ -2261,7 +2266,9 @@ function buildBulletinSVG(keys) {
     }
 
     // station dots
-    const dots = (bStyle === 'choro') ? [] : scopeStations
+    const selDots = document.getElementById('bulletin-dots');
+    const idwDotsOn = !(selDots && selDots.value === 'off');
+    const dots = (bStyle === 'choro' || (bStyle === 'idw' && !idwDotsOn)) ? [] : scopeStations
         .filter(s => s.lat && s.lon && s.rain >= minMm)
         .sort((a, b) => a.rain - b.rain);                      // heavy stations drawn last (on top)
     const nScale = Math.max(1, scale.length - 1);
@@ -2323,7 +2330,7 @@ function buildBulletinSVG(keys) {
     const filt = minMm > 0 ? ` ≥ ${minMm} mm (${dots.length} of ${scopeStations.length})` : '';
     const cap = bStyle === 'choro' ? `District colour = average ${range ? 'accumulated' : '24h'} rainfall of its stations`
               : bStyle === 'points' ? `Dots = stations${filt} · colour = ${unit}`
-              : bStyle === 'idw' ? `IDW surface (interpolated) · dots = stations${filt}`
+              : bStyle === 'idw' ? (idwDotsOn ? `IDW surface (interpolated) · dots = stations${filt}` : 'IDW surface (interpolated)')
               : `District average + stations${filt}`;
     o += txt(M + 18, mY + mH - 14, bTrunc(cap, mapW - 36, 13), 13, T.muted, 500);
 
@@ -2462,6 +2469,11 @@ function buildBulletinSVG(keys) {
 }
 
 /* Fill the "show stations ≥" select from the scale now in force (called after every view change) */
+/* the IDW-dots switch only applies to the IDW map style */
+function bulletinStyleChanged() {
+    const st = document.getElementById('bulletin-style'), dd = document.getElementById('bulletin-dots');
+    if (dd && st) dd.disabled = st.value !== 'idw';
+}
 function refreshBulletinOptions() {
     const sel = document.getElementById('bulletin-min');
     if (!sel) return;
@@ -2507,7 +2519,7 @@ async function downloadBulletin() {
             const st  = (document.getElementById('bulletin-style') || {}).value || 'choro';
             const scope = String(lastBulletinScope).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || 'ALL';
             const a = document.createElement('a');
-            a.download = `Rainfall_Bulletin_${scope}_${tag}_${st}.png`;
+            a.download = `Rainfall_Bulletin_${scope}_${tag}_${st}${lastBulletinDark ? '_dark' : ''}.png`;
             a.href = URL.createObjectURL(blob);
             a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 4000);
@@ -2521,6 +2533,7 @@ async function downloadBulletin() {
 const bSel = new Set();          // geoKeys chosen in the picker; empty = follow the dashboard district filter
 let bSep = false;                // true = one separate PNG per selected district
 let lastBulletinScope = '';
+let lastBulletinDark = false;
 
 function bdSync() {
     document.querySelectorAll('#bd-grid input').forEach(i => { i.checked = bSel.has(i.value); });
