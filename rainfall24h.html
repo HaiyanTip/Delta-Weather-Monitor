@@ -765,6 +765,7 @@
     }
     function isRangeMode() { return viewMode === 'range'; }
     const RAINY_MM = 2.5;   // IMD rainy-day threshold
+    const HEAVY_48H_MM = 200;   // station gets the ⚠️ badge when its last-48h total reaches this
     // day view: station reading ≥ 2.5 mm · accumulation views: at least one day of ≥ 2.5 mm
     function isRainyStation(s) { return isRangeMode() ? (s.rainyDays || 0) >= 1 : s.rain >= RAINY_MM; }
     // The scale in force for the current view (single source of truth for chips, filter, map, chart)
@@ -1623,7 +1624,7 @@
             imd:        classifyIMD(s.rain),
             seasonAcc:  Math.round((seasonMap[s.ukey] || 0) * 10) / 10,
             seasonLabel: curSeason.label,
-            isHeavy48h: (Math.round(s.rain48h * 10) / 10) >= 100
+            isHeavy48h: (Math.round(s.rain48h * 10) / 10) >= HEAVY_48H_MM
         }));
 
         // reset filters
@@ -1976,7 +1977,7 @@
                 : `color:var(--text-muted);`;
 
             const heavyBadge = s.isHeavy48h
-                ? `<span style="background:#e74c3c; color:white; font-size:9px; padding:2px 5px; border-radius:3px; margin-left:6px; font-weight:bold; vertical-align:middle; white-space:nowrap;" title="${s.rain48h.toFixed(1)} mm accumulated over the last 48 hours">⚠️ 100mm+ in 48h</span>`
+                ? `<span style="background:#e74c3c; color:white; font-size:9px; padding:2px 5px; border-radius:3px; margin-left:6px; font-weight:bold; vertical-align:middle; white-space:nowrap;" title="${s.rain48h.toFixed(1)} mm accumulated over the last 48 hours">⚠️ ${HEAVY_48H_MM}mm+ in 48h</span>`
                 : '';
 
             return `<tr>
