@@ -165853,17 +165853,17 @@ Date,Sl_No,Station_Name,Location_Details,Started_On,Latitude,Longitude,Status,Ra
 21-10-2026,14,"Taluk Office, Thirukalukundram",ChengalpattuThirukkalukundramTHIRUKALUKUNDRAM,2013-10-01,12.6161,80.1888,Working,19.00
 21-10-2026,15,Keelampakkam,ChengalpattuThirupporurKELAMPAKKAM,1940-01-01,12.7803,80.2294,Working,16.80
 21-10-2026,16,"Taluk Office, Thiruporur",ChengalpattuThirupporurTHIRUPPORUR,2016-09-23,12.7201,80.1862,Working,18.00
-21-10-2026,17,Alandur,ChennaiAlandurMEENAMBAKKAM,2019-10-25,12.9975,80.2006,Working,Not entered
-21-10-2026,18,Ambathur,ChennaiAmbatturAmbattur,2019-10-25,13.1095,80.149,Working,Not entered
-21-10-2026,19,Ayanavaram taluk office,ChennaiAyanavaramAyanavaram (Part 1),2019-10-25,13.0883,80.2318,Working,Not entered
-21-10-2026,20,Chennai nungambakkam,ChennaiEgmoreNungambakkam,2019-10-25,13.0667,80.25,Working,Not entered
-21-10-2026,21,Anna university,ChennaiGuindyKottur,2019-10-25,13.0092,80.2342,Working,Not entered
-21-10-2026,22,Gov hr sec school MGR Nagar,ChennaiMambalamSaligramam,2019-10-25,13.0331,80.2027,Working,Not entered
-21-10-2026,23,DGP Office,ChennaiMylaporeMylapore (Part 1),2019-10-25,13.05,80.2333,Working,Not entered
-21-10-2026,24,Perambur Corporation park,ChennaiPeramburPerambur (Part 3),2019-10-25,13.0965,80.2922,Working,Not entered
-21-10-2026,25,Chennai collectorate building,ChennaiPursawalkamV.O.C Nagar,2019-10-25,13.1282,80.2916,Working,Not entered
-21-10-2026,26,Sholinganallur,ChennaiSholinganallurCHOZHINGANALLUR-2,2019-10-25,12.8773,80.2277,Working,Not entered
-21-10-2026,27,CD Hospital Tondiarpet,ChennaiTondiarpetTondiarpet (Part 2),2019-10-25,13.1093,80.2427,Working,Not entered
+21-10-2026,17,Alandur,ChennaiAlandurMEENAMBAKKAM,2019-10-25,12.9975,80.2006,Working,128.90
+21-10-2026,18,Ambathur,ChennaiAmbatturAmbattur,2019-10-25,13.1095,80.149,Working,93.00
+21-10-2026,19,Ayanavaram taluk office,ChennaiAyanavaramAyanavaram (Part 1),2019-10-25,13.0883,80.2318,Working,50.00
+21-10-2026,20,Chennai nungambakkam,ChennaiEgmoreNungambakkam,2019-10-25,13.0667,80.25,Working,112.20
+21-10-2026,21,Anna university,ChennaiGuindyKottur,2019-10-25,13.0092,80.2342,Working,86.50
+21-10-2026,22,Gov hr sec school MGR Nagar,ChennaiMambalamSaligramam,2019-10-25,13.0331,80.2027,Working,151.40
+21-10-2026,23,DGP Office,ChennaiMylaporeMylapore (Part 1),2019-10-25,13.05,80.2333,Working,120.00
+21-10-2026,24,Perambur Corporation park,ChennaiPeramburPerambur (Part 3),2019-10-25,13.0965,80.2922,Working,44.50
+21-10-2026,25,Chennai collectorate building,ChennaiPursawalkamV.O.C Nagar,2019-10-25,13.1282,80.2916,Working,48.00
+21-10-2026,26,Sholinganallur,ChennaiSholinganallurCHOZHINGANALLUR-2,2019-10-25,12.8773,80.2277,Working,75.80
+21-10-2026,27,CD Hospital Tondiarpet,ChennaiTondiarpetTondiarpet (Part 2),2019-10-25,13.1093,80.2427,Working,30.80
 21-10-2026,28,Aliyar,CoimbatoreAnaimalaiANAIMALAI.,2000-04-10,11.0168,76.9558,Working,96.80
 21-10-2026,29,"Taluk Office, Anaimalai",CoimbatoreAnaimalaiANAIMALAI.,2022-11-07,10.582,76.934,Working,7.00
 21-10-2026,30,Annur,CoimbatoreAnnurANNUR METTUPALAYAM.,2001-07-10,11.2337,77.1029,Working,30.00
