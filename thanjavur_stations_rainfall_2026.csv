@@ -166430,29 +166430,29 @@ Date,Sl_No,Station_Name,Location_Details,Started_On,Latitude,Longitude,Status,Ra
 22-10-2026,25,Chennai collectorate building,ChennaiPursawalkamV.O.C Nagar,2019-10-25,13.1282,80.2916,Working,7.60
 22-10-2026,26,Sholinganallur,ChennaiSholinganallurCHOZHINGANALLUR-2,2019-10-25,12.8773,80.2277,Working,17.60
 22-10-2026,27,CD Hospital Tondiarpet,ChennaiTondiarpetTondiarpet (Part 2),2019-10-25,13.1093,80.2427,Working,6.20
-22-10-2026,28,Aliyar,CoimbatoreAnaimalaiANAIMALAI.,2000-04-10,11.0168,76.9558,Working,Not entered
-22-10-2026,29,"Taluk Office, Anaimalai",CoimbatoreAnaimalaiANAIMALAI.,2022-11-07,10.582,76.934,Working,Not entered
-22-10-2026,30,Annur,CoimbatoreAnnurANNUR METTUPALAYAM.,2001-07-10,11.2337,77.1029,Working,Not entered
-22-10-2026,31,Airport Peelamedu,CoimbatoreCoimbatore northKALAPATTY (EAST),1995-05-16,11.0748,77.0035,Working,Not entered
-22-10-2026,32,Periyanaickenpalayam,CoimbatoreCoimbatore northPERIYANAIKANPALAYAM.,1992-11-21,11.1582,76.9528,Working,Not entered
-22-10-2026,33,T.N.A.U,CoimbatoreCoimbatore northTHELUNGUPALAYAM.,1989-03-05,11.0124,76.9357,Working,Not entered
-22-10-2026,34,Coimbatore South,CoimbatoreCoimbatore southCOIMBATORE OLD VILL. AND  OL,2004-04-15,11.0009,76.9709,Working,Not entered
-22-10-2026,35,"Taluk Office, Kinathukkadavu",CoimbatoreKinathukadavuKINTHUKADAVU.,2022-11-07,10.822,77.016,Working,Not entered
-22-10-2026,36,"Railway Station, Podanur",CoimbatoreMadukaraiKURICHY.,2022-11-07,11.011,77.038,Working,Not entered
-22-10-2026,37,"Taluk Office, Madukkarai",CoimbatoreMadukaraiMADUKARAI.,2022-11-07,10.89,76.908,Working,Not entered
-22-10-2026,38,"Pillur Dam, Mettupalayam .",CoimbatoreMettupalayamNELLITHURAI.,2022-11-07,11.018,76.974,Working,Not entered
-22-10-2026,39,Mettupalayam,CoimbatoreMettupalayamSIKKADASAMPALAYAM,1990-05-16,11.2891,76.941,Working,Not entered
-22-10-2026,40,Siruvani Adivaram (Water Treatment Plant),CoimbatorePerurMADAVARAYAPURAM.,2022-11-07,10.963,76.681,Working,Not entered
-22-10-2026,41,"BDO, Thondamuthur",CoimbatorePerurTHONDAMUTHUR.,2022-11-07,10.987,76.844,Working,Not entered
-22-10-2026,42,"PWD IB, (Inspection Bungalow), Makkinampatti.",CoimbatorePollachiMAKKINAMPATTY,2022-11-07,10.656,77.032,Working,Not entered
-22-10-2026,43,"Taluk Office, Pollachi",CoimbatorePollachiPOLLACHI.,1988-04-13,10.6604,77.0073,Working,Not entered
-22-10-2026,44,Sulur,CoimbatoreSulurSULUR.,1990-07-10,11.0299,77.1227,Working,Not entered
-22-10-2026,45,"PWD office, Vaarappatti",CoimbatoreSulurVARAPATTY.,2022-11-07,10.869,77.191,Working,Not entered
-22-10-2026,46,Chinnakalar,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-11-15,10.3374,76.9641,Working,Not entered
-22-10-2026,47,Cincona,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1988-10-19,10.2877,76.9915,Working,Not entered
-22-10-2026,48,Sholayar,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-10-18,10.2993,76.8814,Working,Not entered
-22-10-2026,49,"Taluk Office, Valparai",CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-02-14,10.3243,76.954,Working,Not entered
-22-10-2026,50,Valparai PAP,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-09-14,10.3321,76.9609,Working,Not entered
+22-10-2026,28,Aliyar,CoimbatoreAnaimalaiANAIMALAI.,2000-04-10,11.0168,76.9558,Working,42.40
+22-10-2026,29,"Taluk Office, Anaimalai",CoimbatoreAnaimalaiANAIMALAI.,2022-11-07,10.582,76.934,Working,10.00
+22-10-2026,30,Annur,CoimbatoreAnnurANNUR METTUPALAYAM.,2001-07-10,11.2337,77.1029,Working,0.00
+22-10-2026,31,Airport Peelamedu,CoimbatoreCoimbatore northKALAPATTY (EAST),1995-05-16,11.0748,77.0035,Working,2.40
+22-10-2026,32,Periyanaickenpalayam,CoimbatoreCoimbatore northPERIYANAIKANPALAYAM.,1992-11-21,11.1582,76.9528,Working,0.00
+22-10-2026,33,T.N.A.U,CoimbatoreCoimbatore northTHELUNGUPALAYAM.,1989-03-05,11.0124,76.9357,Working,2.00
+22-10-2026,34,Coimbatore South,CoimbatoreCoimbatore southCOIMBATORE OLD VILL. AND  OL,2004-04-15,11.0009,76.9709,Working,5.00
+22-10-2026,35,"Taluk Office, Kinathukkadavu",CoimbatoreKinathukadavuKINTHUKADAVU.,2022-11-07,10.822,77.016,Working,2.00
+22-10-2026,36,"Railway Station, Podanur",CoimbatoreMadukaraiKURICHY.,2022-11-07,11.011,77.038,Working,4.40
+22-10-2026,37,"Taluk Office, Madukkarai",CoimbatoreMadukaraiMADUKARAI.,2022-11-07,10.89,76.908,Working,2.50
+22-10-2026,38,"Pillur Dam, Mettupalayam .",CoimbatoreMettupalayamNELLITHURAI.,2022-11-07,11.018,76.974,Working,0.00
+22-10-2026,39,Mettupalayam,CoimbatoreMettupalayamSIKKADASAMPALAYAM,1990-05-16,11.2891,76.941,Working,1.00
+22-10-2026,40,Siruvani Adivaram (Water Treatment Plant),CoimbatorePerurMADAVARAYAPURAM.,2022-11-07,10.963,76.681,Working,10.00
+22-10-2026,41,"BDO, Thondamuthur",CoimbatorePerurTHONDAMUTHUR.,2022-11-07,10.987,76.844,Working,0.00
+22-10-2026,42,"PWD IB, (Inspection Bungalow), Makkinampatti.",CoimbatorePollachiMAKKINAMPATTY,2022-11-07,10.656,77.032,Working,7.00
+22-10-2026,43,"Taluk Office, Pollachi",CoimbatorePollachiPOLLACHI.,1988-04-13,10.6604,77.0073,Working,7.00
+22-10-2026,44,Sulur,CoimbatoreSulurSULUR.,1990-07-10,11.0299,77.1227,Working,0.00
+22-10-2026,45,"PWD office, Vaarappatti",CoimbatoreSulurVARAPATTY.,2022-11-07,10.869,77.191,Working,5.00
+22-10-2026,46,Chinnakalar,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-11-15,10.3374,76.9641,Working,19.00
+22-10-2026,47,Cincona,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1988-10-19,10.2877,76.9915,Working,11.00
+22-10-2026,48,Sholayar,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-10-18,10.2993,76.8814,Working,28.00
+22-10-2026,49,"Taluk Office, Valparai",CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-02-14,10.3243,76.954,Working,14.00
+22-10-2026,50,Valparai PAP,CoimbatoreValparaiANAMALAI KUNDRUGAL.,1976-09-14,10.3321,76.9609,Working,17.00
 22-10-2026,51,Bhuvanagiri,CuddaloreBhuvanagiriMel Bhuvanagiri,1984-09-08,11.4418,79.6448,Working,30.00
 22-10-2026,52,Parangipettai,CuddaloreBhuvanagiriParangipettai,1967-03-16,11.5,79.7666,Working,6.20
 22-10-2026,53,Sethiyathope,CuddaloreBhuvanagiriSethiayathoppu,1999-10-23,11.434,79.5405,Working,35.20
