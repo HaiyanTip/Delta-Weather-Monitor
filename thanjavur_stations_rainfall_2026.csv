@@ -166985,17 +166985,17 @@ Date,Sl_No,Station_Name,Location_Details,Started_On,Latitude,Longitude,Status,Ra
 23-10-2026,14,"Taluk Office, Thirukalukundram",ChengalpattuThirukkalukundramTHIRUKALUKUNDRAM,2013-10-01,12.6161,80.1888,Working,11.00
 23-10-2026,15,Keelampakkam,ChengalpattuThirupporurKELAMPAKKAM,1940-01-01,12.7803,80.2294,Working,8.20
 23-10-2026,16,"Taluk Office, Thiruporur",ChengalpattuThirupporurTHIRUPPORUR,2016-09-23,12.7201,80.1862,Working,10.00
-23-10-2026,17,Alandur,ChennaiAlandurMEENAMBAKKAM,2019-10-25,12.9975,80.2006,Working,Not entered
-23-10-2026,18,Ambathur,ChennaiAmbatturAmbattur,2019-10-25,13.1095,80.149,Working,Not entered
-23-10-2026,19,Ayanavaram taluk office,ChennaiAyanavaramAyanavaram (Part 1),2019-10-25,13.0883,80.2318,Working,Not entered
-23-10-2026,20,Chennai nungambakkam,ChennaiEgmoreNungambakkam,2019-10-25,13.0667,80.25,Working,Not entered
-23-10-2026,21,Anna university,ChennaiGuindyKottur,2019-10-25,13.0092,80.2342,Working,Not entered
-23-10-2026,22,Gov hr sec school MGR Nagar,ChennaiMambalamSaligramam,2019-10-25,13.0331,80.2027,Working,Not entered
-23-10-2026,23,DGP Office,ChennaiMylaporeMylapore (Part 1),2019-10-25,13.05,80.2333,Working,Not entered
-23-10-2026,24,Perambur Corporation park,ChennaiPeramburPerambur (Part 3),2019-10-25,13.0965,80.2922,Working,Not entered
-23-10-2026,25,Chennai collectorate building,ChennaiPursawalkamV.O.C Nagar,2019-10-25,13.1282,80.2916,Working,Not entered
-23-10-2026,26,Sholinganallur,ChennaiSholinganallurCHOZHINGANALLUR-2,2019-10-25,12.8773,80.2277,Working,Not entered
-23-10-2026,27,CD Hospital Tondiarpet,ChennaiTondiarpetTondiarpet (Part 2),2019-10-25,13.1093,80.2427,Working,Not entered
+23-10-2026,17,Alandur,ChennaiAlandurMEENAMBAKKAM,2019-10-25,12.9975,80.2006,Working,26.90
+23-10-2026,18,Ambathur,ChennaiAmbatturAmbattur,2019-10-25,13.1095,80.149,Working,20.00
+23-10-2026,19,Ayanavaram taluk office,ChennaiAyanavaramAyanavaram (Part 1),2019-10-25,13.0883,80.2318,Working,22.00
+23-10-2026,20,Chennai nungambakkam,ChennaiEgmoreNungambakkam,2019-10-25,13.0667,80.25,Working,19.50
+23-10-2026,21,Anna university,ChennaiGuindyKottur,2019-10-25,13.0092,80.2342,Working,19.40
+23-10-2026,22,Gov hr sec school MGR Nagar,ChennaiMambalamSaligramam,2019-10-25,13.0331,80.2027,Working,31.20
+23-10-2026,23,DGP Office,ChennaiMylaporeMylapore (Part 1),2019-10-25,13.05,80.2333,Working,7.70
+23-10-2026,24,Perambur Corporation park,ChennaiPeramburPerambur (Part 3),2019-10-25,13.0965,80.2922,Working,30.50
+23-10-2026,25,Chennai collectorate building,ChennaiPursawalkamV.O.C Nagar,2019-10-25,13.1282,80.2916,Working,6.60
+23-10-2026,26,Sholinganallur,ChennaiSholinganallurCHOZHINGANALLUR-2,2019-10-25,12.8773,80.2277,Working,16.20
+23-10-2026,27,CD Hospital Tondiarpet,ChennaiTondiarpetTondiarpet (Part 2),2019-10-25,13.1093,80.2427,Working,13.50
 23-10-2026,28,Aliyar,CoimbatoreAnaimalaiANAIMALAI.,2000-04-10,11.0168,76.9558,Working,30.80
 23-10-2026,29,"Taluk Office, Anaimalai",CoimbatoreAnaimalaiANAIMALAI.,2022-11-07,10.582,76.934,Working,22.00
 23-10-2026,30,Annur,CoimbatoreAnnurANNUR METTUPALAYAM.,2001-07-10,11.2337,77.1029,Working,26.00
@@ -167484,18 +167484,18 @@ Date,Sl_No,Station_Name,Location_Details,Started_On,Latitude,Longitude,Status,Ra
 23-10-2026,513,Thamaraipakkam,TiruvallurTiruvallurThamaraipakkam,1960-01-01,13.2291,80.0258,Working,4.00
 23-10-2026,514,Tiruvallur,TiruvallurTiruvallurTiruvallur,1967-01-01,13.25,80,Working,1.00
 23-10-2026,515,Uthukottai,TiruvallurUthukottaiUthukottai,1999-01-01,13.33,79.89,Working,2.00
-23-10-2026,516,"Taluk Office, Arani",TiruvannamalaiArniARNI WEST,1889-01-01,12.7053,79.2489,Working,Not entered
-23-10-2026,517,"Taluk Office, Chengam",TiruvannamalaiChengamCHENGAM,2008-06-01,12.3408,78.4567,Working,Not entered
-23-10-2026,518,Chetpet,TiruvannamalaiChetpetCHETPET,2017-06-01,12.4655,79.3498,Working,Not entered
-23-10-2026,519,Cheyyar,TiruvannamalaiCheyyarKODANAGAR,1989-06-01,12.667,79.5402,Working,Not entered
-23-10-2026,520,Jamunamarathur,TiruvannamalaiJamunamarathoorKOVILUR,2019-10-12,12.6032,78.8904,Working,Not entered
-23-10-2026,521,Kalasapakkam,TiruvannamalaiKalasapakkamKALASAPPAKKAM,2016-08-01,12.4325,79.1035,Working,Not entered
-23-10-2026,522,Kilpennathur,TiruvannamalaiKilpennathurKIZHPENNATHUR,2018-06-01,12.2506,79.2182,Working,Not entered
-23-10-2026,523,Polur,TiruvannamalaiPolurPOLUR,1990-06-01,12.5084,79.1226,Working,Not entered
-23-10-2026,524,Thandrampattu,TiruvannamalaiThandrampetTHANDARAMPATTU,2017-05-17,12.15,78.94,Working,Not entered
-23-10-2026,525,Tiruvannamalai,TiruvannamalaiTiruvannamalaiTHIRUVANNAMALAI,2014-06-01,12.2344,79.0762,Working,Not entered
-23-10-2026,526,Vandavasi,TiruvannamalaiVandavasiVANDAVASI,1990-01-01,12.5,79.6,Working,Not entered
-23-10-2026,527,Vembakkam,TiruvannamalaiVembakkamVEMBAKKAM,2017-12-28,12.7862,79.5982,Working,Not entered
+23-10-2026,516,"Taluk Office, Arani",TiruvannamalaiArniARNI WEST,1889-01-01,12.7053,79.2489,Working,2.00
+23-10-2026,517,"Taluk Office, Chengam",TiruvannamalaiChengamCHENGAM,2008-06-01,12.3408,78.4567,Working,10.80
+23-10-2026,518,Chetpet,TiruvannamalaiChetpetCHETPET,2017-06-01,12.4655,79.3498,Working,41.00
+23-10-2026,519,Cheyyar,TiruvannamalaiCheyyarKODANAGAR,1989-06-01,12.667,79.5402,Working,1.70
+23-10-2026,520,Jamunamarathur,TiruvannamalaiJamunamarathoorKOVILUR,2019-10-12,12.6032,78.8904,Working,20.00
+23-10-2026,521,Kalasapakkam,TiruvannamalaiKalasapakkamKALASAPPAKKAM,2016-08-01,12.4325,79.1035,Working,57.00
+23-10-2026,522,Kilpennathur,TiruvannamalaiKilpennathurKIZHPENNATHUR,2018-06-01,12.2506,79.2182,Working,0.00
+23-10-2026,523,Polur,TiruvannamalaiPolurPOLUR,1990-06-01,12.5084,79.1226,Working,28.20
+23-10-2026,524,Thandrampattu,TiruvannamalaiThandrampetTHANDARAMPATTU,2017-05-17,12.15,78.94,Working,3.20
+23-10-2026,525,Tiruvannamalai,TiruvannamalaiTiruvannamalaiTHIRUVANNAMALAI,2014-06-01,12.2344,79.0762,Working,10.00
+23-10-2026,526,Vandavasi,TiruvannamalaiVandavasiVANDAVASI,1990-01-01,12.5,79.6,Working,9.40
+23-10-2026,527,Vembakkam,TiruvannamalaiVembakkamVEMBAKKAM,2017-12-28,12.7862,79.5982,Working,2.20
 23-10-2026,528,Gudiyatham,VelloreGudiyathamGudiyattam Town,1980-01-01,12.9457,78.8739,Working,0.00
 23-10-2026,529,Melalathur,VelloreGudiyathamMelalathur,2005-01-01,12.9123,78.8769,Working,0.00
 23-10-2026,530,VCS Mill Ammundi,VelloreKatpadiAmmundi,1990-07-01,12.977,79.2407,Working,3.40
