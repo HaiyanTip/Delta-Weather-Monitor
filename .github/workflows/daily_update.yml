@@ -2,7 +2,7 @@ name: Daily Rainfall Update
 
 on:
   schedule:
-    # Runs at 4:30 AM UTC, which equals 10:00 AM IST
+    # Runs at 4:30 AM UTC = 10:00 AM IST (after TNSMART publishes morning readings)
     - cron: '30 3 * * *'
   workflow_dispatch: # Allows you to trigger it manually anytime!
 
@@ -25,6 +25,8 @@ jobs:
         run: pip install requests pandas beautifulsoup4 pytz
 
       - name: Run Python Scraper
+        env:
+          TNSMART_API_URL: ${{ secrets.TNSMART_API_URL }}
         run: python update_tracker.py
 
       - name: Commit and Push Updated CSV
